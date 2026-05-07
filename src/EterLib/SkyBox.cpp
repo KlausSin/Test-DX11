@@ -804,56 +804,42 @@ void CSkyBox::Update()
 
 void CSkyBox::Render()
 {
-	// 2004.01.25 myevan 처리를 렌더링 후반으로 옮기고, DepthTest 처리
-	STATEMANAGER.SaveRenderState(RS11_ZENABLE,	TRUE);
+	STATEMANAGER.SaveRenderState(RS11_ZENABLE, TRUE);
 	STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, FALSE);
 	STATEMANAGER.SaveRenderState(RS11_LIGHTING, FALSE);
 	STATEMANAGER.SaveRenderState(RS11_FOGENABLE, FALSE);
 	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, FALSE);
 
-	STATEMANAGER.SaveTextureStageState(0, TSS11_COLOROP, TOP11_SELECTARG2);
-	STATEMANAGER.SaveTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
-	STATEMANAGER.SaveTextureStageState(0, TSS11_COLORARG2, TA11_DIFFUSE);
-
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, TOP11_DISABLE);
-
 	STATEMANAGER.SetTexture(1, NULL);
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP, TOP11_DISABLE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP, TOP11_DISABLE);
-
-	_mgr->SetShader(VF_PDT);
 
 	STATEMANAGER.SetTransform(World, &m_matWorld);
 
-	//Render Face
-	if( m_ucRenderMode == CSkyObject::SKY_RENDER_MODE_TEXTURE )
+	if (m_ucRenderMode == CSkyObject::SKY_RENDER_MODE_TEXTURE)
 	{
-		STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_SELECTARG1);
+		_mgr->SetShader(VF_SKYBOX, SKY_USE_TEXTURE);
+
 		STATEMANAGER.SaveSamplerState(0, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_CLAMP);
 		STATEMANAGER.SaveSamplerState(0, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_CLAMP);
 
-		for (unsigned int i = 0; i < 6; ++i)
+		for (uint32_t i = 0; i < 6; ++i)
 		{
-			CGraphicImageInstance * pFaceImageInstance = m_GraphicImageInstanceMap[m_Faces[i].m_strFaceTextureFileName];
+			CGraphicImageInstance* pFaceImageInstance = m_GraphicImageInstanceMap[m_Faces[i].m_strFaceTextureFileName];
 			if (!pFaceImageInstance)
 				break;
 
-			STATEMANAGER.SetTexture( 0, pFaceImageInstance->GetTextureReference().GetSRV() );
-
+			STATEMANAGER.SetTexture(0, pFaceImageInstance->GetTextureReference().GetSRV());
 			m_Faces[i].Render();
 		}
-
-		//STATEMANAGER.SetTexture( 0, NULL );
 
 		STATEMANAGER.RestoreSamplerState(0, SS11_ADDRESSU);
 		STATEMANAGER.RestoreSamplerState(0, SS11_ADDRESSV);
 	}
 	else
 	{
-		for (unsigned int i = 0; i < 6; ++i)
-		{
+		_mgr->SetShader(VF_SKYBOX, SKY_USE_DIFFUSE);
+
+		for (uint32_t i = 0; i < 6; ++i)
 			m_Faces[i].Render();
-		}
 	}
 
 	STATEMANAGER.RestoreRenderState(RS11_LIGHTING);
@@ -861,9 +847,6 @@ void CSkyBox::Render()
 	STATEMANAGER.RestoreRenderState(RS11_ZWRITEENABLE);
 	STATEMANAGER.RestoreRenderState(RS11_FOGENABLE);
 	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-	STATEMANAGER.RestoreTextureStageState(0, TSS11_COLOROP);
-	STATEMANAGER.RestoreTextureStageState(0, TSS11_COLORARG1);
-	STATEMANAGER.RestoreTextureStageState(0, TSS11_COLORARG2);
 }
 
 void CSkyBox::RenderCloud()
@@ -871,11 +854,10 @@ void CSkyBox::RenderCloud()
 	if (m_FaceCloud.m_strfacename.empty())
 		return;
 
-	CGraphicImageInstance * pCloudGraphicImageInstance = m_GraphicImageInstanceMap[m_FaceCloud.m_strfacename];
+	CGraphicImageInstance* pCloudGraphicImageInstance = m_GraphicImageInstanceMap[m_FaceCloud.m_strfacename];
 	if (!pCloudGraphicImageInstance)
 		return;
 
-	// 2004.01.25 myevan 처리를 렌더링 후반으로 옮기고, DepthTest 처리
 	STATEMANAGER.SaveRenderState(RS11_ZENABLE, TRUE);
 	STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, FALSE);
 	STATEMANAGER.SaveRenderState(RS11_LIGHTING, FALSE);
@@ -884,40 +866,36 @@ void CSkyBox::RenderCloud()
 	STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_ONE);
 	STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_COLOR);
 
-	STATEMANAGER.SaveTextureStageState(0, TSS11_TEXTURETRANSFORMFLAGS, TTFF11_COUNT2);
-
 	m_matTextureCloud._31 = m_fCloudPositionU;
 	m_matTextureCloud._32 = m_fCloudPositionV;
-	
+
 	DWORD dwCurTime = CTimer::Instance().GetCurrentMillisecond();
-	
-	m_fCloudPositionU += m_fCloudScrollSpeedU * (float)( dwCurTime - m_dwlastTime ) * 0.001f;
+
+	m_fCloudPositionU += m_fCloudScrollSpeedU * float(dwCurTime - m_dwlastTime) * 0.001f;
 	if (m_fCloudPositionU >= 1.0f)
 		m_fCloudPositionU = 0.0f;
-	
-	m_fCloudPositionV += m_fCloudScrollSpeedV * (float)( dwCurTime - m_dwlastTime ) * 0.001f;
+
+	m_fCloudPositionV += m_fCloudScrollSpeedV * float(dwCurTime - m_dwlastTime) * 0.001f;
 	if (m_fCloudPositionV >= 1.0f)
 		m_fCloudPositionV = 0.0f;
-	
+
 	m_dwlastTime = dwCurTime;
-	
+
 	STATEMANAGER.SaveTransform(Texture0, &m_matTextureCloud);
 
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
- 	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2, TA11_DIFFUSE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, TOP11_SELECTARG1);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1, TA11_TEXTURE);
-	
 	D3DXMATRIX matProjCloud;
 	D3DXMatrixPerspectiveFovRH(&matProjCloud, D3DX_PI * 0.25f, 1.33333f, 50.0f, 999999.0f);
+
+	_mgr->SetShader(VF_SKYBOX, SKY_CLOUD);
+
 	STATEMANAGER.SetTransform(World, &m_matWorldCloud);
 	STATEMANAGER.SaveTransform(Projection, &matProjCloud);
+
 	STATEMANAGER.SetTexture(0, pCloudGraphicImageInstance->GetTexturePointer()->GetSRV());
 	m_FaceCloud.Render();
+
 	STATEMANAGER.RestoreTransform(Projection);
-	
 	STATEMANAGER.RestoreTransform(Texture0);
-	STATEMANAGER.RestoreTextureStageState(0, TSS11_TEXTURETRANSFORMFLAGS);
 
 	STATEMANAGER.RestoreRenderState(RS11_LIGHTING);
 	STATEMANAGER.RestoreRenderState(RS11_ZENABLE);

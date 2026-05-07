@@ -91,7 +91,7 @@ void CEffectInstance::OnUpdate()
 
 void CEffectInstance::OnRender()
 {
-	_mgr->SetShader(VF_PT);
+	_mgr->SetShader(VF_EFFECT);
 	STATEMANAGER.SaveSamplerState(0, SS11_MINFILTER, TF11_NONE);
 	STATEMANAGER.SaveSamplerState(0, SS11_MAGFILTER, TF11_NONE);
 
@@ -102,13 +102,6 @@ void CEffectInstance::OnRender()
 	STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
 	STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, FALSE);
 	/////
-
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TFACTOR);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2, TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_MODULATE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1, TA11_TFACTOR);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG2, TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, TOP11_MODULATE);
 
 	std::for_each(m_ParticleInstanceVector.begin(),m_ParticleInstanceVector.end(),std::mem_fn(&CEffectElementBaseInstance::Render));
 	std::for_each(m_MeshInstanceVector.begin(),m_MeshInstanceVector.end(),std::mem_fn(&CEffectElementBaseInstance::Render));

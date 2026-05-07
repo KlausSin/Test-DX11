@@ -17,8 +17,12 @@ ShadersContainer::ShadersContainer(DxManager* manager)
 	m_desc[VF_PT] = { "PT_Vs",     "PT_Ps" };
 	m_desc[VF_PDT2] = { "PDT2_Vs",   "PDT2_Ps" };
 	m_desc[VF_SKYBOX] = { "skybox_Vs", "skybox_Ps" };
+	m_desc[VF_TERRAIN] = { "terrain_Vs", "terrain_Ps" };
+	m_desc[VF_EFFECT] = { "effect_Vs", "effect_Ps" };
 
 	Precompile(VF_MESH, { SHADER_NONE, IS_SKINNED, HAS_TEX2, HAS_TEX2 | IS_SKINNED});
+	Precompile(VF_SKYBOX, { SKY_USE_TEXTURE, SKY_USE_DIFFUSE, SKY_CLOUD });
+	Precompile(VF_TERRAIN, { TERRAIN_SPLAT, TERRAIN_SHADOW, TERRAIN_SHADOW_CHR, TERRAIN_MARKED });
 }
 
 void ShadersContainer::Precompile(ED3D11VertexFormat format, const std::vector<uint32_t>& flagCombinations)

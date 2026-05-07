@@ -73,7 +73,6 @@ class CPythonSystem : public CSingleton<CPythonSystem>
 			bool			bDecompressDDS;
 			bool			bNoSoundCard;
 			bool			bUseDefaultIME;
-			BYTE			bSoftwareTiling;
 			bool			bViewChat;
 			bool			bAlwaysShowName;
 			bool			bShowDamage;
@@ -119,9 +118,6 @@ class CPythonSystem : public CSingleton<CPythonSystem>
 		bool							IsShowSalesText();
 		bool							IsUseDefaultIME();
 		bool							IsNoSoundCard();
-		bool							IsAutoTiling();
-		bool							IsSoftwareTiling();
-		void							SetSoftwareTiling(bool isEnable);
 		void							SetViewChatFlag(int iFlag);
 		void							SetAlwaysShowNameFlag(int iFlag);
 		void							SetShowDamageFlag(int iFlag);

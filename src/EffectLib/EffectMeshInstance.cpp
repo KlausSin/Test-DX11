@@ -143,8 +143,7 @@ void CEffectMeshInstance::OnRender()
 
 		BYTE byType;
 		D3DXCOLOR Color(1.0f, 1.0f, 1.0f, 1.0f);
-		if (m_pMeshScript->GetColorOperationType(i, &byType))
-			STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, byType);
+		m_pMeshScript->GetColorOperationType(i, &byType);
 		m_pMeshScript->GetColorFactor(i, &Color);
 
 		TTimeEventTableFloat * TableAlpha;
@@ -168,7 +167,7 @@ void CEffectMeshInstance::OnRender()
 
 		Color.a = fAlpha * rFrameData.fVisibility;
 		STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, DWORD(Color));
-		_mgr->SetShader(VF_PT);
+		_mgr->SetShader(VF_EFFECT);
 		STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, rFrameData.dwIndexCount / 3, sizeof(TPTVertex), &rFrameData.PDTVertexVector[0]);
 		// Render //
 	}

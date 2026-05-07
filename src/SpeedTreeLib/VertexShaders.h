@@ -117,31 +117,6 @@ cbuffer CBPerFrame : register(b0)
 	row_major float4x4 gProj;
 };
 
-cbuffer CBMaterial : register(b1)
-{
-	float4 gTextureFactor;
-	int gUseTexture0;
-	int gUseTexture1;
-	int gColorOp0;
-	int gAlphaOp0;
-	int gColorOp1;
-	int gAlphaOp1;
-	int gColorArg10;
-	int gColorArg20;
-	int gAlphaArg10;
-	int gAlphaArg20;
-	int gColorArg11;
-	int gColorArg21;
-	int gAlphaArg11;
-	int gAlphaArg21;
-	int gAlphaTestEnable;
-	int gAlphaRef;
-	int gTexCoordGen1;
-	int gPadMat1;
-	int gPadMat2;
-	int gPadMat3;
-};
-
 cbuffer CBSpeedTree : register(b7)
 {
 	row_major float4x4 gSpeedTreeCompound;
@@ -224,21 +199,18 @@ VSOut VSLeaf(VSInLeaf v)
 	return FinishVertex(p, v.color, v.uv0, float2(0.0f, 0.0f));
 }
 
+static const float gAlphaRef = 84.0f / 255.0f;
+
 float4 PSMain(VSOut i) : SV_Target
 {
 	float4 texColor = tex0.Sample(samp0, i.uv0);
 
-	float3 light = gSpeedTreeLightAmbient.rgb + gSpeedTreeLightDiffuse.rgb;
-	light = saturate(light);
+	float3 light = saturate(gSpeedTreeLightAmbient.rgb + gSpeedTreeLightDiffuse.rgb);
 
 	float4 baseColor = texColor * i.color;
 	baseColor.rgb *= light;
 
-	if (gAlphaTestEnable != 0)
-	{
-		float alphaRef = (gAlphaRef > 1) ? ((float)gAlphaRef / 255.0f) : (float)gAlphaRef;
-		clip(baseColor.a - alphaRef);
-	}
+	clip(baseColor.a - gAlphaRef);
 
 	return baseColor;
 }

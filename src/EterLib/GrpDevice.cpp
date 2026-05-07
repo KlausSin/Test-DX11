@@ -16,7 +16,6 @@ bool GRAPHICS_CAPS_CAN_NOT_DRAW_LINE = false;
 bool GRAPHICS_CAPS_CAN_NOT_DRAW_SHADOW = false;
 bool GRAPHICS_CAPS_HALF_SIZE_IMAGE = false;
 bool GRAPHICS_CAPS_CAN_NOT_TEXTURE_ADDRESS_BORDER = false;
-bool GRAPHICS_CAPS_SOFTWARE_TILING = false;
 
 bool g_isBrowserMode=false;
 RECT g_rcBrowser;

@@ -105,13 +105,6 @@ void CSpeedTreeWrapper::OnRenderPCBlocker()
 
 	CSpeedTreeForestDirectX::Instance().UpdateCompundMatrix(CCameraManager::Instance().GetCurrentCamera()->GetEye(), ms_matView, ms_matProj);
 
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2, TA11_DIFFUSE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_MODULATE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1, TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG2, TA11_DIFFUSE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, TOP11_MODULATE);
-
 	DWORD dwLighting = STATEMANAGER.GetRenderState(RS11_LIGHTING);
 	DWORD dwFogEnable = STATEMANAGER.GetRenderState(RS11_FOGENABLE);
 	DWORD dwAlphaBlendEnable = STATEMANAGER.GetRenderState(RS11_ALPHABLENDENABLE);
@@ -229,8 +222,6 @@ void CSpeedTreeWrapper::OnRenderPCBlocker()
 	STATEMANAGER.SetRenderState(RS11_ALPHABLENDENABLE, dwAlphaBlendEnable);
 	STATEMANAGER.SetRenderState(RS11_LIGHTING, dwLighting);
 	STATEMANAGER.SetRenderState(RS11_FOGENABLE, dwFogEnable);
-
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP, TOP11_SELECTARG1);
 }
 
 void CSpeedTreeWrapper::OnRender()
@@ -246,13 +237,6 @@ void CSpeedTreeWrapper::OnRender()
 	//Advance();
 
 	CSpeedTreeForestDirectX::Instance().UpdateCompundMatrix(CCameraManager::Instance().GetCurrentCamera()->GetEye(), ms_matView, ms_matProj);
-
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2, TA11_DIFFUSE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_MODULATE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1, TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG2, TA11_DIFFUSE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, TOP11_MODULATE);
 
 	STATEMANAGER.SetSamplerState(1, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_WRAP);
 	STATEMANAGER.SetSamplerState(1, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_WRAP);

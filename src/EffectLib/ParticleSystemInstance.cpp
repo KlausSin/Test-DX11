@@ -395,9 +395,10 @@ namespace NParticleRenderer
 void CParticleSystemInstance::OnRender()
 {
 	CScreen::Identity();
+
 	STATEMANAGER.SetRenderState(RS11_SRCBLEND, m_pParticleProperty->m_bySrcBlendType);
 	STATEMANAGER.SetRenderState(RS11_DESTBLEND, m_pParticleProperty->m_byDestBlendType);
-	STATEMANAGER.SetTextureStageState(0,TSS11_COLOROP,m_pParticleProperty->m_byColorOperationType);
+
 	if (m_pParticleProperty->m_byBillboardType < BILLBOARD_TYPE_2FACE)
 	{
 		if (!m_pParticleProperty->m_bAttachFlag)

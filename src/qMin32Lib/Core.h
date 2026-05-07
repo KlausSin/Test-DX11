@@ -41,6 +41,7 @@ enum ED3D11VertexFormat
 	VF_PDT2,	// Position + Diffuse + TexCoord + TexCoord2 (SpeedTree branches/fronds)
 	
 	VF_SKYBOX,
-
+	VF_TERRAIN,
+	VF_EFFECT,
 	VF_COUNT
 };

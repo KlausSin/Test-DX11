@@ -48,10 +48,7 @@ void CMapOutdoor::RenderTerrain()
 	std::sort(m_PatchVector.begin(),m_PatchVector.end());
 
 	// 그리기 위한 벡터 세팅
-	if (CTerrainPatch::SOFTWARE_TRANSFORM_PATCH_ENABLE)
-		__RenderTerrain_RenderSoftwareTransformPatch();
-	else
-		__RenderTerrain_RenderHardwareTransformPatch();
+	__RenderTerrain_RenderHardwareTransformPatch();
 }
 
 void CMapOutdoor::__RenderTerrain_RecurseRenderQuadTree(CTerrainQuadtreeNode *Node, bool bCullCheckNeed)
@@ -131,7 +128,6 @@ void CMapOutdoor::__RenderTerrain_AppendPatch(const D3DXVECTOR3& c_rv3Center, fl
 
 void CMapOutdoor::ApplyLight(DWORD dwVersion, const D3DLIGHT9& c_rkLight)
 {
-	m_kSTPD.m_dwLightVersion=dwVersion;
 	STATEMANAGER.SetLight(0, &c_rkLight);
 }
 
@@ -411,28 +407,16 @@ void CMapOutdoor::RenderArea(bool bRenderAmbience)
 		if (mc_pEnvironmentData != NULL)
 			STATEMANAGER.SetRenderState(RS11_FOGCOLOR, 0xFFFFFFFF);
 
-		STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
-		STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2, TA11_DIFFUSE);
-		STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_MODULATE);
-		STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, TOP11_DISABLE);
-		STATEMANAGER.SaveTextureStageState(1, TSS11_TEXCOORDINDEX, TSS11_TCI_CAMERASPACEPOSITION);
-		STATEMANAGER.SaveTextureStageState(1, TSS11_TEXTURETRANSFORMFLAGS, TTFF11_COUNT2);
 
 		// Transform
 		STATEMANAGER.SaveTransform(Texture1, &m_matDynamicShadow);
 		STATEMANAGER.SetTexture(1, m_lpCharacterShadowMapTexture);
 
-		STATEMANAGER.SetTextureStageState(1, TSS11_COLORARG1, TA11_TEXTURE);
-		STATEMANAGER.SetTextureStageState(1, TSS11_COLORARG2, TA11_CURRENT);
-		STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP,   TOP11_MODULATE);
-		STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP,   TOP11_DISABLE);
 		STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_BORDER);
 		STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_BORDER);
 
 		std::for_each(m_ShadowReceiverVector.begin(), m_ShadowReceiverVector.end(), FAreaRenderShadow());
 
-		STATEMANAGER.RestoreTextureStageState(1, TSS11_TEXCOORDINDEX);
-		STATEMANAGER.RestoreTextureStageState(1, TSS11_TEXTURETRANSFORMFLAGS);
 		STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSU);
 		STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSV);
 
@@ -541,14 +525,6 @@ void CMapOutdoor::RenderBlendArea()
 		STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
 		STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_SRC_ALPHA);
 		STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_ALPHA);
-		STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1, TA11_TEXTURE);
-		STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, TOP11_SELECTARG1);
-		STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
-		STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2, TA11_DIFFUSE);
-		STATEMANAGER.SetTextureStageState(1, TSS11_COLORARG1, TA11_TEXTURE);
-		STATEMANAGER.SetTextureStageState(1, TSS11_COLORARG2, TA11_CURRENT);
-		STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP,   TOP11_SELECTARG1);
-		STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP,   TOP11_DISABLE);
 
 		std::for_each(s_kVct_pkBlendThingInstSort.begin(), s_kVct_pkBlendThingInstSort.end(), CMapOutdoor_FBlendThingInstanceRender());
 
@@ -575,21 +551,9 @@ void CMapOutdoor::RenderPCBlocker()
 	if (m_PCBlockerVector.size() != 0)
 	{
 		STATEMANAGER.SetTexture(0, NULL);
-		STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1,	TA11_TEXTURE);
-		STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2,	TA11_CURRENT);
-		STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP,	TOP11_MODULATE);
-		STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1,	TA11_TEXTURE);
-		STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP,	TOP11_SELECTARG1);
-		STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP,	TOP11_SELECTARG1);
-		STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP,	TOP11_DISABLE);
 
 		STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-		STATEMANAGER.SaveTextureStageState(1, TSS11_TEXCOORDINDEX, TSS11_TCI_CAMERASPACEPOSITION);
-		STATEMANAGER.SaveTextureStageState(1, TSS11_TEXTURETRANSFORMFLAGS, TTFF11_COUNT2);
-		STATEMANAGER.SetTextureStageState(1, TSS11_COLORARG1, TA11_CURRENT);
-		STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP, TOP11_SELECTARG1);
-		STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAARG1, TA11_TEXTURE);
-		STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP, TOP11_SELECTARG1);
+
 		STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSU,	D3D11_TEXTURE_ADDRESS_CLAMP);
 		STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSV,	D3D11_TEXTURE_ADDRESS_CLAMP);
 
@@ -601,12 +565,6 @@ void CMapOutdoor::RenderPCBlocker()
 		STATEMANAGER.SetTexture(1, NULL);
 		STATEMANAGER.RestoreTransform(Texture1);
 
-		STATEMANAGER.RestoreTextureStageState(1, TSS11_TEXCOORDINDEX);
-		STATEMANAGER.RestoreTextureStageState(1, TSS11_TEXTURETRANSFORMFLAGS);
-		STATEMANAGER.SetTextureStageState(1, TSS11_COLORARG1, TA11_TEXTURE);
-		STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP, TOP11_DISABLE);
-		STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAARG1, TA11_TEXTURE);
-		STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP, TOP11_DISABLE);
 		STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSU);
 		STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSV);
 		STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
@@ -779,10 +737,10 @@ void CMapOutdoor::RenderMarkedArea()
 	D3D11_PRIMITIVE_TOPOLOGY eType;
 	SelectIndexBuffer(0, &wPrimitiveCount, &eType);
 
-	D3DXMATRIX matTexTransform, matTexTransformTemp;
-
+	D3DXMATRIX matTexTransform;
 	D3DXMatrixScaling(&matTexTransform, m_fTerrainTexCoordBase * 32.0f, -m_fTerrainTexCoordBase * 32.0f, 0.0f);
 	D3DXMatrixMultiply(&matTexTransform, &m_matViewInverse, &matTexTransform);
+
 	STATEMANAGER.SaveTransform(Texture0, &matTexTransform);
 	STATEMANAGER.SaveTransform(Texture1, &matTexTransform);
 
@@ -791,25 +749,11 @@ void CMapOutdoor::RenderMarkedArea()
 	STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_ALPHA);
 
 	static long lStartTime = timeGetTime();
-	float fTime = float((timeGetTime() - lStartTime)%3000) / 3000.0f;
+	float fTime = float((timeGetTime() - lStartTime) % 3000) / 3000.0f;
 	float fAlpha = fabs(fTime - 0.5f) / 2.0f + 0.1f;
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, D3DXCOLOR(1.0f, 1.0f, 1.0f, fAlpha));
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2, TA11_TFACTOR);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_SELECTARG2);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1, TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG2, TA11_TFACTOR);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, TOP11_SELECTARG2);
-	STATEMANAGER.SaveTextureStageState(0, TSS11_TEXCOORDINDEX, TSS11_TCI_CAMERASPACEPOSITION);
-	STATEMANAGER.SaveTextureStageState(0, TSS11_TEXTURETRANSFORMFLAGS, TTFF11_COUNT2);
 
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLORARG1, TA11_CURRENT);
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP, TOP11_SELECTARG1);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAARG1, TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAARG2, TA11_CURRENT);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP, TOP11_MODULATE);
-	STATEMANAGER.SaveTextureStageState(1, TSS11_TEXCOORDINDEX, TSS11_TCI_CAMERASPACEPOSITION);
-	STATEMANAGER.SaveTextureStageState(1, TSS11_TEXTURETRANSFORMFLAGS, TTFF11_COUNT2);
+	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, D3DXCOLOR(1.0f, 1.0f, 1.0f, fAlpha));
+
 	STATEMANAGER.SaveSamplerState(1, SS11_MINFILTER, TF11_POINT);
 	STATEMANAGER.SaveSamplerState(1, SS11_MAGFILTER, TF11_POINT);
 	STATEMANAGER.SaveSamplerState(1, SS11_MIPFILTER, TF11_POINT);
@@ -818,12 +762,10 @@ void CMapOutdoor::RenderMarkedArea()
 
 	STATEMANAGER.SetTexture(0, m_attrImageInstance.GetTexturePointer()->GetSRV());
 
+	_mgr->SetShader(VF_TERRAIN, TERRAIN_MARKED);
+
 	RecurseRenderAttr(m_pRootNode);
 
-	STATEMANAGER.RestoreTextureStageState(0, TSS11_TEXCOORDINDEX);
-	STATEMANAGER.RestoreTextureStageState(0, TSS11_TEXTURETRANSFORMFLAGS);
-	STATEMANAGER.RestoreTextureStageState(1, TSS11_TEXCOORDINDEX);
-	STATEMANAGER.RestoreTextureStageState(1, TSS11_TEXTURETRANSFORMFLAGS);
 	STATEMANAGER.RestoreSamplerState(1, SS11_MINFILTER);
 	STATEMANAGER.RestoreSamplerState(1, SS11_MAGFILTER);
 	STATEMANAGER.RestoreSamplerState(1, SS11_MIPFILTER);
@@ -901,7 +843,7 @@ void CMapOutdoor::DrawPatchAttr(long patchnum)
 	TTerrainSplatPatch & rAttrSplatPatch = pTerrain->GetMarkedSplatPatch();
  	STATEMANAGER.SetTexture(1, rAttrSplatPatch.Splats[0].pd3dTexture);
 
-	_mgr->SetShader(VF_PN);
+	_mgr->SetShader(VF_TERRAIN, TERRAIN_MARKED);
 
 	_mgr->SetVertexBuffer(pTerrainPatchProxy->HardwareTransformPatch_GetVertexBufferPtr());
 	STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, 0, 0, m_wNumIndices[0] - 2);

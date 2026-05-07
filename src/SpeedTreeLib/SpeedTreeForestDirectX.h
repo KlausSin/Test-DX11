@@ -38,7 +38,6 @@
 
 #include "SpeedTreeForest.h"
 #include "SpeedTreeMaterial.h"
-#include "VertexShaders.h"
 
 ///////////////////////////////////////////////////////////////////////  
 //	class CSpeedTreeForestDirectX declaration
@@ -48,19 +47,11 @@ class CSpeedTreeForestDirectX : public CSpeedTreeForest, public CGraphicBase, pu
 		CSpeedTreeForestDirectX();
 		virtual ~CSpeedTreeForestDirectX();
 
-		void			UploadWindMatrix(unsigned int uiLocation, const float* pMatrix) const;
 		void			UpdateCompundMatrix(const D3DXVECTOR3 & c_rEyeVec, const D3DXMATRIX & c_rmatView, const D3DXMATRIX& c_rmatProj);
 
 		void			Render(unsigned long ulRenderBitVector = Forest_RenderAll);
-		bool			SetRenderingDevice(ID3D11Device* pDevice);
-		bool			EnsureVertexShaders() { return InitVertexShaders(); }
+		bool			SetRenderingDevice();
 		
-	private:
-		bool			InitVertexShaders();
 		
-	private:
-		ID3D11Device* m_pDx;
-		SpeedTreeShaderPtr m_pBranchShader;
-		SpeedTreeShaderPtr m_pLeafShader;
 // leaf vertex shader
 };

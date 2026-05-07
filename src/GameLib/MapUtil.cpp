@@ -6,7 +6,7 @@ void Environment_Init(SEnvironmentData& envData)
 	for (int i = 0; i < ENV_DIRLIGHT_NUM; ++i)
 	{
 		envData.bDirLightsEnable[i] = false;
-		envData.DirLights[i].Type = D3DLIGHT_DIRECTIONAL;
+		envData.DirLights[i].Type = D3DLIGHT_DIRECTIONAL11;
 		envData.DirLights[i].Direction = D3DXVECTOR3(0.5f, 0.5f, -0.5f);
 		envData.DirLights[i].Position = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
 		envData.DirLights[i].Specular = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);

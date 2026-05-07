@@ -92,7 +92,6 @@ class CSpeedTreeForest
 		void						SetupWindMatrices(float fTimeInSecs);
 		
 		// overridden by specific graphics API
-		virtual	void				UploadWindMatrix(unsigned int uiLocation, const float* pMatrix) const = 0;
 		virtual void				Render(unsigned long ulRenderBitVector) = 0;
 		
 	protected:

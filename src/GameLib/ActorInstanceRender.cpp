@@ -36,7 +36,7 @@ void CActorInstance::OnRender()
 	if (!m_pkCurRaceData)
 		return;
 
-	D3DMATERIAL9 kMtrl;
+	D3DMATERIAL11 kMtrl;
 	STATEMANAGER.GetMaterial(&kMtrl);
 
 	kMtrl.Diffuse=D3DXCOLOR(m_dwMtrlColor);	

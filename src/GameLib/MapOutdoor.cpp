@@ -235,7 +235,7 @@ void CMapOutdoor::OnBeginEnvironment()
 
 	CSpeedTreeForestDirectX& rkForest=CSpeedTreeForestDirectX::Instance();
 
-	const D3DLIGHT9& c_rkLight = mc_pEnvironmentData->DirLights[ENV_DIRLIGHT_CHARACTER];
+	const D3DLIGHT11& c_rkLight = mc_pEnvironmentData->DirLights[ENV_DIRLIGHT_CHARACTER];
 	rkForest.SetLight(
 		(const float *)&c_rkLight.Direction,
 		(const float *)&c_rkLight.Ambient, 

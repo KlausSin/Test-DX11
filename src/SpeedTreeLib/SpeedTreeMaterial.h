@@ -33,8 +33,8 @@
 ///////////////////////////////////////////////////////////////////////  
 //	Include Files
 
-#include "EterLib/D3D9Compat.h"
 #include "EterLib/D3DXMathCompat.h"
+#include "qMin32Lib/Core.h"
 
 ///////////////////////////////////////////////////////////////////////  
 //	class CSpeedTreeMaterial declaration/definiton
@@ -68,11 +68,11 @@ class CSpeedTreeMaterial
 			m_cMaterial.Power = pMaterialArray[12];
 		}
 		
-		D3DMATERIAL9 * Get()
+		D3DMATERIAL11 * Get()
 		{
 			return &m_cMaterial;
 		}
 		
 	private:
-		D3DMATERIAL9 m_cMaterial;	// the material object
+		D3DMATERIAL11 m_cMaterial;	// the material object
 };

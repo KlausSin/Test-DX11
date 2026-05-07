@@ -65,6 +65,20 @@ cbuffer CBScreenSize : register(b5)
     float padScreen1;
 };
 
+cbuffer CBSpeedTree : register(b7)
+{
+    row_major float4x4 gSpeedTreeCompound;
+    float4 gTreePos;
+    float4 gSpeedTreeFog;
+    float4 gSpeedTreeLightDir;
+    float4 gSpeedTreeLightAmbient;
+    float4 gSpeedTreeLightDiffuse;
+    float4 gSpeedTreeMaterialDiffuse;
+    float4 gSpeedTreeMaterialAmbient;
+    float4 gLeafLightingAdjustment;
+    float4 gLeafTable[1024];
+};
+
 float4 ResolveArg(int arg, float4 tex, float4 diffuse)
 {
 	if (arg == 3) return textureFactor;

@@ -6,13 +6,11 @@
 
 #include "SpeedTreeForestDirectX.h"
 #include "SpeedTreeConfig.h"
-#include "VertexShaders.h"
 #include "qMin32Lib/ConstantBufferManager.h"
 #include "qMin32Lib/DxManager.h"
 //
 
 CSpeedTreeForestDirectX::CSpeedTreeForestDirectX()
-	: m_pDx(nullptr)
 {
 }
 
@@ -20,30 +18,8 @@ CSpeedTreeForestDirectX::~CSpeedTreeForestDirectX()
 {
 }
 
-bool CSpeedTreeForestDirectX::InitVertexShaders()
+bool CSpeedTreeForestDirectX::SetRenderingDevice()
 {
-	if (!m_pBranchShader)
-		m_pBranchShader = LoadBranchShader();
-
-	if (!m_pLeafShader)
-		m_pLeafShader = LoadLeafShader();
-
-	if (m_pBranchShader && m_pBranchShader->IsValid() && m_pLeafShader && m_pLeafShader->IsValid())
-	{
-		CSpeedTreeWrapper::SetVertexShaders(m_pBranchShader, m_pLeafShader);
-		return true;
-	}
-
-	return false;
-}
-
-bool CSpeedTreeForestDirectX::SetRenderingDevice(ID3D11Device* lpDevice)
-{
-	m_pDx = lpDevice;
-
-	if (!InitVertexShaders())
-		return false;
-
 	const float c_afLightPosition[4] = { -0.707f, -0.300f, 0.707f, 0.0f };
 	const float	c_afLightAmbient[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
 	const float	c_afLightDiffuse[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -63,12 +39,6 @@ bool CSpeedTreeForestDirectX::SetRenderingDevice(ID3D11Device* lpDevice)
 	CSpeedTreeRT::SetLightAttributes(0, afLight1);
 	CSpeedTreeRT::SetLightState(0, true);
 	return true;
-}
-
-void CSpeedTreeForestDirectX::UploadWindMatrix(UINT uiLocation, const float* pMatrix) const
-{
-	(void)uiLocation;
-	(void)pMatrix;
 }
 
 void CSpeedTreeForestDirectX::UpdateCompundMatrix(const D3DXVECTOR3& c_rEyeVec, const D3DXMATRIX& c_rmatView, const D3DXMATRIX& c_rmatProj)
@@ -91,9 +61,6 @@ void CSpeedTreeForestDirectX::Render(unsigned long ulRenderBitVector)
 	UpdateSystem(CTimer::Instance().GetCurrentSecond());
 
 	if (m_pMainTreeMap.empty())
-		return;
-
-	if (!EnsureVertexShaders())
 		return;
 
 	if (!(ulRenderBitVector & Forest_RenderToShadow) && !(ulRenderBitVector & Forest_RenderToMiniMap))
@@ -131,7 +98,7 @@ void CSpeedTreeForestDirectX::Render(unsigned long ulRenderBitVector)
 
 	if (ulRenderBitVector & Forest_RenderBranches)
 	{
-		m_pBranchShader->Set();
+		_mgr->SetShader(VF_BRANCH);
 		for (auto& it : m_pMainTreeMap)
 		{
 			auto pMainTree = it.second;
@@ -148,7 +115,8 @@ void CSpeedTreeForestDirectX::Render(unsigned long ulRenderBitVector)
 
 	if (ulRenderBitVector & Forest_RenderFronds)
 	{
-		m_pBranchShader->Set();
+		_mgr->SetShader(VF_BRANCH);
+
 		for (auto& it : m_pMainTreeMap)
 		{
 			auto pMainTree = it.second;
@@ -163,7 +131,8 @@ void CSpeedTreeForestDirectX::Render(unsigned long ulRenderBitVector)
 
 	if (ulRenderBitVector & Forest_RenderLeaves)
 	{
-		m_pLeafShader->Set();
+		_mgr->SetShader(VF_LEAF);
+
 		if (ulRenderBitVector & Forest_RenderToShadow || ulRenderBitVector & Forest_RenderToMiniMap)
 			STATEMANAGER.SaveRenderState(RS11_ALPHAREF, 0);
 

@@ -262,48 +262,6 @@ void CSpeedTreeForest::SetupWindMatrices(float fTimeInSecs)
 	fOldStrength = m_fWindStrength;
 }
 
-
-///////////////////////////////////////////////////////////////////////  
-//	CSpeedTreeForest::SetLodLimits
-/*
-void CSpeedTreeForest::SetLodLimits(void)
-{
-	// find tallest tree
-	float fTallest = -1.0f;
-
-	TTreeMap::iterator itor = m_pMainTreeMap.begin();
-	UINT uiCount;
-
-	while (itor != m_pMainTreeMap.end())
-	{
-		CSpeedTreeWrapper * pMainTree = (itor++)->second;
-		CSpeedTreeWrapper ** ppInstances = pMainTree->GetInstances(uiCount);
-
-		float fHeight;
-		fHeight = pMainTree->GetBoundingBox()[5] - pMainTree->GetBoundingBox()[0];
-		fTallest = __max(fHeight, fTallest);
-
-		for (UINT i = 0; i < uiCount; ++i)
-		{
-			fHeight = ppInstances[i]->GetBoundingBox()[5] - ppInstances[i]->GetBoundingBox()[0];
-			fTallest = __max(fHeight, fTallest);
-		}
-	}
-
-	itor = m_pMainTreeMap.begin();
-
-	while (itor != m_pMainTreeMap.end())
-	{
-		CSpeedTreeWrapper * pMainTree = (itor++)->second;
-		CSpeedTreeWrapper ** ppInstances = pMainTree->GetInstances(uiCount);
-
-		pMainTree->GetSpeedTree()->SetLodLimits(fTallest * c_fNearLodFactor, fTallest * c_fFarLodFactor);
-
-		for (UINT i = 0; i < uiCount; ++i)
-			ppInstances[i]->GetSpeedTree()->SetLodLimits(fTallest * c_fNearLodFactor, fTallest * c_fFarLodFactor);
-	}
-}
-*/
 void CSpeedTreeForest::SetLight(const float * afDirection, const float * afAmbient, const float * afDiffuse)
 {
 	m_afLighting[0] = afDirection[0];

@@ -46,7 +46,6 @@
 #include "SpeedTreeConfig.h"
 #include "SpeedTreeForestDirectX.h"
 #include "SpeedTreeWrapper.h"
-#include "VertexShaders.h"
 #include "qMin32Lib/ConstantBufferManager.h"
 #include "qMin32Lib/DxManager.h"
 #include <cmath>
@@ -56,8 +55,6 @@
 
 using namespace std;
 
-SpeedTreeShaderPtr CSpeedTreeWrapper::ms_pBranchShader;
-SpeedTreeShaderPtr CSpeedTreeWrapper::ms_pLeafShader;
 bool CSpeedTreeWrapper::ms_bSelfShadowOn = true;
 
 ///////////////////////////////////////////////////////////////////////  
@@ -85,19 +82,8 @@ CSpeedTreeWrapper::CSpeedTreeWrapper() :
 	m_pSpeedTree->SetLocalMatrices(0, 4);
 }
 
-void CSpeedTreeWrapper::SetVertexShaders(const SpeedTreeShaderPtr& pBranchShader, const SpeedTreeShaderPtr& pLeafShader)
-{
-	ms_pBranchShader = pBranchShader;
-	ms_pLeafShader = pLeafShader;
-}
-
 void CSpeedTreeWrapper::OnRenderPCBlocker()
 {
-	if (!ms_pBranchShader || !ms_pLeafShader)
-		CSpeedTreeForestDirectX::Instance().EnsureVertexShaders();
-
-	if (!ms_pBranchShader) CSpeedTreeForestDirectX::Instance().EnsureVertexShaders();
-
 	CSpeedTreeForestDirectX::Instance().UpdateSystem(ELTimer_GetMSec() / 1000.0f);
 
 	m_pSpeedTree->SetLodLevel(1.0f);
@@ -116,8 +102,8 @@ void CSpeedTreeWrapper::OnRenderPCBlocker()
 	STATEMANAGER.SetRenderState(RS11_FOGENABLE, FALSE);
 
 	// choose fixed function pipeline or custom shader for fronds and branches
-	if (ms_pBranchShader) 
-		ms_pBranchShader->Set();
+	_mgr->SetShader(VF_BRANCH);
+
 
 	// 	SetupBranchForTreeType();
 	{
@@ -195,22 +181,21 @@ void CSpeedTreeWrapper::OnRenderPCBlocker()
 	}
 	RenderFronds();
 
-	if (ms_pLeafShader)
-	{
-		ms_pLeafShader->Set();
+	
+	_mgr->SetShader(VF_LEAF);
 
-		// 	SetupLeafForTreeType();
-		{
-			// pass leaf tables to shader
+	// 	SetupLeafForTreeType();
+	{
+		// pass leaf tables to shader
 #ifdef WRAPPER_USE_GPU_LEAF_PLACEMENT
-			UploadLeafTables(c_nVertexShader_LeafTables);
+		UploadLeafTables();
 #endif
 
-			if (!m_CompositeImageInstance.IsEmpty())
-				STATEMANAGER.SetTexture(0, m_CompositeImageInstance.GetTextureReference().GetSRV());
-		}
-		RenderLeaves();
+		if (!m_CompositeImageInstance.IsEmpty())
+			STATEMANAGER.SetTexture(0, m_CompositeImageInstance.GetTextureReference().GetSRV());
 	}
+	RenderLeaves();
+	
 	EndLeafForTreeType();
 
 	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
@@ -226,11 +211,6 @@ void CSpeedTreeWrapper::OnRenderPCBlocker()
 
 void CSpeedTreeWrapper::OnRender()
 {
-	if (!ms_pBranchShader || !ms_pLeafShader)
-		CSpeedTreeForestDirectX::Instance().EnsureVertexShaders();
-
-	if (!ms_pBranchShader) CSpeedTreeForestDirectX::Instance().EnsureVertexShaders();
-
 	CSpeedTreeForestDirectX::Instance().UpdateSystem(ELTimer_GetMSec() / 1000.0f);
 
 	m_pSpeedTree->SetLodLevel(1.0f);
@@ -248,8 +228,7 @@ void CSpeedTreeWrapper::OnRender()
 	STATEMANAGER.SaveRenderState(RS11_FOGENABLE, FALSE);
 
 	// choose fixed function pipeline or custom shader for fronds and branches
-	if (ms_pBranchShader) 
-		ms_pBranchShader->Set();
+	_mgr->SetShader(VF_BRANCH);
 
 	STATEMANAGER.SetRenderState(RS11_ALPHATESTENABLE, FALSE);
 	STATEMANAGER.SetRenderState(RS11_ALPHABLENDENABLE, FALSE);
@@ -266,13 +245,9 @@ void CSpeedTreeWrapper::OnRender()
 	SetupFrondForTreeType();
 	RenderFronds();
 
-	if (ms_pLeafShader)
-	{
-		ms_pLeafShader->Set();
-
-		SetupLeafForTreeType();
-		RenderLeaves();
-	}
+	_mgr->SetShader(VF_LEAF);
+	SetupLeafForTreeType();
+	RenderLeaves();
 	EndLeafForTreeType();
 
 	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
@@ -1147,7 +1122,7 @@ void CSpeedTreeWrapper::SetupLeafForTreeType(void) const
 //	CSpeedTreeWrapper::UploadLeafTables
 
 #ifdef WRAPPER_USE_GPU_LEAF_PLACEMENT
-void CSpeedTreeWrapper::UploadLeafTables(UINT uiLocation) const
+void CSpeedTreeWrapper::UploadLeafTables() const
 {
 	UINT uiEntryCount = 0;
 	const float* pTable = m_pSpeedTree->GetLeafBillboardTable(uiEntryCount);
@@ -1166,7 +1141,7 @@ void CSpeedTreeWrapper::RenderLeaves(void) const
 	m_pSpeedTree->GetGeometry(*m_pGeometryCache, SpeedTree_LeafGeometry);
 
 #ifdef WRAPPER_USE_GPU_LEAF_PLACEMENT
-	UploadLeafTables(c_nVertexShader_LeafTables);
+	UploadLeafTables();
 #endif
 
 	if (!m_pLeafVertexBuffer || m_usNumLeafLods == 0 || !m_pGeometryCache->m_pLeaves)

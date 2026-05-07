@@ -38,10 +38,8 @@
 #include "SpeedTreeMaterial.h"
 #include <SpeedTreeRT.h>
 
-#include "EterLib/D3D9Compat.h"
 #include "EterLib/D3DXMathCompat.h"
 #include "qMin32Lib/DxManager.h"
-#include "VertexShaders.h"
 #include <vector>
 #include <memory>
 #include <cstdint>
@@ -65,6 +63,41 @@
 //	class CSpeedTreeWrapper declaration
 #pragma warning(push)
 #pragma warning(disable:4100)
+
+struct SFVFBranchVertex
+{
+	D3DXVECTOR3 m_vPosition;
+#ifdef WRAPPER_USE_DYNAMIC_LIGHTING
+	D3DXVECTOR3 m_vNormal;
+#else
+	DWORD m_dwDiffuseColor;
+#endif
+	FLOAT m_fTexCoords[2];
+#ifdef WRAPPER_RENDER_SELF_SHADOWS
+	FLOAT m_fShadowCoords[2];
+#endif
+#ifdef WRAPPER_USE_GPU_WIND
+	FLOAT m_fWindIndex;
+	FLOAT m_fWindWeight;
+#endif
+};
+
+struct SFVFLeafVertex
+{
+	D3DXVECTOR3 m_vPosition;
+#ifdef WRAPPER_USE_DYNAMIC_LIGHTING
+	D3DXVECTOR3 m_vNormal;
+#else
+	DWORD m_dwDiffuseColor;
+#endif
+	FLOAT m_fTexCoords[2];
+#if defined WRAPPER_USE_GPU_WIND || defined WRAPPER_USE_GPU_LEAF_PLACEMENT
+	FLOAT m_fWindIndex;
+	FLOAT m_fWindWeight;
+	FLOAT m_fLeafPlacementIndex;
+	FLOAT m_fLeafScalarValue;
+#endif
+};
 
 class CSpeedTreeWrapper : public CGraphicObjectInstance, public std::enable_shared_from_this<CSpeedTreeWrapper>
 {
@@ -105,7 +138,6 @@ public:
 	virtual	~CSpeedTreeWrapper();
 	
 	const float *				GetPosition();
-	static void					SetVertexShaders(const SpeedTreeShaderPtr& pBranchShader, const SpeedTreeShaderPtr& pLeafShader);
 
 	// geometry 
 	bool                        LoadTree(const char * pszSptFile, const BYTE * c_pbBlock = NULL, unsigned int uiBlockSize = 0, unsigned int nSeed = 1, float fSize = -1.0f, float fSizeVariance = -1.0f);
@@ -121,7 +153,7 @@ public:
 	void						EndLeafForTreeType(void);
 	
 #ifdef WRAPPER_USE_GPU_LEAF_PLACEMENT
-	void						UploadLeafTables(unsigned int uiLocation) const;
+	void						UploadLeafTables() const;
 #endif
 	
 	void						RenderBranches(void) const;
@@ -203,8 +235,6 @@ private:
 	CGraphicImageInstance			m_ShadowImageInstance;			// shadow texture object (used if shadows are enabled)
 	CGraphicImageInstance			m_CompositeImageInstance;
 
-	static SpeedTreeShaderPtr ms_pBranchShader;
-	static SpeedTreeShaderPtr ms_pLeafShader;
 	std::string m_strBranchTextureName;
 	};
 

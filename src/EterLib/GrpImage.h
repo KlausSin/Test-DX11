@@ -16,7 +16,7 @@ class CGraphicImage : public CResource
 		static TType Type();
 
 	public:
-		CGraphicImage(const char* c_szFileName, DWORD dwFilter = D3DX_FILTER_LINEAR);
+		CGraphicImage(const char* c_szFileName, DWORD dwFilter = D3D11_FILTER_MIN_MAG_MIP_LINEAR);
 		virtual ~CGraphicImage();
 
 		virtual bool CreateDeviceObjects();

@@ -2,7 +2,6 @@
 
 #include <granny.h>
 #include <windows.h>
-#include "EterLib/D3D9Compat.h"
 
 #include "Eterlib/ReferenceObject.h"
 #include "Eterlib/Ref.h"

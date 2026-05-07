@@ -60,11 +60,6 @@ protected:
 
 	bool __CreatePDTVertexBufferList();
 
-	LPDIRECT3DVERTEXDECLARATION9 CreatePTStreamVertexShader();
-	LPDIRECT3DVERTEXDECLARATION9 CreatePNTStreamVertexShader();
-	LPDIRECT3DVERTEXDECLARATION9 CreatePNT2StreamVertexShader();
-	LPDIRECT3DVERTEXDECLARATION9 CreateDoublePNTStreamVertexShader();
-
 	bool CreateD3D11(HWND hWnd, int iHres, int iVres, bool bWindowed);
 	void DestroyD3D11();
 

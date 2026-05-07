@@ -1,7 +1,6 @@
 #ifndef __CSTATEMANAGER_H
 #define __CSTATEMANAGER_H
 
-#include "D3D9Compat.h"
 #include "D3DXMathCompat.h"
 
 #include <vector>
@@ -271,8 +270,6 @@ public:
 		for (i = 0; i < SM_MAX_TRANSFORMS; i++)
 			D3DXMatrixIdentity(&m_Matrices[i]);
 
-		m_dwPixelShader = 0;
-		m_dwVertexShader = 0;
 		m_bVertexProcessing = FALSE;
 	}
 
@@ -282,12 +279,9 @@ public:
 
 	ID3D11ShaderResourceView* m_Textures[STATEMANAGER_MAX_STAGES];
 
-	LPDIRECT3DPIXELSHADER9  m_dwPixelShader;
-	LPDIRECT3DVERTEXSHADER9 m_dwVertexShader;
-
 	D3DXMATRIX				m_Matrices[SM_MAX_TRANSFORMS];
 
-	D3DMATERIAL9			m_D3DMaterial;
+	D3DMATERIAL11			m_D3DMaterial;
 
 	CStreamData				m_StreamData[STATEMANAGER_MAX_STREAMS];
 	CIndexData				m_IndexData;
@@ -308,13 +302,13 @@ public:
 	void	EndScene();
 
 	void	SaveMaterial();
-	void	SaveMaterial(const D3DMATERIAL9* pMaterial);
+	void	SaveMaterial(const D3DMATERIAL11* pMaterial);
 	void	RestoreMaterial();
-	void	SetMaterial(const D3DMATERIAL9* pMaterial);
-	void	GetMaterial(D3DMATERIAL9* pMaterial);
+	void	SetMaterial(const D3DMATERIAL11* pMaterial);
+	void	GetMaterial(D3DMATERIAL11* pMaterial);
 
-	void	SetLight(DWORD index, CONST D3DLIGHT9* pLight);
-	void	GetLight(DWORD index, D3DLIGHT9* pLight);
+	void	SetLight(DWORD index, CONST D3DLIGHT11* pLight);
+	void	GetLight(DWORD index, D3DLIGHT11* pLight);
 
 	void	SetScissorRect(const RECT& c_rRect);
 	void	GetScissorRect(RECT* pRect);
@@ -387,7 +381,7 @@ private:
 	std::vector<DWORD>						m_TextureStageStateStack[STATEMANAGER_MAX_STAGES][STATEMANAGER_MAX_TEXTURESTATES];
 	std::vector<D3DXMATRIX>					m_TransformStack[SM_MAX_TRANSFORMS];
 	std::vector<ID3D11ShaderResourceView*>	m_TextureStack[STATEMANAGER_MAX_STAGES];
-	std::vector<D3DMATERIAL9>				m_MaterialStack;
+	std::vector<D3DMATERIAL11>				m_MaterialStack;
 	std::vector<BOOL>						m_VertexProcessingStack;
 	std::vector<CStreamData>				m_StreamStack[STATEMANAGER_MAX_STREAMS];
 	std::vector<CIndexData>					m_IndexStack;

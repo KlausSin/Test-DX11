@@ -1,7 +1,6 @@
 #include "StdAfx.h"
 #include "GrpDevice.h"
 #include "GrpD3D11Renderer.h"
-#include "StandaloneVertexDeclaration.h"
 #include "EterBase/Stl.h"
 #include "EterBase/Debug.h"
 #include "qMin32Lib/All.h"
@@ -158,12 +157,12 @@ bool CGraphicDevice::ResizeBackBuffer(UINT uWidth, UINT uHeight)
 	ms_iHeight = uHeight;
 
 	// Update viewport struct
-	ms_Viewport.X = 0;
-	ms_Viewport.Y = 0;
-	ms_Viewport.Width = uWidth;
-	ms_Viewport.Height = uHeight;
-	ms_Viewport.MinZ = 0.0f;
-	ms_Viewport.MaxZ = 1.0f;
+	ms_Viewport.TopLeftX = 0;
+	ms_Viewport.TopLeftY = 0;
+	ms_Viewport.Width = (float)uWidth;
+	ms_Viewport.Height = (float)uHeight;
+	ms_Viewport.MinDepth = 0.0f;
+	ms_Viewport.MaxDepth = 1.0f;
 
 	if (m_pD3D11Renderer)
 		m_pD3D11Renderer->SetScreenSize((float)uWidth, (float)uHeight);
@@ -171,74 +170,6 @@ bool CGraphicDevice::ResizeBackBuffer(UINT uWidth, UINT uHeight)
 	STATEMANAGER.SetDefaultState();
 
 	return true;
-}
-
-LPDIRECT3DVERTEXDECLARATION9 CGraphicDevice::CreatePNTStreamVertexShader()
-{
-	LPDIRECT3DVERTEXDECLARATION9 dwShader = NULL;
-
-	D3DVERTEXELEMENT9 pShaderDecl[] = {
-		{ 0, 0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
-		{ 0, 12, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_NORMAL, 0 },
-		{ 0, 24, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
-		D3DDECL_END()
-	};
-
-	dwShader = CreateStandaloneVertexDeclaration(pShaderDecl);
-
-	return dwShader;
-}
-
-LPDIRECT3DVERTEXDECLARATION9 CGraphicDevice::CreatePNT2StreamVertexShader()
-{
-	LPDIRECT3DVERTEXDECLARATION9 dwShader = NULL;
-
-	D3DVERTEXELEMENT9 pShaderDecl[] = {
-		{ 0, 0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
-		{ 0, 12, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_NORMAL, 0 },
-		{ 0, 24, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
-		{ 0, 32, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 1 },
-		D3DDECL_END()
-	};
-
-	dwShader = CreateStandaloneVertexDeclaration(pShaderDecl);
-
-	return dwShader;
-}
-
-LPDIRECT3DVERTEXDECLARATION9 CGraphicDevice::CreatePTStreamVertexShader()
-{
-	LPDIRECT3DVERTEXDECLARATION9 dwShader = NULL;
-
-	D3DVERTEXELEMENT9 pShaderDecl[] = {
-		{ 0, 0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
-		{ 1, 0, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
-		D3DDECL_END()
-	};
-
-	dwShader = CreateStandaloneVertexDeclaration(pShaderDecl);
-
-	return dwShader;
-}
-
-LPDIRECT3DVERTEXDECLARATION9 CGraphicDevice::CreateDoublePNTStreamVertexShader()
-{
-	LPDIRECT3DVERTEXDECLARATION9 dwShader = NULL;
-
-	D3DVERTEXELEMENT9 pShaderDecl[] = {
-		{ 0, 0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
-		{ 0, 12, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_NORMAL, 0 },
-		{ 0, 24, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
-
-		{ 1, 0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 1 },
-		{ 1, 12, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_NORMAL, 1 },
-		{ 1, 24, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 1 },
-		D3DDECL_END()
-	};
-
-	dwShader = CreateStandaloneVertexDeclaration(pShaderDecl);
-
-	return dwShader;
 }
 
 CGraphicDevice::EDeviceState CGraphicDevice::GetDeviceState()
@@ -285,10 +216,6 @@ int CGraphicDevice::Create(HWND hWnd, int iHres, int iVres, bool Windowed, int /
 	D3DXCreateMatrixStack(0, &ms_lpd3dMatStack);
 	ms_lpd3dMatStack->LoadIdentity();
 
-	ms_ptVS	= CreatePTStreamVertexShader();
-	ms_pntVS = CreatePNTStreamVertexShader();
-	ms_pnt2VS = CreatePNT2StreamVertexShader();
-
 	D3DXMatrixIdentity(&ms_matIdentity);
 	D3DXMatrixIdentity(&ms_matView);
 	D3DXMatrixIdentity(&ms_matProj);
@@ -308,12 +235,12 @@ int CGraphicDevice::Create(HWND hWnd, int iHres, int iVres, bool Windowed, int /
 	ms_matScreen2._22 = (float) iVres / 2;
 
 	// Set viewport from D3D11 device
-	ms_Viewport.X = 0;
-	ms_Viewport.Y = 0;
-	ms_Viewport.Width = iHres;
-	ms_Viewport.Height = iVres;
-	ms_Viewport.MinZ = 0.0f;
-	ms_Viewport.MaxZ = 1.0f;
+	ms_Viewport.TopLeftX = 0;
+	ms_Viewport.TopLeftY = 0;
+	ms_Viewport.Width = (float)iHres;
+	ms_Viewport.Height = (float)iVres;
+	ms_Viewport.MinDepth = 0.0f;
+	ms_Viewport.MaxDepth = 1.0f;
 
 	// D3DX mesh objects not available without D3D9 device — set to NULL (debug only)
 	ms_lpSphereMesh = NULL;
@@ -437,10 +364,6 @@ void CGraphicDevice::Destroy()
 		ReleaseDC(ms_hWnd, ms_hDC);
 		ms_hDC = NULL;
 	}
-
-	safe_release(ms_ptVS);
-	safe_release(ms_pntVS);
-	safe_release(ms_pnt2VS);
 
 	safe_release(ms_lpSphereMesh);
 	safe_release(ms_lpCylinderMesh);

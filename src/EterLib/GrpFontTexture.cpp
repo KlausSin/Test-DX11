@@ -184,7 +184,7 @@ bool CGraphicFontTexture::AppendTexture()
 {
 	CGraphicImageTexture* pNewTexture = new CGraphicImageTexture;
 
-	if (!pNewTexture->Create(m_atlasWidth, m_atlasHeight, D3DFMT_A8R8G8B8))
+	if (!pNewTexture->Create(m_atlasWidth, m_atlasHeight, DXGI_FORMAT_R8G8B8A8_UNORM))
 	{
 		delete pNewTexture;
 		return false;

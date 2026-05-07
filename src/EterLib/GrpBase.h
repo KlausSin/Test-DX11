@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Ray.h"
-#include "D3D9Compat.h"
 #include <vector>
 #include "qMin32Lib/Core.h"
 
@@ -89,9 +88,9 @@ typedef struct SPNT2Vertex
 } TPNT2Vertex;
 
 typedef struct SPDT2Vertex
-{	
+{
 	TPosition	position;
-	DWORD		diffuse;	
+	DWORD		diffuse;
 	TTextureCoordinate texCoord;
 	TTextureCoordinate texCoord2;
 } TPDT2Vertex;
@@ -127,193 +126,186 @@ enum EIndexCount
 
 class CGraphicBase
 {
-	public:
-		static DWORD GetAvailableTextureMemory();
-		static const D3DXMATRIX& GetViewMatrix();
-		static const D3DXMATRIX & GetIdentityMatrix();
+public:
+	static DWORD GetAvailableTextureMemory();
+	static const D3DXMATRIX& GetViewMatrix();
+	static const D3DXMATRIX& GetIdentityMatrix();
 
-		enum
-		{			
-			DEFAULT_IB_LINE, 
-			DEFAULT_IB_LINE_TRI, 
-			DEFAULT_IB_LINE_RECT, 
-			DEFAULT_IB_LINE_CUBE, 
-			DEFAULT_IB_FILL_TRI,
-			DEFAULT_IB_FILL_RECT,
-			DEFAULT_IB_FILL_CUBE,
-			DEFAULT_IB_NUM,
-		};
+	enum
+	{
+		DEFAULT_IB_LINE,
+		DEFAULT_IB_LINE_TRI,
+		DEFAULT_IB_LINE_RECT,
+		DEFAULT_IB_LINE_CUBE,
+		DEFAULT_IB_FILL_TRI,
+		DEFAULT_IB_FILL_RECT,
+		DEFAULT_IB_FILL_CUBE,
+		DEFAULT_IB_NUM,
+	};
 
-	public:
-		CGraphicBase();
-		virtual	~CGraphicBase();
+public:
+	CGraphicBase();
+	virtual	~CGraphicBase();
 
-		void		SetSimpleCamera(float x, float y, float z, float pitch, float roll);
-		void		SetEyeCamera(float xEye, float yEye, float zEye, float xCenter, float yCenter, float zCenter, float xUp, float yUp, float zUp);
-		void		SetAroundCamera(float distance, float pitch, float roll, float lookAtZ = 0.0f);
-		void		SetPositionCamera(float fx, float fy, float fz, float fDistance, float fPitch, float fRotation);
-		void		MoveCamera(float fdeltax, float fdeltay, float fdeltaz);
+	void		SetSimpleCamera(float x, float y, float z, float pitch, float roll);
+	void		SetEyeCamera(float xEye, float yEye, float zEye, float xCenter, float yCenter, float zCenter, float xUp, float yUp, float zUp);
+	void		SetAroundCamera(float distance, float pitch, float roll, float lookAtZ = 0.0f);
+	void		SetPositionCamera(float fx, float fy, float fz, float fDistance, float fPitch, float fRotation);
+	void		MoveCamera(float fdeltax, float fdeltay, float fdeltaz);
 
-		void		GetTargetPosition(float * px, float * py, float * pz);
-		void		GetCameraPosition(float * px, float * py, float * pz);
-		void		SetOrtho2D(float hres, float vres, float zres);
-		void		SetOrtho3D(float hres, float vres, float zmin, float zmax);
-		void		SetPerspective(float fov, float aspect, float nearz, float farz);
-		float		GetFOV();
-		void		GetClipPlane(float * fNearY, float * fFarY)
-		{
-			*fNearY = ms_fNearY;
-			*fFarY = ms_fFarY;
-		}
+	void		GetTargetPosition(float* px, float* py, float* pz);
+	void		GetCameraPosition(float* px, float* py, float* pz);
+	void		SetOrtho2D(float hres, float vres, float zres);
+	void		SetOrtho3D(float hres, float vres, float zmin, float zmax);
+	void		SetPerspective(float fov, float aspect, float nearz, float farz);
+	float		GetFOV();
+	void		GetClipPlane(float* fNearY, float* fFarY)
+	{
+		*fNearY = ms_fNearY;
+		*fFarY = ms_fFarY;
+	}
 
-		////////////////////////////////////////////////////////////////////////
-		void		PushMatrix();
+	////////////////////////////////////////////////////////////////////////
+	void		PushMatrix();
 
-		void		MultMatrix( const D3DXMATRIX* pMat );
-		void		MultMatrixLocal( const D3DXMATRIX* pMat );
-	
-		void		Translate(float x, float y, float z);
-		void		Rotate(float degree, float x, float y, float z);
-		void		RotateLocal(float degree, float x, float y, float z);
-		void		RotateYawPitchRollLocal(float fYaw, float fPitch, float fRoll);
-		void		Scale(float x, float y, float z);
-		void		PopMatrix();		
-		void		LoadMatrix(const D3DXMATRIX & c_rSrcMatrix);		
-		void		GetMatrix(D3DXMATRIX * pRetMatrix) const;
-		const		D3DXMATRIX * GetMatrixPointer() const;
+	void		MultMatrix(const D3DXMATRIX* pMat);
+	void		MultMatrixLocal(const D3DXMATRIX* pMat);
 
-		// Special Routine
-		void		GetSphereMatrix(D3DXMATRIX * pMatrix, float fValue = 0.1f);
+	void		Translate(float x, float y, float z);
+	void		Rotate(float degree, float x, float y, float z);
+	void		RotateLocal(float degree, float x, float y, float z);
+	void		RotateYawPitchRollLocal(float fYaw, float fPitch, float fRoll);
+	void		Scale(float x, float y, float z);
+	void		PopMatrix();
+	void		LoadMatrix(const D3DXMATRIX& c_rSrcMatrix);
+	void		GetMatrix(D3DXMATRIX* pRetMatrix) const;
+	const		D3DXMATRIX* GetMatrixPointer() const;
 
-		////////////////////////////////////////////////////////////////////////
-		void		InitScreenEffect();
-		void		SetScreenEffectWaving(float fDuringTime, int iPower);
-		void		SetScreenEffectFlashing(float fDuringTime, const D3DXCOLOR & c_rColor);
-		static UniquePtr<DxManager>& GetDxManager();
+	// Special Routine
+	void		GetSphereMatrix(D3DXMATRIX* pMatrix, float fValue = 0.1f);
 
-		////////////////////////////////////////////////////////////////////////
-		DWORD		GetColor(float r, float g, float b, float a = 1.0f);
+	////////////////////////////////////////////////////////////////////////
+	void		InitScreenEffect();
+	void		SetScreenEffectWaving(float fDuringTime, int iPower);
+	void		SetScreenEffectFlashing(float fDuringTime, const D3DXCOLOR& c_rColor);
+	static UniquePtr<DxManager>& GetDxManager();
 
-		DWORD		GetFaceCount();
-		void		ResetFaceCount();
-		HRESULT		GetLastResult();
+	////////////////////////////////////////////////////////////////////////
+	DWORD		GetColor(float r, float g, float b, float a = 1.0f);
 
-		void		UpdateProjMatrix();
-		void		UpdateViewMatrix();
-		
-		void		SetViewport(DWORD dwX, DWORD dwY, DWORD dwWidth, DWORD dwHeight, float fMinZ, float fMaxZ);
-		static void		GetBackBufferSize(UINT* puWidth, UINT* puHeight);
-		static bool		IsTLVertexClipping();
-		static bool		IsFastTNL();
-		static bool		IsLowTextureMemory();
-		static bool		IsHighTextureMemory();
+	DWORD		GetFaceCount();
+	void		ResetFaceCount();
+	HRESULT		GetLastResult();
 
-		static LPDIRECT3DVERTEXDECLARATION9 GetPTVertexDecl()   { return ms_ptVS; }
-		static LPDIRECT3DVERTEXDECLARATION9 GetPNTVertexDecl()  { return ms_pntVS; }
-		static LPDIRECT3DVERTEXDECLARATION9 GetPNT2VertexDecl() { return ms_pnt2VS; }
+	void		UpdateProjMatrix();
+	void		UpdateViewMatrix();
 
-		static void SetDefaultIndexBuffer(UINT eDefIB);
-		static bool SetPDTStream(SPDTVertex* pVertices, UINT uVtxCount);
-		
-	protected:
-		static D3DXMATRIX				ms_matIdentity;
+	void		SetViewport(DWORD dwX, DWORD dwY, DWORD dwWidth, DWORD dwHeight, float fMinZ, float fMaxZ);
+	static void		GetBackBufferSize(UINT* puWidth, UINT* puHeight);
+	static bool		IsTLVertexClipping();
+	static bool		IsFastTNL();
+	static bool		IsLowTextureMemory();
+	static bool		IsHighTextureMemory();
 
-		static D3DXMATRIX				ms_matView;
-		static D3DXMATRIX				ms_matProj;
-		static D3DXMATRIX				ms_matInverseView;
-		static D3DXMATRIX				ms_matInverseViewYAxis;
+	static void SetDefaultIndexBuffer(UINT eDefIB);
+	static bool SetPDTStream(SPDTVertex* pVertices, UINT uVtxCount);
 
-		static D3DXMATRIX				ms_matWorld;
-		static D3DXMATRIX				ms_matWorldView;
+protected:
+	static D3DXMATRIX				ms_matIdentity;
 
-	protected:
-		//void		UpdatePrePipeLineMatrix();
-		void		UpdatePipeLineMatrix();
+	static D3DXMATRIX				ms_matView;
+	static D3DXMATRIX				ms_matProj;
+	static D3DXMATRIX				ms_matInverseView;
+	static D3DXMATRIX				ms_matInverseViewYAxis;
 
-	protected:
-		// 각종 D3DX Mesh 들 (컬루젼 데이터 등을 표시활 때 쓴다)
-		static LPD3DXMESH				ms_lpSphereMesh;
-		static LPD3DXMESH				ms_lpCylinderMesh;
+	static D3DXMATRIX				ms_matWorld;
+	static D3DXMATRIX				ms_matWorldView;
 
-	protected:
-		static HRESULT					ms_hLastResult;
+protected:
+	//void		UpdatePrePipeLineMatrix();
+	void		UpdatePipeLineMatrix();
 
-	public:
-		static int						ms_iWidth;
-		static int						ms_iHeight;
+protected:
+	// 각종 D3DX Mesh 들 (컬루젼 데이터 등을 표시활 때 쓴다)
+	static LPD3DXMESH				ms_lpSphereMesh;
+	static LPD3DXMESH				ms_lpCylinderMesh;
 
-	protected:
-		static HWND						ms_hWnd;
-		static HDC						ms_hDC;
-		static ID3DXMatrixStack*		ms_lpd3dMatStack;
-		static D3DVIEWPORT9				ms_Viewport;
+protected:
+	static HRESULT					ms_hLastResult;
 
-		static DWORD					ms_faceCount;
-		static LPDIRECT3DVERTEXDECLARATION9					ms_ptVS;
-		static LPDIRECT3DVERTEXDECLARATION9					ms_pntVS;
-		static LPDIRECT3DVERTEXDECLARATION9					ms_pnt2VS;
+public:
+	static int						ms_iWidth;
+	static int						ms_iHeight;
 
-	public:
-		// D3D11 device objects (public — accessed by StateManager, GrpScreen, GrpDevice, etc.)
-		static ID3D11Device*			ms_lpd3d11Device;
-		static ID3D11DeviceContext*		ms_lpd3d11Context;
-		static IDXGISwapChain*			ms_lpd3d11SwapChain;
-		static ID3D11RenderTargetView*	ms_lpd3d11RTV;
-		static ID3D11DepthStencilView*	ms_lpd3d11DSV;
-		static ID3D11Texture2D*			ms_lpd3d11DepthStencil;
+protected:
+	static HWND						ms_hWnd;
+	static HDC						ms_hDC;
+	static ID3DXMatrixStack* ms_lpd3dMatStack;
+	static D3D11_VIEWPORT			ms_Viewport;
 
-	protected:
+	static DWORD					ms_faceCount;
 
-		static D3DXMATRIX				ms_matScreen0;
-		static D3DXMATRIX				ms_matScreen1;
-		static D3DXMATRIX				ms_matScreen2;
-		//static D3DXMATRIX				ms_matPrePipeLine;
+public:
+	// D3D11 device objects (public — accessed by StateManager, GrpScreen, GrpDevice, etc.)
+	static ID3D11Device* ms_lpd3d11Device;
+	static ID3D11DeviceContext* ms_lpd3d11Context;
+	static IDXGISwapChain* ms_lpd3d11SwapChain;
+	static ID3D11RenderTargetView* ms_lpd3d11RTV;
+	static ID3D11DepthStencilView* ms_lpd3d11DSV;
+	static ID3D11Texture2D* ms_lpd3d11DepthStencil;
 
-		static D3DXVECTOR3				ms_vtPickRayOrig;
-		static D3DXVECTOR3				ms_vtPickRayDir;
+protected:
 
-		static float					ms_fFieldOfView;
-		static float					ms_fAspect;
-		static float					ms_fNearY;
-		static float					ms_fFarY;
+	static D3DXMATRIX				ms_matScreen0;
+	static D3DXMATRIX				ms_matScreen1;
+	static D3DXMATRIX				ms_matScreen2;
+	//static D3DXMATRIX				ms_matPrePipeLine;
 
-		// 2004.11.18.myevan.DynamicVertexBuffer로 교체
-		/*
-		static std::vector<TIndex>		ms_lineIdxVector;
-		static std::vector<TIndex>		ms_lineTriIdxVector;
-		static std::vector<TIndex>		ms_lineRectIdxVector;
-		static std::vector<TIndex>		ms_lineCubeIdxVector;
+	static D3DXVECTOR3				ms_vtPickRayOrig;
+	static D3DXVECTOR3				ms_vtPickRayDir;
 
-		static std::vector<TIndex>		ms_fillTriIdxVector;
-		static std::vector<TIndex>		ms_fillRectIdxVector;
-		static std::vector<TIndex>		ms_fillCubeIdxVector;
-		*/
+	static float					ms_fFieldOfView;
+	static float					ms_fAspect;
+	static float					ms_fNearY;
+	static float					ms_fFarY;
 
-		// Screen Effect - Waving, Flashing and so on..
-		static DWORD					ms_dwWavingEndTime;
-		static int						ms_iWavingPower;
-		static DWORD					ms_dwFlashingEndTime;
-		static D3DXCOLOR				ms_FlashingColor;
+	// 2004.11.18.myevan.DynamicVertexBuffer로 교체
+	/*
+	static std::vector<TIndex>		ms_lineIdxVector;
+	static std::vector<TIndex>		ms_lineTriIdxVector;
+	static std::vector<TIndex>		ms_lineRectIdxVector;
+	static std::vector<TIndex>		ms_lineCubeIdxVector;
 
-		// Terrain picking용 Ray... CCamera 이용하는 버전.. 기존의 Ray와 통합 필요...
- 		static CRay						ms_Ray;
+	static std::vector<TIndex>		ms_fillTriIdxVector;
+	static std::vector<TIndex>		ms_fillRectIdxVector;
+	static std::vector<TIndex>		ms_fillCubeIdxVector;
+	*/
 
-		// 
-		static bool						ms_bSupportDXT;
-		static bool						ms_isLowTextureMemory;
-		static bool						ms_isHighTextureMemory;
+	// Screen Effect - Waving, Flashing and so on..
+	static DWORD					ms_dwWavingEndTime;
+	static int						ms_iWavingPower;
+	static DWORD					ms_dwFlashingEndTime;
+	static D3DXCOLOR				ms_FlashingColor;
 
-		enum
-		{
-			PDT_VERTEX_NUM = 32,
-			PDT_VERTEXBUFFER_NUM = 100,				
-		};
-		
-		
-		static VBufferPtr		ms_alpd3dPDTVB[PDT_VERTEXBUFFER_NUM];
-		static IBufferPtr		ms_alpd3dDefIB[DEFAULT_IB_NUM];
-		static UniquePtr<DxManager> 			m_mgr;
-		friend class CSpeedTreeForest;
+	// Terrain picking용 Ray... CCamera 이용하는 버전.. 기존의 Ray와 통합 필요...
+	static CRay						ms_Ray;
+
+	// 
+	static bool						ms_bSupportDXT;
+	static bool						ms_isLowTextureMemory;
+	static bool						ms_isHighTextureMemory;
+
+	enum
+	{
+		PDT_VERTEX_NUM = 32,
+		PDT_VERTEXBUFFER_NUM = 100,
+	};
+
+
+	static VBufferPtr		ms_alpd3dPDTVB[PDT_VERTEXBUFFER_NUM];
+	static IBufferPtr		ms_alpd3dDefIB[DEFAULT_IB_NUM];
+	static UniquePtr<DxManager> 			m_mgr;
+	friend class CSpeedTreeForest;
 };
 
 #define _mgr (CGraphicBase::GetDxManager())

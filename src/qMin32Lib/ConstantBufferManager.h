@@ -1,6 +1,5 @@
 #pragma once
 #include "Core.h"
-#include "EterLib/D3D9Compat.h"
 #include "EterLib/D3DXMathCompat.h"
 
 struct CBPerFrame
@@ -44,14 +43,22 @@ struct CBMaterial
 // b2: Lighting emulation
 struct CBLighting
 {
+	float lightPosition[4];
 	float lightDir[4];
 	float lightDiffuse[4];
 	float lightAmbient[4];
+
 	float matDiffuse[4];
 	float matAmbient[4];
 	float matEmissive[4];
+
+	float lightAttenuation[4];
+	float lightSpot[4];
+
 	int lightingEnable;
-	int pad0, pad1, pad2;
+	int pad0;
+	int pad1;
+	int pad2;
 };
 
 // b3: Texture coordinate transform
@@ -122,8 +129,8 @@ public:
 
 	// Lighting → constant buffer b2
 	void SetLightingEnable(BOOL bEnable);
-	void SetLight(DWORD index, const D3DLIGHT9* pLight);
-	void SetMaterial(const D3DMATERIAL9* pMaterial);
+	void SetLight(DWORD index, const D3DLIGHT11* pLight);
+	void SetMaterial(const D3DMATERIAL11* pMaterial);
 	void SetAmbient(DWORD dwColor);
 	void FlushLighting();
 

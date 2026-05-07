@@ -14,12 +14,12 @@ static int g_drawByStride[64] = {};	// indexed by stride/4
 
 struct SLightData
 {
-	D3DLIGHT9 m_akD3DLight[8];
+	D3DLIGHT11 m_akD3DLight[8];
 } m_kLightData;
 
 
 
-void CStateManager::SetLight(DWORD index, CONST D3DLIGHT9* pLight)
+void CStateManager::SetLight(DWORD index, CONST D3DLIGHT11* pLight)
 {
 	assert(index < 8);
 	m_kLightData.m_akD3DLight[index] = *pLight;
@@ -28,7 +28,7 @@ void CStateManager::SetLight(DWORD index, CONST D3DLIGHT9* pLight)
 		m_pD3D11Renderer->GetCbMgr()->SetLight(index, pLight);
 }
 
-void CStateManager::GetLight(DWORD index, D3DLIGHT9* pLight)
+void CStateManager::GetLight(DWORD index, D3DLIGHT11* pLight)
 {
 	assert(index < 8);
 	*pLight = m_kLightData.m_akD3DLight[index];
@@ -213,8 +213,8 @@ void CStateManager::SetDefaultState()
 	SetTransform(View, &matIdentity);
 	SetTransform(Projection, &matIdentity);
 
-	D3DMATERIAL9 DefaultMat;
-	ZeroMemory(&DefaultMat, sizeof(D3DMATERIAL9));
+	D3DMATERIAL11 DefaultMat;
+	ZeroMemory(&DefaultMat, sizeof(D3DMATERIAL11));
 
 	DefaultMat.Diffuse.r = 1.0f;
 	DefaultMat.Diffuse.g = 1.0f;
@@ -310,7 +310,7 @@ void CStateManager::SaveMaterial()
 	m_MaterialStack.push_back(m_CurrentState.m_D3DMaterial);
 }
 
-void CStateManager::SaveMaterial(const D3DMATERIAL9* pMaterial)
+void CStateManager::SaveMaterial(const D3DMATERIAL11* pMaterial)
 {
 	m_MaterialStack.push_back(m_CurrentState.m_D3DMaterial);
 	SetMaterial(pMaterial);
@@ -322,7 +322,7 @@ void CStateManager::RestoreMaterial()
 	m_MaterialStack.pop_back();
 }
 
-void CStateManager::SetMaterial(const D3DMATERIAL9* pMaterial)
+void CStateManager::SetMaterial(const D3DMATERIAL11* pMaterial)
 {
 	m_CurrentState.m_D3DMaterial = *pMaterial;
 
@@ -330,7 +330,7 @@ void CStateManager::SetMaterial(const D3DMATERIAL9* pMaterial)
 		m_pD3D11Renderer->GetCbMgr()->SetMaterial(pMaterial);
 }
 
-void CStateManager::GetMaterial(D3DMATERIAL9* pMaterial)
+void CStateManager::GetMaterial(D3DMATERIAL11* pMaterial)
 {
 	// Set the renderstate and remember it.
 	*pMaterial = m_CurrentState.m_D3DMaterial;

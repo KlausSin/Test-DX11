@@ -634,7 +634,9 @@ void CGraphicTextInstance::Render(RECT * pClipRect)
 
 	// LCD subpixel rendering: mask alpha writes to prevent corruption during two-pass blending
 	STATEMANAGER.SaveRenderState(RS11_COLORWRITEENABLE,
-		D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_GREEN | D3DCOLORWRITEENABLE_BLUE);
+		D3D11_COLOR_WRITE_ENABLE_RED |
+		D3D11_COLOR_WRITE_ENABLE_GREEN |
+		D3D11_COLOR_WRITE_ENABLE_BLUE);
 
 	{
 		const float fFontHalfWeight=1.0f;

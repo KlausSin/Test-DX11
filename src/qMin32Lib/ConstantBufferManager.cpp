@@ -63,24 +63,60 @@ void CBManager::SetLightingEnable(BOOL bEnable)
 	m_bLightingDirty = true;
 }
 
-void CBManager::SetLight(DWORD index, const D3DLIGHT9* pLight)
+void CBManager::SetLight(DWORD index, const D3DLIGHT11* pLight)
 {
-	if (index > 0 || !pLight) return; // Only support light 0 for now
+	if (index > 0 || !pLight)
+		return;
 
-	m_cbLighting.lightDir[0] = pLight->Direction.x;
-	m_cbLighting.lightDir[1] = pLight->Direction.y;
-	m_cbLighting.lightDir[2] = pLight->Direction.z;
+	D3DLIGHT11 light = *pLight;
+
+	if (light.Type != D3DLIGHT_POINT11 &&
+		light.Type != D3DLIGHT_SPOT11 &&
+		light.Type != D3DLIGHT_DIRECTIONAL11)
+		light.Type = D3DLIGHT_DIRECTIONAL11;
+
+	if (light.Range <= 0.0f)
+		light.Range = 100000.0f;
+
+	if (light.Attenuation0 == 0.0f &&
+		light.Attenuation1 == 0.0f &&
+		light.Attenuation2 == 0.0f)
+		light.Attenuation0 = 1.0f;
+
+	m_cbLighting.lightPosition[0] = light.Position.x;
+	m_cbLighting.lightPosition[1] = light.Position.y;
+	m_cbLighting.lightPosition[2] = light.Position.z;
+	m_cbLighting.lightPosition[3] = 1.0f;
+
+	m_cbLighting.lightDir[0] = light.Direction.x;
+	m_cbLighting.lightDir[1] = light.Direction.y;
+	m_cbLighting.lightDir[2] = light.Direction.z;
 	m_cbLighting.lightDir[3] = 0.0f;
 
-	m_cbLighting.lightDiffuse[0] = pLight->Diffuse.r;
-	m_cbLighting.lightDiffuse[1] = pLight->Diffuse.g;
-	m_cbLighting.lightDiffuse[2] = pLight->Diffuse.b;
-	m_cbLighting.lightDiffuse[3] = pLight->Diffuse.a;
+	m_cbLighting.lightDiffuse[0] = light.Diffuse.r;
+	m_cbLighting.lightDiffuse[1] = light.Diffuse.g;
+	m_cbLighting.lightDiffuse[2] = light.Diffuse.b;
+	m_cbLighting.lightDiffuse[3] = light.Diffuse.a;
+
+	m_cbLighting.lightAmbient[0] = light.Ambient.r;
+	m_cbLighting.lightAmbient[1] = light.Ambient.g;
+	m_cbLighting.lightAmbient[2] = light.Ambient.b;
+	m_cbLighting.lightAmbient[3] = light.Ambient.a;
+
+	m_cbLighting.lightAttenuation[0] = light.Attenuation0;
+	m_cbLighting.lightAttenuation[1] = light.Attenuation1;
+	m_cbLighting.lightAttenuation[2] = light.Attenuation2;
+	m_cbLighting.lightAttenuation[3] = light.Range;
+
+	m_cbLighting.lightSpot[0] = light.Theta;
+	m_cbLighting.lightSpot[1] = light.Phi;
+	m_cbLighting.lightSpot[2] = light.Falloff <= 0.0f ? 1.0f : light.Falloff;
+	m_cbLighting.lightSpot[3] = float(light.Type);
 
 	m_bLightingDirty = true;
 }
 
-void CBManager::SetMaterial(const D3DMATERIAL9* pMaterial)
+void CBManager::SetMaterial(const D3DMATERIAL11* pMaterial)
 {
 	m_cbLighting.matDiffuse[0] = pMaterial->Diffuse.r;
 	m_cbLighting.matDiffuse[1] = pMaterial->Diffuse.g;

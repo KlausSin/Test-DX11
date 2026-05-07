@@ -18,8 +18,6 @@ class CPythonGraphic : public CScreen, public CSingleton<CPythonGraphic>
 		void PushState();
 		void PopState();
 
-		LPDIRECT3D9EX GetD3D();  // Returns NULL — D3D9 device removed
-
 		float GetOrthoDepth();
 		void SetInterfaceRenderState();
 		void SetGameRenderState();

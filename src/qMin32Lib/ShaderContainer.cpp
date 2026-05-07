@@ -19,6 +19,8 @@ ShadersContainer::ShadersContainer(DxManager* manager)
 	m_desc[VF_SKYBOX] = { "skybox_Vs", "skybox_Ps" };
 	m_desc[VF_TERRAIN] = { "terrain_Vs", "terrain_Ps" };
 	m_desc[VF_EFFECT] = { "effect_Vs", "effect_Ps" };
+	m_desc[VF_BRANCH] = { "branch_Vs", "branch_Ps" };
+	m_desc[VF_LEAF] = { "leaf_Vs", "leaf_Ps" };
 
 	Precompile(VF_MESH, { SHADER_NONE, IS_SKINNED, HAS_TEX2, HAS_TEX2 | IS_SKINNED});
 	Precompile(VF_SKYBOX, { SKY_USE_TEXTURE, SKY_USE_DIFFUSE, SKY_CLOUD });

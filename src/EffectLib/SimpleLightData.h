@@ -6,6 +6,7 @@
 
 #include "Type.h"
 #include "EffectElementBase.h"
+#include "qMin32Lib/Core.h"
 
 class CLightData : public CEffectElementBase
 {
@@ -24,7 +25,7 @@ class CLightData : public CEffectElementBase
 		{
 			return m_iLoopCount;
 		}
-		void InitializeLight(D3DLIGHT9& light);
+		void InitializeLight(D3DLIGHT11& light);
 
 	protected:
 		void OnClear();

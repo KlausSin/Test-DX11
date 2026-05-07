@@ -18,6 +18,7 @@
 #include <float.h>
 #include <DirectXMath.h>
 #include <dxgitype.h>    // D3DCOLORVALUE (needed by D3DXCOLOR conversion)
+#include <d3d11.h>
 
 #ifndef D3DX_PI
 #define D3DX_PI 3.14159265358979323846f
@@ -478,21 +479,10 @@ inline D3DXVECTOR3* D3DXVec3TransformNormal(D3DXVECTOR3* pOut, const D3DXVECTOR3
 	return pOut;
 }
 
-// D3DVIEWPORT9 — needed by project/unproject functions.
-// May already be defined by D3D9Compat.h; guarded to avoid redefinition.
-#ifndef _D3DVIEWPORT9_DEFINED
-#define _D3DVIEWPORT9_DEFINED
-typedef struct _D3DVIEWPORT9 {
-	DWORD X, Y;
-	DWORD Width, Height;
-	float MinZ, MaxZ;
-} D3DVIEWPORT9;
-#endif
-
 inline D3DXVECTOR3* D3DXVec3Project(
 	D3DXVECTOR3* pOut,
 	const D3DXVECTOR3* pV,
-	const D3DVIEWPORT9* pViewport,
+	const D3D11_VIEWPORT* pViewport,
 	const D3DXMATRIX* pProjection,
 	const D3DXMATRIX* pView,
 	const D3DXMATRIX* pWorld)
@@ -507,16 +497,16 @@ inline D3DXVECTOR3* D3DXVec3Project(
 
 	float halfW = pViewport->Width * 0.5f;
 	float halfH = pViewport->Height * 0.5f;
-	pOut->x = XMVectorGetX(r) * halfW + (pViewport->X + halfW);
-	pOut->y = -XMVectorGetY(r) * halfH + (pViewport->Y + halfH);
-	pOut->z = XMVectorGetZ(r) * (pViewport->MaxZ - pViewport->MinZ) + pViewport->MinZ;
+	pOut->x = XMVectorGetX(r) * halfW + (pViewport->TopLeftX + halfW);
+	pOut->y = -XMVectorGetY(r) * halfH + (pViewport->TopLeftY + halfH);
+	pOut->z = XMVectorGetZ(r) * (pViewport->MaxDepth - pViewport->MinDepth) + pViewport->MinDepth;
 	return pOut;
 }
 
 inline D3DXVECTOR3* D3DXVec3Unproject(
 	D3DXVECTOR3* pOut,
 	const D3DXVECTOR3* pV,
-	const D3DVIEWPORT9* pViewport,
+	const D3D11_VIEWPORT* pViewport,
 	const D3DXMATRIX* pProjection,
 	const D3DXMATRIX* pView,
 	const D3DXMATRIX* pWorld)
@@ -531,9 +521,9 @@ inline D3DXVECTOR3* D3DXVec3Unproject(
 	XMVECTOR v;
 	float halfW = pViewport->Width * 0.5f;
 	float halfH = pViewport->Height * 0.5f;
-	float nx = (pV->x - pViewport->X - halfW) / halfW;
-	float ny = -(pV->y - pViewport->Y - halfH) / halfH;
-	float nz = (pViewport->MaxZ != pViewport->MinZ) ? (pV->z - pViewport->MinZ) / (pViewport->MaxZ - pViewport->MinZ) : pV->z;
+	float nx = (pV->x - pViewport->TopLeftX - halfW) / halfW;
+	float ny = -(pV->y - pViewport->TopLeftY - halfH) / halfH;
+	float nz = (pViewport->MaxDepth != pViewport->MinDepth) ? (pV->z - pViewport->MinDepth) / (pViewport->MaxDepth - pViewport->MinDepth) : pV->z;
 	v = XMVectorSet(nx, ny, nz, 1.0f);
 	XMVECTOR r = XMVector3TransformCoord(v, inv);
 	D3DXMathInternal::StoreVec3(pOut, r);

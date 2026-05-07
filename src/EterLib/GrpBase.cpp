@@ -24,7 +24,7 @@ HWND CGraphicBase::ms_hWnd;
 HDC CGraphicBase::ms_hDC;
 
 ID3DXMatrixStack *		CGraphicBase::ms_lpd3dMatStack = NULL;
-D3DVIEWPORT9			CGraphicBase::ms_Viewport;
+D3D11_VIEWPORT			CGraphicBase::ms_Viewport;
 
 HRESULT					CGraphicBase::ms_hLastResult = NULL;
 
@@ -32,10 +32,6 @@ int						CGraphicBase::ms_iWidth;
 int						CGraphicBase::ms_iHeight;
 
 DWORD					CGraphicBase::ms_faceCount = 0;
-
-LPDIRECT3DVERTEXDECLARATION9					CGraphicBase::ms_ptVS = 0;
-LPDIRECT3DVERTEXDECLARATION9					CGraphicBase::ms_pntVS = 0;
-LPDIRECT3DVERTEXDECLARATION9					CGraphicBase::ms_pnt2VS = 0;
 
 D3DXMATRIX				CGraphicBase::ms_matIdentity;
 
@@ -340,25 +336,13 @@ void CGraphicBase::UpdatePipeLineMatrix()
 
 void CGraphicBase::SetViewport(DWORD dwX, DWORD dwY, DWORD dwWidth, DWORD dwHeight, float fMinZ, float fMaxZ)
 {
-	ms_Viewport.X = dwX;
-	ms_Viewport.Y = dwY;
-	ms_Viewport.Width = dwWidth;
-	ms_Viewport.Height = dwHeight;
-	ms_Viewport.MinZ = fMinZ;
-	ms_Viewport.MaxZ = fMaxZ;
-
-	// Forward to D3D11
-	if (ms_lpd3d11Context)
-	{
-		D3D11_VIEWPORT vp = {};
-		vp.TopLeftX = (float)dwX;
-		vp.TopLeftY = (float)dwY;
-		vp.Width = (float)dwWidth;
-		vp.Height = (float)dwHeight;
-		vp.MinDepth = fMinZ;
-		vp.MaxDepth = fMaxZ;
-		ms_lpd3d11Context->RSSetViewports(1, &vp);
-	}
+	ms_Viewport.TopLeftX = (float)dwX;
+	ms_Viewport.TopLeftY = (float)dwY;
+	ms_Viewport.Width = (float)dwWidth;
+	ms_Viewport.Height = (float)dwHeight;
+	ms_Viewport.MinDepth = fMinZ;
+	ms_Viewport.MaxDepth = fMaxZ;
+	ms_lpd3d11Context->RSSetViewports(1, &ms_Viewport);
 }
 
 void CGraphicBase::GetTargetPosition(float * px, float * py, float * pz)

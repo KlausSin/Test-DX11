@@ -10,11 +10,6 @@ void CPythonGraphic::Destroy()
 {	
 }
 
-LPDIRECT3D9EX CPythonGraphic::GetD3D()
-{
-	return NULL;
-}
-
 float CPythonGraphic::GetOrthoDepth()
 {
 	return m_fOrthoDepth;
@@ -61,14 +56,14 @@ void CPythonGraphic::SetCursorPosition(int x, int y)
 void CPythonGraphic::SetOmniLight()
 {
     // Set up a material
-    D3DMATERIAL9 Material;
+    D3DMATERIAL11 Material;
 	Material.Ambient = D3DXCOLOR(0.3f, 0.3f, 0.3f, 1.0f);
 	Material.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
 	Material.Emissive = D3DXCOLOR(0.1f, 0.1f, 0.1f, 1.0f);
     STATEMANAGER.SetMaterial(&Material);
 
-	D3DLIGHT9 Light;
-	Light.Type = D3DLIGHT_SPOT;
+	D3DLIGHT11 Light;
+	Light.Type = D3DLIGHT_SPOT11;
     Light.Position = D3DXVECTOR3(50.0f, 150.0f, 350.0f);
     Light.Direction = D3DXVECTOR3(-0.15f, -0.3f, -0.9f);
     Light.Theta = D3DXToRadian(30.0f);
@@ -88,7 +83,7 @@ void CPythonGraphic::SetOmniLight()
     Light.Range = 500.0f;
 	STATEMANAGER.SetLight(0, &Light);
 
-	Light.Type = D3DLIGHT_POINT;
+	Light.Type = D3DLIGHT_POINT11;
 	Light.Position = D3DXVECTOR3(0.0f, 200.0f, 200.0f);
 	Light.Attenuation0 = 0.1f;
 	Light.Attenuation1 = 0.01f;

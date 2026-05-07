@@ -3,7 +3,6 @@
 //#define SPHERELIB_STRICT
 //#include <crtdbg.h>
 
-#include "EterLib/D3D9Compat.h"
 #include "EterLib/D3DXMathCompat.h"
 
 #include <stdio.h>

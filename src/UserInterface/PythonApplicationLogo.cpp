@@ -24,7 +24,7 @@ int CPythonApplication::OnLogoOpen(char* szName)
 
 
 	// Ã³À½¿¡´Â 1/1 Å©±âÀÇ ÅØ½ºÃÄ¸¦ »ý¼ºÇØµÐ´Ù.
-	if(!m_pLogoTex->Create(1, 1, D3DFMT_A8R8G8B8)) { return 0; }
+	if(!m_pLogoTex->Create(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM)) { return 0; }
 
 	// Set GraphBuilder / SampleGrabber
 	if(FAILED(CoCreateInstance(CLSID_FilterGraph, NULL, CLSCTX_INPROC_SERVER, IID_IGraphBuilder, (VOID**)(&m_pGraphBuilder)))) { return 0; }
@@ -158,7 +158,7 @@ int CPythonApplication::OnLogoUpdate()
 	// Å©±â°¡ 1, Áï ÅØ½ºÃÄ °ø°£ÀÌ Á¦´ë·Î ÁØºñ ¾ÈµÈ°æ¿ì ´Ù½Ã ¸¸µç´Ù.
 	if(m_pLogoTex->GetWidth() == 1)
 	{
-		m_pLogoTex->Destroy(); m_pLogoTex->Create(lWidth, lHeight, D3DFMT_A8R8G8B8);
+		m_pLogoTex->Destroy(); m_pLogoTex->Create(lWidth, lHeight, DXGI_FORMAT_R8G8B8A8_UNORM);
 		
 	}
 

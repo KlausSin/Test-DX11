@@ -4,7 +4,6 @@
 #include "EterBase/FileLoader.h"
 #include "EterLib/Util.h"
 #include "EterLib/Pool.h"
-#include "EterLib/D3D9Compat.h"
 
 class CTextFileLoader
 {

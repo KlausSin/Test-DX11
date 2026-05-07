@@ -5,6 +5,7 @@
 #include <memory>
 
 #include <wrl/client.h>
+#include <EterLib/D3DXMathCompat.h>
 using namespace Microsoft::WRL;
 
 class ConstantBuffer;
@@ -43,5 +44,80 @@ enum ED3D11VertexFormat
 	VF_SKYBOX,
 	VF_TERRAIN,
 	VF_EFFECT,
+
+	//speedtree
+	VF_BRANCH,
+	VF_LEAF,
+
 	VF_COUNT
+};
+
+struct D3DMATERIAL11
+{
+	D3DXCOLOR Diffuse;
+	D3DXCOLOR Ambient;
+	D3DXCOLOR Specular;
+	D3DXCOLOR Emissive;
+	float Power;
+
+	D3DMATERIAL11()
+		: Diffuse(1.0f, 1.0f, 1.0f, 1.0f)
+		, Ambient(1.0f, 1.0f, 1.0f, 1.0f)
+		, Specular(0.0f, 0.0f, 0.0f, 1.0f)
+		, Emissive(0.0f, 0.0f, 0.0f, 1.0f)
+		, Power(0.0f)
+	{
+	}
+};
+
+enum D3DLIGHTTYPE11
+{
+	D3DLIGHT_POINT11 = 1,
+	D3DLIGHT_SPOT11 = 2,
+	D3DLIGHT_DIRECTIONAL11 = 3,
+};
+
+struct D3DLIGHT11
+{
+	D3DLIGHTTYPE11 Type;
+
+	D3DXCOLOR Diffuse;
+	D3DXCOLOR Specular;
+	D3DXCOLOR Ambient;
+
+	D3DXVECTOR3 Position;
+	float Range;
+
+	D3DXVECTOR3 Direction;
+	float Falloff;
+
+	float Attenuation0;
+	float Attenuation1;
+	float Attenuation2;
+	float Theta;
+
+	float Phi;
+	float Pad0;
+	float Pad1;
+	float Pad2;
+
+	D3DLIGHT11()
+		: Type(D3DLIGHT_DIRECTIONAL11)
+		, Diffuse(1.0f, 1.0f, 1.0f, 1.0f)
+		, Specular(1.0f, 1.0f, 1.0f, 1.0f)
+		, Ambient(0.0f, 0.0f, 0.0f, 1.0f)
+		, Position(0.0f, 0.0f, 0.0f)
+		, Range(1000.0f)
+		, Direction(0.0f, 0.0f, 1.0f)
+		, Falloff(1.0f)
+		, Attenuation0(1.0f)
+		, Attenuation1(0.0f)
+		, Attenuation2(0.0f)
+		, Theta(0.0f)
+		, Phi(0.0f)
+		, Pad0(0.0f)
+		, Pad1(0.0f)
+		, Pad2(0.0f)
+	{
+	}
 };

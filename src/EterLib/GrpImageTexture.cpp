@@ -79,7 +79,7 @@ void CGraphicImageTexture::Initialize()
 	CGraphicTexture::Initialize();
 
 	m_stFileName = "";
-	m_d3dFmt = D3DFMT_UNKNOWN;
+	m_d3dFmt = DXGI_FORMAT_UNKNOWN;
 	m_dwFilter = 0;
 	m_lockPitch = 0;
 }
@@ -121,7 +121,7 @@ bool CGraphicImageTexture::CreateDeviceObjects()
 ///////////////////////////////////////////////////////////////////////////////
 // Create empty texture (for font textures)
 ///////////////////////////////////////////////////////////////////////////////
-bool CGraphicImageTexture::Create(UINT width, UINT height, D3DFORMAT d3dFmt, DWORD dwFilter)
+bool CGraphicImageTexture::Create(UINT width, UINT height, DXGI_FORMAT d3dFmt, DWORD dwFilter)
 {
 	Destroy();
 
@@ -459,7 +459,7 @@ bool CGraphicImageTexture::CreateFromSTBMemory(UINT bufSize, const void* c_pvBuf
 ///////////////////////////////////////////////////////////////////////////////
 // CreateFromMemoryFile — main entry point, tries DDS then STB
 ///////////////////////////////////////////////////////////////////////////////
-bool CGraphicImageTexture::CreateFromMemoryFile(UINT bufSize, const void* c_pvBuf, D3DFORMAT d3dFmt, DWORD dwFilter)
+bool CGraphicImageTexture::CreateFromMemoryFile(UINT bufSize, const void* c_pvBuf, DXGI_FORMAT d3dFmt, DWORD dwFilter)
 {
 	assert(ms_lpd3d11Device != NULL);
 
@@ -482,7 +482,7 @@ void CGraphicImageTexture::SetFileName(const char* c_szFileName)
 	m_stFileName = c_szFileName;
 }
 
-bool CGraphicImageTexture::CreateFromDiskFile(const char* c_szFileName, D3DFORMAT d3dFmt, DWORD dwFilter)
+bool CGraphicImageTexture::CreateFromDiskFile(const char* c_szFileName, DXGI_FORMAT d3dFmt, DWORD dwFilter)
 {
 	Destroy();
 
@@ -493,7 +493,7 @@ bool CGraphicImageTexture::CreateFromDiskFile(const char* c_szFileName, D3DFORMA
 	return CreateDeviceObjects();
 }
 
-bool CGraphicImageTexture::CreateFromDecodedData(const TDecodedImageData& decodedImage, D3DFORMAT d3dFmt, DWORD dwFilter)
+bool CGraphicImageTexture::CreateFromDecodedData(const TDecodedImageData& decodedImage, DXGI_FORMAT d3dFmt, DWORD dwFilter)
 {
 	assert(ms_lpd3d11Device != NULL);
 

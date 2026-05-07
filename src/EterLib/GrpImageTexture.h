@@ -12,15 +12,15 @@ class CGraphicImageTexture : public CGraphicTexture
 
 		void		Destroy();
 
-		bool		Create(UINT width, UINT height, D3DFORMAT d3dFmt, DWORD dwFilter = D3DX_FILTER_LINEAR);
+		bool		Create(UINT width, UINT height, DXGI_FORMAT d3dFmt, DWORD dwFilter = D3D11_FILTER_MIN_MAG_MIP_LINEAR);
 		bool		CreateDeviceObjects();
 
 		void		CreateFromTexturePointer(const CGraphicTexture* c_pSrcTexture);
-		bool		CreateFromDiskFile(const char* c_szFileName, D3DFORMAT d3dFmt, DWORD dwFilter = D3DX_FILTER_LINEAR);
-		bool		CreateFromMemoryFile(UINT bufSize, const void* c_pvBuf, D3DFORMAT d3dFmt, DWORD dwFilter = D3DX_FILTER_LINEAR);
+		bool		CreateFromDiskFile(const char* c_szFileName, DXGI_FORMAT d3dFmt, DWORD dwFilter = D3D11_FILTER_MIN_MAG_MIP_LINEAR);
+		bool		CreateFromMemoryFile(UINT bufSize, const void* c_pvBuf, DXGI_FORMAT d3dFmt, DWORD dwFilter = D3D11_FILTER_MIN_MAG_MIP_LINEAR);
 		bool		CreateFromDDSMemory(UINT bufSize, const void* c_pvBuf);
 		bool		CreateFromSTBMemory(UINT bufSize, const void* c_pvBuf);
-		bool		CreateFromDecodedData(const TDecodedImageData& decodedImage, D3DFORMAT d3dFmt, DWORD dwFilter);
+		bool		CreateFromDecodedData(const TDecodedImageData& decodedImage, DXGI_FORMAT d3dFmt, DWORD dwFilter);
 
 		void		SetFileName(const char * c_szFileName);
 
@@ -33,7 +33,7 @@ class CGraphicImageTexture : public CGraphicTexture
 		// Helper: create D3D11 SRV from BGRA pixel data
 		bool		CreateSRVFromBGRA(UINT width, UINT height, const void* pPixels, UINT pitch);
 
-		D3DFORMAT	m_d3dFmt;
+		DXGI_FORMAT	m_d3dFmt;
 		DWORD		m_dwFilter;
 
 		std::string m_stFileName;

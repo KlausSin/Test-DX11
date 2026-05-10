@@ -55,18 +55,12 @@ public:
 
 		for (i = 0; i < STATEMANAGER_MAX_STAGES; i++)
 			m_Textures[i] = NULL;
-
-		m_bVertexProcessing = FALSE;
 	}
 
 	ID3D11ShaderResourceView* m_Textures[STATEMANAGER_MAX_STAGES];
 
-	D3DMATERIAL11			m_D3DMaterial;
-
 	SStreamData m_StreamData[STATEMANAGER_MAX_STREAMS];
 	SIndexData m_IndexData;
-
-	BOOL					m_bVertexProcessing;
 };
 
 class CStateManager : public CSingleton<CStateManager>
@@ -80,15 +74,6 @@ public:
 
 	bool	BeginScene();
 	void	EndScene();
-
-	void	SaveMaterial();
-	void	SaveMaterial(const D3DMATERIAL11* pMaterial);
-	void	RestoreMaterial();
-	void	SetMaterial(const D3DMATERIAL11* pMaterial);
-	void	GetMaterial(D3DMATERIAL11* pMaterial);
-
-	void	SetLight(DWORD index, CONST D3DLIGHT11* pLight);
-	void	GetLight(DWORD index, D3DLIGHT11* pLight);
 
 	void	SetScissorRect(const RECT& c_rRect);
 	void	GetScissorRect(RECT* pRect);
@@ -125,6 +110,7 @@ public:
 	CD3D11DepthStencilStateCache& GetDepthStencil();
 	CD3D11BlendStateCache& GetBlend();
 	CD3D11TransformStateCache& GetTransform();
+	CD3D11LightingStateCache& GetLight();
 
 #ifdef _DEBUG
 	void ResetDrawCallCounter();
@@ -141,8 +127,6 @@ private:
 	CD3D11Renderer* m_pD3D11Renderer;
 
 	std::vector<ID3D11ShaderResourceView*>	m_TextureStack[STATEMANAGER_MAX_STAGES];
-	std::vector<D3DMATERIAL11>				m_MaterialStack;
-	std::vector<BOOL>						m_VertexProcessingStack;
 	std::vector<SStreamData>				m_StreamStack[STATEMANAGER_MAX_STREAMS];
 	std::vector<SIndexData>					m_IndexStack;
 

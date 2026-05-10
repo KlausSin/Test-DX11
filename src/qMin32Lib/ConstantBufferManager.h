@@ -18,8 +18,6 @@ struct CBMaterial
 	int useTexture1;
 	int alphaTestEnable;
 	int alphaRef;
-
-	float drawColor[4];
 };
 
 // b2: Lighting emulation

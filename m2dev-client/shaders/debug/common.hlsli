@@ -10,24 +10,8 @@ cbuffer cbMaterial : register(b1)
 	float4 textureFactor;
 	int useTexture0; 
 	int useTexture1;
-	int colorOp0;
-	int alphaOp0;
-	int colorOp1;
-	int alphaOp1;
-	int colorArg10;
-	int colorArg20;
-	int alphaArg10;
-	int alphaArg20;
-	int colorArg11;
-	int colorArg21;
-	int alphaArg11;
-	int alphaArg21;
 	int alphaTestEnable; 
 	int alphaRef;
-	int texCoordGen1;
-	int padMat1;
-	int padMat2; 
-	int padMat3;
 };
 
 cbuffer cbLighting : register(b2)

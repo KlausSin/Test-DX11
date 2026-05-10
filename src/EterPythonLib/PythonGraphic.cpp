@@ -63,7 +63,7 @@ void CPythonGraphic::SetOmniLight()
 	Material.Ambient = D3DXCOLOR(0.3f, 0.3f, 0.3f, 1.0f);
 	Material.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
 	Material.Emissive = D3DXCOLOR(0.1f, 0.1f, 0.1f, 1.0f);
-    STATEMANAGER.SetMaterial(&Material);
+	STATEMANAGER.GetLight().SetMaterial(Material);
 
 	D3DLIGHT11 Light;
 	Light.Type = D3DLIGHT_SPOT11;
@@ -84,7 +84,7 @@ void CPythonGraphic::SetOmniLight()
 	Light.Ambient.b = 1.0f;
 	Light.Ambient.a = 1.0f;
     Light.Range = 500.0f;
-	STATEMANAGER.SetLight(0, &Light);
+	STATEMANAGER.GetLight().SetLight(0, Light);
 
 	Light.Type = D3DLIGHT_POINT11;
 	Light.Position = D3DXVECTOR3(0.0f, 200.0f, 200.0f);

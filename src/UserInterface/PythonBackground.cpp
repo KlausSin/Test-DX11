@@ -678,7 +678,7 @@ void CPythonBackground::SetCharacterDirLight()
 	if (!mc_pcurEnvironmentData)
 		return;
 
-	STATEMANAGER.SetLight(0, &mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_CHARACTER]);
+	STATEMANAGER.GetLight().SetLight(0, mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_CHARACTER]);
 }
 
 void CPythonBackground::SetBackgroundDirLight()
@@ -688,7 +688,7 @@ void CPythonBackground::SetBackgroundDirLight()
 	if (!mc_pcurEnvironmentData)
 		return;
 
-	STATEMANAGER.SetLight(0, &mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_BACKGROUND]);
+	STATEMANAGER.GetLight().SetLight(0, mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_BACKGROUND]);
 }
 
 void CPythonBackground::GlobalPositionToLocalPosition(int32_t& rGlobalX, int32_t& rGlobalY)

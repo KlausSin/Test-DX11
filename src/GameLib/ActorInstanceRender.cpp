@@ -36,11 +36,10 @@ void CActorInstance::OnRender()
 	if (!m_pkCurRaceData)
 		return;
 
-	D3DMATERIAL11 kMtrl;
-	STATEMANAGER.GetMaterial(&kMtrl);
+	D3DMATERIAL11 kMtrl = STATEMANAGER.GetLight().GetMaterial();
 
 	kMtrl.Diffuse=D3DXCOLOR(m_dwMtrlColor);	
-	STATEMANAGER.SetMaterial(&kMtrl);
+	STATEMANAGER.GetLight().SetMaterial(kMtrl);
 
 	// 현재는 이렇게.. 최종적인 형태는 Diffuse와 Blend의 분리로..
 	// 아니면 이런 형태로 가되 Texture & State Sorting 지원으로.. - [levites]
@@ -92,7 +91,7 @@ void CActorInstance::OnRender()
 	STATEMANAGER.GetRaster().Restore();
 
 	kMtrl.Diffuse = D3DXCOLOR(0xffffffff);
-	STATEMANAGER.SetMaterial(&kMtrl);
+	STATEMANAGER.GetLight().SetMaterial(kMtrl);
 
 	if (ms_isDirLine)
 	{

@@ -204,7 +204,7 @@ void CLight::SetDeviceLight(BOOL bActive)
 	// Forward to StateManager which routes to D3D11 renderer
 	if (bActive && m_isEdited)
 	{
-		STATEMANAGER.SetLight(m_LightID, &m_d3dLight);
+		STATEMANAGER.GetLight().SetLight(m_LightID, m_d3dLight);
 	}
 	// D3D11 has no LightEnable — lighting is handled in shaders via lightingEnable flag
 	(void)bActive;

@@ -4,35 +4,11 @@
 #include "GrpD3D11Renderer.h"
 #include "qMin32Lib/ConstantBufferManager.h"
 
-// Global per-frame draw call counter (always-on, not just debug)
 static int g_frameDrawCount = 0;
 static int g_frameNumber = 0;
-static int g_drawByStride[64] = {};	// indexed by stride/4
+static int g_drawByStride[64] = {};
 
-//#define StateManager_Assert(a) if (!(a)) puts("assert"#a)
 #define StateManager_Assert(a) assert(a)
-
-struct SLightData
-{
-	D3DLIGHT11 m_akD3DLight[8];
-} m_kLightData;
-
-
-
-void CStateManager::SetLight(DWORD index, CONST D3DLIGHT11* pLight)
-{
-	assert(index < 8);
-	m_kLightData.m_akD3DLight[index] = *pLight;
-
-	if (m_pD3D11Renderer)
-		m_pD3D11Renderer->GetCbMgr()->SetLight(index, pLight);
-}
-
-void CStateManager::GetLight(DWORD index, D3DLIGHT11* pLight)
-{
-	assert(index < 8);
-	*pLight = m_kLightData.m_akD3DLight[index];
-}
 
 void CStateManager::SetScissorRect(const RECT& c_rRect)
 {
@@ -157,8 +133,6 @@ void CStateManager::SetDefaultState()
 	for (auto& stack : m_StreamStack)
 		stack.clear();
 
-	m_MaterialStack.clear();
-	m_VertexProcessingStack.clear();
 	m_IndexStack.clear();
 
 	m_bScene = false;
@@ -185,12 +159,13 @@ void CStateManager::SetDefaultState()
 	DefaultMat.Diffuse.g = 1.0f;
 	DefaultMat.Diffuse.b = 1.0f;
 	DefaultMat.Diffuse.a = 1.0f;
+
 	DefaultMat.Ambient.r = 1.0f;
 	DefaultMat.Ambient.g = 1.0f;
 	DefaultMat.Ambient.b = 1.0f;
 	DefaultMat.Ambient.a = 1.0f;
 
-	SetMaterial(&DefaultMat);
+	STATEMANAGER.GetLight().SetMaterial(DefaultMat);
 
 	cb->SetAlphaRef(1);
 	cb->SetFogStart(0.0f);
@@ -224,38 +199,6 @@ void CStateManager::SetDefaultState()
 	}
 
 	m_bForce = false;
-}
-
-// Material
-void CStateManager::SaveMaterial()
-{
-	m_MaterialStack.push_back(m_CurrentState.m_D3DMaterial);
-}
-
-void CStateManager::SaveMaterial(const D3DMATERIAL11* pMaterial)
-{
-	m_MaterialStack.push_back(m_CurrentState.m_D3DMaterial);
-	SetMaterial(pMaterial);
-}
-
-void CStateManager::RestoreMaterial()
-{
-	SetMaterial(&m_MaterialStack.back());
-	m_MaterialStack.pop_back();
-}
-
-void CStateManager::SetMaterial(const D3DMATERIAL11* pMaterial)
-{
-	m_CurrentState.m_D3DMaterial = *pMaterial;
-
-	if (m_pD3D11Renderer)
-		m_pD3D11Renderer->GetCbMgr()->SetMaterial(pMaterial);
-}
-
-void CStateManager::GetMaterial(D3DMATERIAL11* pMaterial)
-{
-	// Set the renderstate and remember it.
-	*pMaterial = m_CurrentState.m_D3DMaterial;
 }
 
 void CStateManager::StateManager_Capture()
@@ -305,6 +248,11 @@ CD3D11BlendStateCache& CStateManager::GetBlend()
 CD3D11TransformStateCache& CStateManager::GetTransform()
 {
 	return GetStateCache().Transform;
+}
+
+CD3D11LightingStateCache& CStateManager::GetLight()
+{
+	return GetStateCache().Light;
 }
 
 // Textures (D3D11 SRV)

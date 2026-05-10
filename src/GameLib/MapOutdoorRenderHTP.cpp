@@ -51,7 +51,6 @@ void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch()
 	m_matWorldForCommonUse._42 = 0.0f;
 	STATEMANAGER.GetTransform().SetWorld(m_matWorldForCommonUse);
 
-	STATEMANAGER.GetTransform().Push();
 	STATEMANAGER.GetTransform().SetTexture0(m_matWorldForCommonUse);
 	STATEMANAGER.GetTransform().SetTexture1(m_matWorldForCommonUse);
 
@@ -163,7 +162,6 @@ void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch()
 
 	std::sort(m_RenderedTextureNumVector.begin(), m_RenderedTextureNumVector.end());
 
-	STATEMANAGER.GetTransform().Restore();
 	state.Restore();
 }
 

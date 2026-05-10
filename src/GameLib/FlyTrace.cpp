@@ -140,7 +140,7 @@ void CFlyTrace::Render()
 
 	D3DXMATRIX matWorld;
 	D3DXMatrixIdentity(&matWorld);
-	STATEMANAGER.GetTransform().Push();
+
 	STATEMANAGER.GetTransform().SetWorld(matWorld);
 
 	STATEMANAGER.SetTexture(0, NULL);

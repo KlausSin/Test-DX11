@@ -886,8 +886,6 @@ void CSkyBox::RenderCloud()
 
 	m_dwlastTime = dwCurTime;
 
-	STATEMANAGER.GetTransform().Push();
-
 	STATEMANAGER.GetTransform().SetTexture0(m_matTextureCloud);
 
 	D3DXMATRIX matProjCloud;
@@ -901,6 +899,5 @@ void CSkyBox::RenderCloud()
 	STATEMANAGER.SetTexture(0, pCloudGraphicImageInstance->GetTexturePointer()->GetSRV());
 	m_FaceCloud.Render();
 
-	STATEMANAGER.GetTransform().Restore();
 	state.Restore();
 }

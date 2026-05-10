@@ -258,46 +258,49 @@ void CArea::RenderCollision()
 	STATEMANAGER.SetTexture(0, NULL);
 	STATEMANAGER.SetTexture(1, NULL);
 
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, 0xff000000);
+	STATEMANAGER.GetStateCache().Push();
 
-	for(i=0;i<GetObjectInstanceCount();i++)
+	STATEMANAGER.GetBlend().SetBlendEnable(false);
+	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
+
+	_mgr->GetCbMgr()->SetLightingEnable(false);
+	_mgr->GetCbMgr()->SetTextureFactor(0xff000000);
+
+	for (i = 0; i < GetObjectInstanceCount(); i++)
 	{
-		const TObjectInstance * po;
-		if (GetObjectInstancePointer(i,&po))
+		const TObjectInstance* po;
+
+		if (GetObjectInstancePointer(i, &po))
 		{
 			if (po->pTree && po->pTree->isShow())
 			{
 				DWORD j;
-				for(j=0;j<po->pTree->GetCollisionInstanceCount();j++)
-				{
+
+				for (j = 0; j < po->pTree->GetCollisionInstanceCount(); j++)
 					po->pTree->GetCollisionInstanceData(j)->Render();
-				}
 			}
+
 			if (po->pThingInstance && po->pThingInstance->isShow())
 			{
 				DWORD j;
-				for(j=0;j<po->pThingInstance->GetCollisionInstanceCount();j++)
-				{
+
+				for (j = 0; j < po->pThingInstance->GetCollisionInstanceCount(); j++)
 					po->pThingInstance->GetCollisionInstanceData(j)->Render();
-				}
 			}
+
 			if (po->pDungeonBlock && po->pDungeonBlock->isShow())
 			{
 				DWORD j;
-				for(j=0;j<po->pDungeonBlock->GetCollisionInstanceCount();j++)
-				{
+
+				for (j = 0; j < po->pDungeonBlock->GetCollisionInstanceCount(); j++)
 					po->pDungeonBlock->GetCollisionInstanceData(j)->Render();
-				}
 			}
 		}
 	}
 
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_CULLMODE);
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, TRUE);
+	STATEMANAGER.GetStateCache().Restore();
+
+	_mgr->GetCbMgr()->SetLightingEnable(true);
 }
 
 void CArea::RenderAmbience()
@@ -1235,9 +1238,9 @@ float CArea::TAmbienceInstance::__GetVolumeFromDistance(float fDistance)
 void CArea::TAmbienceInstance::Render()
 {
 	float fBoxSize = 10.0f;
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, 0xff00ff00);
+	_mgr->GetCbMgr()->SetTextureFactor(0xff00ff00);
 	RenderCube(fx-fBoxSize, fy-fBoxSize, fz-fBoxSize, fx+fBoxSize, fy+fBoxSize, fz+fBoxSize);
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, 0xffffffff);
+	_mgr->GetCbMgr()->SetTextureFactor(0xffffffff);
 	RenderSphere(NULL, fx, fy, fz, float(dwRange) * fMaxVolumeAreaPercentage, D3D11_FILL_SOLID);
 	RenderSphere(NULL, fx, fy, fz, float(dwRange), D3D11_FILL_SOLID);
 	RenderCircle2d(fx, fy, fz, float(dwRange) * fMaxVolumeAreaPercentage);

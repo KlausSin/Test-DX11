@@ -221,7 +221,7 @@ void CGraphicBase::SetSimpleCamera(float x, float y, float z, float pitch, float
 	UpdateViewMatrix();
 
 	// This is levites's virtual(?) code which you should not trust.
-	STATEMANAGER.GetTransform(World, &ms_matWorld);
+	ms_matWorld = STATEMANAGER.GetTransform().GetWorld();
 	D3DXMatrixMultiply(&ms_matWorldView, &ms_matWorld, &ms_matView);
 }
 
@@ -238,7 +238,7 @@ void CGraphicBase::SetAroundCamera(float distance, float pitch, float roll, floa
 	UpdateViewMatrix();
 
 	// This is levites's virtual(?) code which you should not trust.
-	STATEMANAGER.GetTransform(World, &ms_matWorld);
+	ms_matWorld = STATEMANAGER.GetTransform().GetWorld();
 	D3DXMatrixMultiply(&ms_matWorldView, &ms_matWorld, &ms_matView);
 }
 
@@ -268,7 +268,7 @@ void CGraphicBase::SetPositionCamera(float fx, float fy, float fz, float distanc
 	UpdateViewMatrix();
 
 	// This is levites's virtual(?) code which you should not trust.
-	STATEMANAGER.GetTransform(World, &ms_matWorld);
+	ms_matWorld = STATEMANAGER.GetTransform().GetWorld();
 	D3DXMatrixMultiply(&ms_matWorldView, &ms_matWorld, &ms_matView);
 }
 
@@ -309,7 +309,7 @@ void CGraphicBase::SetPerspective(float fov, float aspect, float nearz, float fa
 
 void CGraphicBase::UpdateProjMatrix()
 {
-	STATEMANAGER.SetTransform(Projection, &ms_matProj);
+	STATEMANAGER.GetTransform().SetProjection(ms_matProj);
 }
 
 void CGraphicBase::UpdateViewMatrix()
@@ -319,7 +319,7 @@ void CGraphicBase::UpdateViewMatrix()
 		return;
 
 	ms_matView = pkCamera->GetViewMatrix();
-	STATEMANAGER.SetTransform(View, &ms_matView);
+	STATEMANAGER.GetTransform().SetView(ms_matView);
 
 	D3DXMatrixInverse(&ms_matInverseView, NULL, &ms_matView);
 	ms_matInverseViewYAxis._11 = ms_matInverseView._11;

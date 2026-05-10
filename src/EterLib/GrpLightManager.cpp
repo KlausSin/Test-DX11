@@ -125,7 +125,7 @@ void CLightManager::FlushLight()
 	std::sort(m_LightSortVector.begin(), m_LightSortVector.end(), LightComp());
 
 	// NOTE - 거리로 정렬된 라이트를 Limit 갯수 만큼 제한해서 켜준다.
-	STATEMANAGER.SaveRenderState(RS11_LIGHTING, TRUE);
+	_mgr->GetCbMgr()->SetLightingEnable(true);
 
 	for (DWORD k = 0; k < std::min((size_t)m_dwLimitLightCount, m_LightSortVector.size()); ++k)
 	{
@@ -137,7 +137,7 @@ void CLightManager::FlushLight()
 
 void CLightManager::RestoreLight()
 {
-	STATEMANAGER.RestoreRenderState(RS11_LIGHTING);
+	_mgr->GetCbMgr()->SetLightingEnable(false);
 
 	for (DWORD k = 0; k < std::min((size_t)m_dwLimitLightCount, m_LightSortVector.size()); ++k)
 		m_LightSortVector[k]->SetDeviceLight(FALSE);

@@ -179,7 +179,7 @@ void CParticleInstance::UpdateAirResistance(float time, float elapsedTime)
 
 void CParticleInstance::Transform(const D3DXMATRIX * c_matLocal)
 {
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, m_Color);
+	_mgr->GetCbMgr()->SetTextureFactor(DWORD(m_Color));
 
 	D3DXVECTOR3 v3Up;
 	D3DXVECTOR3 v3Cross;
@@ -330,7 +330,7 @@ void CParticleInstance::Transform(const D3DXMATRIX * c_matLocal)
 
 void CParticleInstance::Transform(const D3DXMATRIX * c_matLocal, const float c_fZRotation)
 {
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, m_Color);
+	_mgr->GetCbMgr()->SetTextureFactor(DWORD(m_Color));
 
 	D3DXVECTOR3 v3Up;
 	D3DXVECTOR3 v3Cross;

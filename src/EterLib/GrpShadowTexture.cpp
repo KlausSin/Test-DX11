@@ -83,12 +83,10 @@ void CGraphicShadowTexture::Begin()
 
 	D3DXMatrixMultiply(&m_d3dLightVPMatrix, &ms_matView, &ms_matProj);
 
-	// Save current render targets and viewport
 	ms_lpd3d11Context->OMGetRenderTargets(1, &m_pOldRTV, &m_pOldDSV);
 	m_uOldNumViewports = 1;
 	ms_lpd3d11Context->RSGetViewports(&m_uOldNumViewports, &m_d3dOldViewport);
 
-	// Set shadow render target
 	ms_lpd3d11Context->OMSetRenderTargets(1, &m_pShadowRTV, m_pDepthDSV);
 
 	D3D11_VIEWPORT vp = {};
@@ -100,33 +98,26 @@ void CGraphicShadowTexture::Begin()
 	vp.Height = (float)m_height;
 	ms_lpd3d11Context->RSSetViewports(1, &vp);
 
-	// Clear
 	float clearColor[4] = { 0, 0, 0, 0 };
 	ms_lpd3d11Context->ClearRenderTargetView(m_pShadowRTV, clearColor);
 	ms_lpd3d11Context->ClearDepthStencilView(m_pDepthDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	// Save state for shadow rendering
-	STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
-	STATEMANAGER.SaveRenderState(RS11_ZFUNC, D3D11_COMPARISON_LESS_EQUAL);
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, true);
-	STATEMANAGER.SaveRenderState(RS11_ALPHATESTENABLE, true);
-	STATEMANAGER.SaveRenderState(RS11_TEXTUREFACTOR, 0xbb000000);
+	STATEMANAGER.GetStateCache().Push();
+
+	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
+	STATEMANAGER.GetDepthStencil().SetDepthFunc(D3D11_COMPARISON_LESS_EQUAL);
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+
+	_mgr->GetCbMgr()->SetAlphaTestEnable(true);
+	_mgr->GetCbMgr()->SetTextureFactor(0xbb000000);
 
 	STATEMANAGER.SetTexture(0, NULL);
-
-	STATEMANAGER.SaveSamplerState(0, SS11_MINFILTER, TF11_POINT);
-	STATEMANAGER.SaveSamplerState(0, SS11_MAGFILTER, TF11_POINT);
-	STATEMANAGER.SaveSamplerState(0, SS11_MIPFILTER, TF11_POINT);
-	STATEMANAGER.SaveSamplerState(0, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_CLAMP);
-	STATEMANAGER.SaveSamplerState(0, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_CLAMP);
+	STATEMANAGER.GetSampler().SetFilter(0, D3D11_FILTER_MIN_MAG_MIP_POINT);
+	STATEMANAGER.GetSampler().SetAddressUV(0, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
 
 	STATEMANAGER.SetTexture(1, NULL);
-
-	STATEMANAGER.SaveSamplerState(1, SS11_MINFILTER, TF11_POINT);
-	STATEMANAGER.SaveSamplerState(1, SS11_MAGFILTER, TF11_POINT);
-	STATEMANAGER.SaveSamplerState(1, SS11_MIPFILTER, TF11_POINT);
-	STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_CLAMP);
-	STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_CLAMP);
+	STATEMANAGER.GetSampler().SetFilter(1, D3D11_FILTER_MIN_MAG_MIP_POINT);
+	STATEMANAGER.GetSampler().SetAddressUV(1, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
 }
 
 void CGraphicShadowTexture::End()
@@ -134,30 +125,13 @@ void CGraphicShadowTexture::End()
 	if (!ms_lpd3d11Context)
 		return;
 
-	// Restore previous render target and viewport
 	ms_lpd3d11Context->OMSetRenderTargets(1, &m_pOldRTV, m_pOldDSV);
 	ms_lpd3d11Context->RSSetViewports(1, &m_d3dOldViewport);
 
 	safe_release(m_pOldRTV);
 	safe_release(m_pOldDSV);
 
-	STATEMANAGER.RestoreRenderState(RS11_CULLMODE);
-	STATEMANAGER.RestoreRenderState(RS11_ZFUNC);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHATESTENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_TEXTUREFACTOR);
-
-	STATEMANAGER.RestoreSamplerState(0, SS11_MINFILTER);
-	STATEMANAGER.RestoreSamplerState(0, SS11_MAGFILTER);
-	STATEMANAGER.RestoreSamplerState(0, SS11_MIPFILTER);
-	STATEMANAGER.RestoreSamplerState(0, SS11_ADDRESSU);
-	STATEMANAGER.RestoreSamplerState(0, SS11_ADDRESSV);
-
-	STATEMANAGER.RestoreSamplerState(1, SS11_MINFILTER);
-	STATEMANAGER.RestoreSamplerState(1, SS11_MAGFILTER);
-	STATEMANAGER.RestoreSamplerState(1, SS11_MIPFILTER);
-	STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSU);
-	STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSV);
+	STATEMANAGER.GetStateCache().Restore();
 }
 
 void CGraphicShadowTexture::Initialize()

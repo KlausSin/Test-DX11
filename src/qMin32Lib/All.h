@@ -4,3 +4,4 @@
 #include "ConstantBufferManager.h"
 #include "IndexBuffer.h"
 #include "VertexBuffer.h"
+#include "D3D11StateCacheSet.h"

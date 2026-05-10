@@ -123,31 +123,32 @@ bool CMapOutdoor::BeginRenderCharacterShadowToTexture()
 
 	D3DXVECTOR3 v3Target = pCurrentCamera->GetTarget();
 
-	D3DXVECTOR3 v3Eye(v3Target.x - 1.732f * 1250.0f,
-					  v3Target.y - 1250.0f,
-					  v3Target.z + 2.0f * 1.732f * 1250.0f);
+	D3DXVECTOR3 v3Eye(
+		v3Target.x - 1.732f * 1250.0f,
+		v3Target.y - 1250.0f,
+		v3Target.z + 2.0f * 1.732f * 1250.0f);
 
 	const auto vv = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
+
 	D3DXMatrixLookAtRH(&matLightView, &v3Eye, &v3Target, &vv);
 	D3DXMatrixOrthoRH(&matLightProj, 2550.0f, 2550.0f, 1.0f, 15000.0f);
 
-	STATEMANAGER.SaveTransform(View, &matLightView);
-	STATEMANAGER.SaveTransform(Projection, &matLightProj);
+	STATEMANAGER.GetTransform().Push();
+	STATEMANAGER.GetTransform().SetView(matLightView);
+	STATEMANAGER.GetTransform().SetProjection(matLightProj);
 
-	dwLightEnable = STATEMANAGER.GetRenderState(RS11_LIGHTING);
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
+	_mgr->GetCbMgr()->SetLightingEnable(false);
+	_mgr->GetCbMgr()->SetTextureFactor(0xFF808080);
 
-	STATEMANAGER.SaveRenderState(RS11_TEXTUREFACTOR, 0xFF808080);
-
-	// Save current render targets and viewport
 	ms_lpd3d11Context->OMGetRenderTargets(1, &m_lpBackupRTV, &m_lpBackupDSV);
+
 	m_uBackupNumViewports = 1;
 	ms_lpd3d11Context->RSGetViewports(&m_uBackupNumViewports, &m_BackupViewport);
 
-	// Set shadow render target
 	ms_lpd3d11Context->OMSetRenderTargets(1, &m_lpCharacterShadowMapRTV, m_lpCharacterShadowMapDSV);
 
 	float clearColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
 	ms_lpd3d11Context->ClearRenderTargetView(m_lpCharacterShadowMapRTV, clearColor);
 	ms_lpd3d11Context->ClearDepthStencilView(m_lpCharacterShadowMapDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
@@ -161,17 +162,13 @@ void CMapOutdoor::EndRenderCharacterShadowToTexture()
 	if (!ms_lpd3d11Context)
 		return;
 
-	// Restore previous render target and viewport
 	ms_lpd3d11Context->RSSetViewports(1, &m_BackupViewport);
 	ms_lpd3d11Context->OMSetRenderTargets(1, &m_lpBackupRTV, m_lpBackupDSV);
 
 	SAFE_RELEASE(m_lpBackupRTV);
 	SAFE_RELEASE(m_lpBackupDSV);
 
-	STATEMANAGER.RestoreTransform(View);
-	STATEMANAGER.RestoreTransform(Projection);
+	STATEMANAGER.GetTransform().Restore();
 
-	// Restore Device Context
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, dwLightEnable);
-	STATEMANAGER.RestoreRenderState(RS11_TEXTUREFACTOR);
+	_mgr->GetCbMgr()->SetLightingEnable(true);
 }

@@ -396,8 +396,10 @@ void CParticleSystemInstance::OnRender()
 {
 	CScreen::Identity();
 
-	STATEMANAGER.SetRenderState(RS11_SRCBLEND, m_pParticleProperty->m_bySrcBlendType);
-	STATEMANAGER.SetRenderState(RS11_DESTBLEND, m_pParticleProperty->m_byDestBlendType);
+	auto& state = STATEMANAGER.GetStateCache();
+
+	state.Blend.SetSrcBlend((D3D11_BLEND)m_pParticleProperty->m_bySrcBlendType);
+	state.Blend.SetDestBlend((D3D11_BLEND)m_pParticleProperty->m_byDestBlendType);
 
 	if (m_pParticleProperty->m_byBillboardType < BILLBOARD_TYPE_2FACE)
 	{

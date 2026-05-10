@@ -215,6 +215,7 @@ bool CMapManager::GetWaterHeight(int iX, int iY, long * plWaterHeight)
 //////////////////////////////////////////////////////////////////////////
 // Environment
 //////////////////////////////////////////////////////////////////////////
+
 void CMapManager::BeginEnvironment()
 {
 	if (!m_pkMap)
@@ -223,33 +224,22 @@ void CMapManager::BeginEnvironment()
 	if (!mc_pcurEnvironmentData)
 		return;
 
-	CMapOutdoor& rkMap=GetMapOutdoorRef();
+	CMapOutdoor& rkMap = GetMapOutdoorRef();
 
-	// Light always on
- 	STATEMANAGER.SaveRenderState(RS11_LIGHTING, TRUE);
+	_mgr->GetCbMgr()->SetLightingEnable(true);
+	_mgr->GetCbMgr()->SetFogEnable(mc_pcurEnvironmentData->bFogEnable);
 
-	// Fog
- 	STATEMANAGER.SaveRenderState(RS11_FOGENABLE, mc_pcurEnvironmentData->bFogEnable);
-
-	// Material
 	STATEMANAGER.SetMaterial(&mc_pcurEnvironmentData->Material);
 
 	if (mc_pcurEnvironmentData->bDirLightsEnable[ENV_DIRLIGHT_BACKGROUND])
-	{
-		STATEMANAGER.SetRenderState(RS11_LIGHTING, TRUE);
 		rkMap.ApplyLight((DWORD)mc_pcurEnvironmentData, mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_BACKGROUND]);
-	}
-	else
-	{
-		STATEMANAGER.SetRenderState(RS11_LIGHTING, TRUE);
-	}
 
 	if (mc_pcurEnvironmentData->bFogEnable)
 	{
 		const DWORD dwFogColor = mc_pcurEnvironmentData->FogColor;
-		STATEMANAGER.SetRenderState(RS11_FOGCOLOR, dwFogColor);
+		_mgr->GetCbMgr()->SetFogColor(dwFogColor);
 
-		const int iFogLevel = CPythonSystem::Instance().GetFogLevel(); // 2=Dense,1=Middle,0=Light
+		const int iFogLevel = CPythonSystem::Instance().GetFogLevel();
 
 		if (mc_pcurEnvironmentData->bDensityFog && (mc_pcurEnvironmentData->bFogLevel != 0))
 		{
@@ -257,8 +247,7 @@ void CMapManager::BeginEnvironment()
 			float fDensity = mc_pcurEnvironmentData->bFogLevel * fFogDensityLevel[iFogLevel];
 
 			float fApproxFogFar = 2.3f / fDensity;
-			CSpeedTreeForestDirectX& rkForest = CSpeedTreeForestDirectX::Instance();
-			rkForest.SetFog(0.0f, fApproxFogFar);
+			CSpeedTreeForestDirectX::Instance().SetFog(0.0f, fApproxFogFar);
 		}
 		else
 		{
@@ -268,13 +257,12 @@ void CMapManager::BeginEnvironment()
 			float fFogFar = mc_pcurEnvironmentData->GetFogFarDistance();
 
 			fFogNear *= fFogScaleLevel[iFogLevel];
-			fFogFar  *= fFogScaleLevel[iFogLevel];
+			fFogFar *= fFogScaleLevel[iFogLevel];
 
-			CSpeedTreeForestDirectX& rkForest=CSpeedTreeForestDirectX::Instance();
-			rkForest.SetFog(fFogNear, fFogFar);
+			CSpeedTreeForestDirectX::Instance().SetFog(fFogNear, fFogFar);
 
-			STATEMANAGER.SetRenderState(RS11_FOGSTART, *((DWORD *) &fFogNear));	// USED BY D3DFOG_LINEAR
-			STATEMANAGER.SetRenderState(RS11_FOGEND, *((DWORD *) &fFogFar));		// USED BY D3DFOG_LINEAR
+			_mgr->GetCbMgr()->SetFogStart(fFogNear);
+			_mgr->GetCbMgr()->SetFogEnd(fFogFar);
 		}
 	}
 
@@ -283,11 +271,6 @@ void CMapManager::BeginEnvironment()
 
 void CMapManager::EndEnvironment()
 {
-	if (!mc_pcurEnvironmentData)
-		return;
-
-	STATEMANAGER.RestoreRenderState(RS11_LIGHTING);
-	STATEMANAGER.RestoreRenderState(RS11_FOGENABLE);
 }
 
 void CMapManager::SetEnvironmentData(int nEnvDataIndex)

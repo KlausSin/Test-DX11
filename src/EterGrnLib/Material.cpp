@@ -290,23 +290,20 @@ void CGrannyMaterial::__ApplyDiffuseRenderState()
 
 	if (m_bTwoSideRender)
 	{
-		// -_-렌더링 프로세스가 좀 구려서... Save & Restore 하면 순서때문에 좀 꼬인다. 귀찮으니 Save & Restore 대신 따로 저장해 둠.
-		m_dwLastCullRenderStateForTwoSideRendering = STATEMANAGER.GetRenderState(RS11_CULLMODE);
-		STATEMANAGER.SetRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
+		m_dwLastCullRenderStateForTwoSideRendering = STATEMANAGER.GetRaster().GetCullMode();
+		STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
 	}
 }
 
 void CGrannyMaterial::__RestoreDiffuseRenderState()
 {
 	if (m_bTwoSideRender)
-	{
-		STATEMANAGER.SetRenderState(RS11_CULLMODE, m_dwLastCullRenderStateForTwoSideRendering);
-	}
+		STATEMANAGER.GetRaster().SetCullMode((D3D11_CULL_MODE)m_dwLastCullRenderStateForTwoSideRendering);
 }
 
 void CGrannyMaterial::__ApplySpecularRenderState()
 {
-	if (TRUE == STATEMANAGER.GetRenderState(RS11_ALPHABLENDENABLE))
+	if (STATEMANAGER.GetBlend().GetBlendEnable())
 	{
 		__ApplyDiffuseRenderState();
 		return;
@@ -328,7 +325,7 @@ void CGrannyMaterial::__ApplySpecularRenderState()
 
 void CGrannyMaterial::__RestoreSpecularRenderState()
 {
-	if (TRUE == STATEMANAGER.GetRenderState(RS11_ALPHABLENDENABLE))
+	if (STATEMANAGER.GetBlend().GetBlendEnable())
 	{
 		__RestoreDiffuseRenderState();
 		return;

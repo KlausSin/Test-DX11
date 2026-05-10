@@ -120,17 +120,20 @@ void CEffectMeshInstance::OnRender()
 				break;
 		}
 
+		auto& state = STATEMANAGER.GetStateCache();
+
 		if (!m_pMeshScript->isBlendingEnable(i))
 		{
-			STATEMANAGER.SetRenderState(RS11_ALPHABLENDENABLE, FALSE);
+			state.Blend.SetBlendEnable(false);
 		}
 		else
 		{
 			int iBlendingSrcType = m_pMeshScript->GetBlendingSrcType(i);
 			int iBlendingDestType = m_pMeshScript->GetBlendingDestType(i);
-			STATEMANAGER.SetRenderState(RS11_ALPHABLENDENABLE, TRUE);
-			STATEMANAGER.SetRenderState(RS11_SRCBLEND, iBlendingSrcType);
-			STATEMANAGER.SetRenderState(RS11_DESTBLEND, iBlendingDestType);
+
+			state.Blend.SetBlendEnable(true);
+			state.Blend.SetSrcBlend((D3D11_BLEND)iBlendingSrcType);
+			state.Blend.SetDestBlend((D3D11_BLEND)iBlendingDestType);
 		}
 
 		D3DXVECTOR3 Position;
@@ -139,8 +142,7 @@ void CEffectMeshInstance::OnRender()
 		m_matWorld._42 = Position.y;
 		m_matWorld._43 = Position.z;
 		m_matWorld = m_matWorld * *mc_pmatLocal;
-		STATEMANAGER.SetTransform(World, &m_matWorld);
-
+		STATEMANAGER.GetTransform().SetWorld(m_matWorld);
 		BYTE byType;
 		D3DXCOLOR Color(1.0f, 1.0f, 1.0f, 1.0f);
 		m_pMeshScript->GetColorOperationType(i, &byType);
@@ -166,7 +168,8 @@ void CEffectMeshInstance::OnRender()
 		}
 
 		Color.a = fAlpha * rFrameData.fVisibility;
-		STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, DWORD(Color));
+		auto cb = _mgr->GetCbMgr();
+		cb->SetTextureFactor(DWORD(Color));
 		_mgr->SetShader(VF_EFFECT);
 		STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, rFrameData.dwIndexCount / 3, sizeof(TPTVertex), &rFrameData.PDTVertexVector[0]);
 		// Render //

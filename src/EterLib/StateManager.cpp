@@ -58,15 +58,13 @@ bool CStateManager::BeginScene()
 {
 	m_bScene = true;
 
-	D3DXMATRIX m4Proj;
-	D3DXMATRIX m4View;
-	D3DXMATRIX m4World;
-	GetTransform(World, &m4World);
-	GetTransform(Projection, &m4Proj);
-	GetTransform(View, &m4View);
-	SetTransform(World, &m4World);
-	SetTransform(Projection, &m4Proj);
-	SetTransform(View, &m4View);
+	const D3DXMATRIX& m4World = STATEMANAGER.GetTransform().GetWorld();
+	const D3DXMATRIX& m4Proj = STATEMANAGER.GetTransform().GetProjection();
+	const D3DXMATRIX& m4View = STATEMANAGER.GetTransform().GetView();
+
+	STATEMANAGER.GetTransform().SetWorld(m4World);
+	STATEMANAGER.GetTransform().SetProjection(m4Proj);
+	STATEMANAGER.GetTransform().SetView(m4View);
 
 	static int s_beginCount = 0;
 	if ((s_beginCount++ % 60) == 0)
@@ -117,12 +115,6 @@ void CStateManager::EndScene()
 CStateManager::CStateManager() : m_pD3D11Renderer(NULL)
 {
 	m_bScene = false;
-	m_dwBestMinFilter = TF11_ANISOTROPIC;
-	m_dwBestMagFilter = TF11_ANISOTROPIC;
-
-	memset(gs_DefaultRenderStates, 0, sizeof(gs_DefaultRenderStates));
-
-	SetDefaultState();
 
 #ifdef _DEBUG
 	m_iDrawCallCount = 0;
@@ -136,9 +128,8 @@ CStateManager::~CStateManager()
 
 void CStateManager::SetBestFiltering(DWORD dwStage)
 {
-	SetSamplerState(dwStage, SS11_MINFILTER, m_dwBestMinFilter);
-	SetSamplerState(dwStage, SS11_MAGFILTER, m_dwBestMagFilter);
-	SetSamplerState(dwStage, SS11_MIPFILTER, TF11_LINEAR);
+	GetStateCache().Sampler.SetFilter(dwStage, D3D11_FILTER_ANISOTROPIC);
+	GetStateCache().Sampler.SetMaxAnisotropy(dwStage, 8);
 }
 
 void CStateManager::Restore()
@@ -146,19 +137,6 @@ void CStateManager::Restore()
 	int i, j;
 
 	m_bForce = true;
-
-	for (i = 0; i < RS11_MAX; ++i)
-	{
-		SetRenderState((ERenderState11)i, m_CurrentState.m_RenderStates[i]);
-	}
-
-	for (i = 0; i < STATEMANAGER_MAX_STAGES; ++i)
-	{
-		for (j = 0; j < SS11_MAX; ++j)
-		{
-			SetSamplerState(i, (ESamplerStateType11)j, m_CurrentState.m_SamplerStates[i][j]);
-		}
-	}
 
 	for (i = 0; i < STATEMANAGER_MAX_STAGES; ++i)
 	{
@@ -173,16 +151,6 @@ void CStateManager::SetDefaultState()
 	m_CurrentState.ResetState();
 	m_CurrentState_Copy.ResetState();
 
-	for (auto& stack : m_RenderStateStack)
-		stack.clear();
-
-	for (auto& stageStacks : m_SamplerStateStack)
-		for (auto& stack : stageStacks)
-			stack.clear();
-
-	for (auto& stack : m_TransformStack)
-		stack.clear();
-
 	for (auto& stack : m_TextureStack)
 		stack.clear();
 
@@ -190,19 +158,25 @@ void CStateManager::SetDefaultState()
 		stack.clear();
 
 	m_MaterialStack.clear();
-
 	m_VertexProcessingStack.clear();
 	m_IndexStack.clear();
 
 	m_bScene = false;
 	m_bForce = true;
 
+	auto& state = GetStateCache();
+	auto cb = _mgr->GetCbMgr();
+
+	state.ResetDefault();
+	state.ClearStacks();
+	state.ForceDirty();
+
 	D3DXMATRIX matIdentity;
 	D3DXMatrixIdentity(&matIdentity);
 
-	SetTransform(World, &matIdentity);
-	SetTransform(View, &matIdentity);
-	SetTransform(Projection, &matIdentity);
+	GetStateCache().Transform.SetWorld(matIdentity);
+	GetStateCache().Transform.SetView(matIdentity);
+	GetStateCache().Transform.SetProjection(matIdentity);
 
 	D3DMATERIAL11 DefaultMat;
 	ZeroMemory(&DefaultMat, sizeof(D3DMATERIAL11));
@@ -215,62 +189,39 @@ void CStateManager::SetDefaultState()
 	DefaultMat.Ambient.g = 1.0f;
 	DefaultMat.Ambient.b = 1.0f;
 	DefaultMat.Ambient.a = 1.0f;
-	DefaultMat.Emissive.r = 0.0f;
-	DefaultMat.Emissive.g = 0.0f;
-	DefaultMat.Emissive.b = 0.0f;
-	DefaultMat.Emissive.a = 0.0f;
-	DefaultMat.Specular.r = 0.0f;
-	DefaultMat.Specular.g = 0.0f;
-	DefaultMat.Specular.b = 0.0f;
-	DefaultMat.Specular.a = 0.0f;
-	DefaultMat.Power = 0.0f;
 
 	SetMaterial(&DefaultMat);
 
-	SetRenderState(RS11_ALPHAREF, 1);
+	cb->SetAlphaRef(1);
+	cb->SetFogStart(0.0f);
+	cb->SetFogEnd(0.0f);
+	cb->SetAmbient(0x00000000);
+	cb->SetFogEnable(false);
+	cb->SetFogColor(0xFF000000);
+	cb->SetAlphaTestEnable(false);
+	cb->SetLightingEnable(false);
 
-	SetRenderState(RS11_FOGSTART, 0);
-	SetRenderState(RS11_FOGEND, 0);
+	state.Raster.SetScissorEnable(false);
+	state.Raster.SetFillMode(D3D11_FILL_SOLID);
+	state.Raster.SetCullMode(D3D11_CULL_FRONT);
 
-	SetRenderState(RS11_AMBIENT, 0x00000000);
+	state.Blend.SetColorWriteMask(0x0F);
+	state.Blend.SetBlendEnable(false);
+	state.Blend.SetBlendOp(D3D11_BLEND_OP_ADD);
+	state.Blend.SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
+	state.Blend.SetDestBlend(D3D11_BLEND_INV_SRC_ALPHA);
 
-	SetRenderState(RS11_SCISSORTESTENABLE, FALSE);
-
-	SetRenderState(RS11_COLORWRITEENABLE, 0xFFFFFFFF);
-	SetRenderState(RS11_FILLMODE, D3D11_FILL_SOLID);
-	SetRenderState(RS11_CULLMODE, D3D11_CULL_FRONT);
-
-	SetRenderState(RS11_ALPHABLENDENABLE, FALSE);
-	SetRenderState(RS11_BLENDOP, D3D11_BLEND_OP_ADD);
-	SetRenderState(RS11_SRCBLEND, D3D11_BLEND_SRC_ALPHA);
-	SetRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_ALPHA);
-
-	SetRenderState(RS11_FOGENABLE, FALSE);
-	SetRenderState(RS11_FOGCOLOR, 0xFF000000);
-
-	SetRenderState(RS11_ZENABLE, TRUE);
-	SetRenderState(RS11_ZFUNC, D3D11_COMPARISON_LESS_EQUAL);
-	SetRenderState(RS11_ZWRITEENABLE, TRUE);
-
-	SetRenderState(RS11_STENCILENABLE, FALSE);
-	SetRenderState(RS11_ALPHATESTENABLE, FALSE);
-	SetRenderState(RS11_LIGHTING, FALSE);
-
+	state.DepthStencil.SetDepthEnable(true);
+	state.DepthStencil.SetDepthFunc(D3D11_COMPARISON_LESS_EQUAL);
+	state.DepthStencil.SetDepthWriteEnable(true);
+	state.DepthStencil.SetStencilEnable(false);
 
 	for (DWORD i = 0; i < 8; ++i)
 	{
-
-		SetSamplerState(i, SS11_MINFILTER, TF11_LINEAR);
-		SetSamplerState(i, SS11_MAGFILTER, TF11_LINEAR);
-		SetSamplerState(i, SS11_MIPFILTER, TF11_LINEAR);
-
-		SetSamplerState(i, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_WRAP);
-		SetSamplerState(i, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_WRAP);
+		state.Sampler.SetFilter(i, D3D11_FILTER_MIN_MAG_MIP_LINEAR);
+		state.Sampler.SetAddressUVW(i, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP);
 		SetTexture(i, NULL);
 	}
-
-	D3DXVECTOR4 av4Null[STATEMANAGER_MAX_VCONSTANTS];
-	memset(av4Null, 0, sizeof(av4Null));
 
 	m_bForce = false;
 }
@@ -307,12 +258,6 @@ void CStateManager::GetMaterial(D3DMATERIAL11* pMaterial)
 	*pMaterial = m_CurrentState.m_D3DMaterial;
 }
 
-// Renderstates
-DWORD CStateManager::GetRenderState(ERenderState11 Type)
-{
-	return m_CurrentState.m_RenderStates[Type];
-}
-
 void CStateManager::StateManager_Capture()
 {
 	m_CurrentState_Copy = m_CurrentState;
@@ -326,87 +271,40 @@ void CStateManager::StateManager_Apply()
 void CStateManager::SetD3D11Renderer(CD3D11Renderer* pRenderer)
 {
 	m_pD3D11Renderer = pRenderer;
-}
-
-void CStateManager::SaveRenderState(ERenderState11 Type, DWORD dwValue)
-{
-	m_RenderStateStack[Type].push_back(m_CurrentState.m_RenderStates[Type]);
-	SetRenderState(Type, dwValue);
-}
-
-void CStateManager::RestoreRenderState(ERenderState11 Type)
-{
-#ifdef _DEBUG
-	if (m_RenderStateStack[Type].empty())
-	{
-		Tracef(" CStateManager::SaveRenderState - This render state was not saved [%d, %d]\n", Type);
-		StateManager_Assert(!" This render state was not saved!");
-	}
-#endif _DEBUG
-
-	SetRenderState(Type, m_RenderStateStack[Type].back());
-	m_RenderStateStack[Type].pop_back();
-}
-
-
-void CStateManager::SetRenderState(ERenderState11 Type, DWORD Value)
-{
-	if (!m_bForce && m_CurrentState.m_RenderStates[Type] == Value)
-		return;
-
-	m_CurrentState.m_RenderStates[Type] = Value;
 
 	if (m_pD3D11Renderer)
-	{
-		switch (Type)
-		{
-		case RS11_ALPHABLENDENABLE: m_pD3D11Renderer->SetAlphaBlendEnable(Value); break;
-		case RS11_SRCBLEND:         m_pD3D11Renderer->SetSrcBlend((D3D11_BLEND)Value); break;
-		case RS11_DESTBLEND:        m_pD3D11Renderer->SetDestBlend((D3D11_BLEND)Value); break;
-		case RS11_BLENDOP:          m_pD3D11Renderer->SetBlendOp((D3D11_BLEND_OP)Value); break;
-
-		case RS11_ALPHATESTENABLE:  _mgr->GetCbMgr()->SetAlphaTestEnable(Value); break;
-		case RS11_ALPHAREF:         _mgr->GetCbMgr()->SetAlphaRef(Value); break;
-
-		case RS11_ZENABLE:          m_pD3D11Renderer->SetZEnable(Value); break;
-		case RS11_ZWRITEENABLE:     m_pD3D11Renderer->SetZWriteEnable(Value); break;
-		case RS11_ZFUNC:            m_pD3D11Renderer->SetZFunc((D3D11_COMPARISON_FUNC)Value); break;
-
-		case RS11_STENCILENABLE:    m_pD3D11Renderer->SetStencilEnable(Value); break;
-
-		case RS11_CULLMODE:         m_pD3D11Renderer->SetCullMode((D3D11_CULL_MODE)Value); break;
-		case RS11_FILLMODE:         m_pD3D11Renderer->SetFillMode((D3D11_FILL_MODE)Value); break;
-		case RS11_SCISSORTESTENABLE:m_pD3D11Renderer->SetScissorEnable(Value); break;
-		case RS11_COLORWRITEENABLE: m_pD3D11Renderer->SetColorWriteEnable((BYTE)Value); break;
-
-		case RS11_LIGHTING:         m_pD3D11Renderer->GetCbMgr()->SetLightingEnable(Value); break;
-		case RS11_AMBIENT:          m_pD3D11Renderer->GetCbMgr()->SetAmbient(Value); break;
-
-		case RS11_FOGENABLE:        m_pD3D11Renderer->GetCbMgr()->SetFogEnable(Value); break;
-		case RS11_FOGCOLOR:         m_pD3D11Renderer->GetCbMgr()->SetFogColor(Value); break;
-
-		case RS11_FOGSTART:
-		{
-			float f; memcpy(&f, &Value, sizeof(float));
-			m_pD3D11Renderer->GetCbMgr()->SetFogStart(f);
-			break;
-		}
-
-		case RS11_FOGEND:
-		{
-			float f; memcpy(&f, &Value, sizeof(float));
-			m_pD3D11Renderer->GetCbMgr()->SetFogEnd(f);
-			break;
-		}
-
-		case RS11_TEXTUREFACTOR:    m_pD3D11Renderer->GetCbMgr()->SetTextureFactor(Value); break;
-		}
-	}
+		SetDefaultState();
 }
 
-void CStateManager::GetRenderState(ERenderState11 Type, DWORD* pdwValue)
+CD3D11StateCacheSet& CStateManager::GetStateCache()
 {
-	*pdwValue = m_CurrentState.m_RenderStates[Type];
+	assert(m_pD3D11Renderer);
+	return m_pD3D11Renderer->GetStateCache();
+}
+
+CD3D11SamplerStateCache& CStateManager::GetSampler()
+{
+	return GetStateCache().Sampler;
+}
+
+CD3D11RasterStateCache& CStateManager::GetRaster()
+{
+	return GetStateCache().Raster;
+}
+
+CD3D11DepthStencilStateCache& CStateManager::GetDepthStencil()
+{
+	return GetStateCache().DepthStencil;
+}
+
+CD3D11BlendStateCache& CStateManager::GetBlend()
+{
+	return GetStateCache().Blend;
+}
+
+CD3D11TransformStateCache& CStateManager::GetTransform()
+{
+	return GetStateCache().Transform;
 }
 
 // Textures (D3D11 SRV)
@@ -437,112 +335,6 @@ void CStateManager::GetTexture(DWORD dwStage, ID3D11ShaderResourceView** ppSRV)
 	*ppSRV = m_CurrentState.m_Textures[dwStage];
 }
 
-// Sampler states
-void CStateManager::SaveSamplerState(DWORD dwStage, ESamplerStateType11 Type, DWORD dwValue)
-{
-	m_SamplerStateStack[dwStage][Type].push_back(m_CurrentState.m_SamplerStates[dwStage][Type]);
-	SetSamplerState(dwStage, Type, dwValue);
-}
-
-void CStateManager::RestoreSamplerState(DWORD dwStage, ESamplerStateType11 Type)
-{
-#ifdef _DEBUG
-	if (m_SamplerStateStack[dwStage][Type].empty())
-	{
-		Tracenf("CStateManager::RestoreSamplerState - This sampler state was not saved [%u, %u]\n", dwStage, Type);
-		StateManager_Assert(!"This sampler state was not saved!");
-		return;
-	}
-#endif
-	SetSamplerState(dwStage, Type, m_SamplerStateStack[dwStage][Type].back());
-	m_SamplerStateStack[dwStage][Type].pop_back();
-}
-
-void CStateManager::SetSamplerState(DWORD dwStage, ESamplerStateType11 Type, DWORD dwValue)
-{
-	if (dwStage >= 2)
-		return;
-
-	if (!m_bForce && m_CurrentState.m_SamplerStates[dwStage][Type] == dwValue)
-		return;
-
-	m_CurrentState.m_SamplerStates[dwStage][Type] = dwValue;
-
-	if (m_pD3D11Renderer)
-	{
-		DWORD minFilter = m_CurrentState.m_SamplerStates[dwStage][SS11_MINFILTER];
-		DWORD magFilter = m_CurrentState.m_SamplerStates[dwStage][SS11_MAGFILTER];
-		DWORD mipFilter = m_CurrentState.m_SamplerStates[dwStage][SS11_MIPFILTER];
-		DWORD addrU = m_CurrentState.m_SamplerStates[dwStage][SS11_ADDRESSU];
-		DWORD addrV = m_CurrentState.m_SamplerStates[dwStage][SS11_ADDRESSV];
-
-		m_pD3D11Renderer->SetSamplerState(
-			dwStage,
-			MapSamplerFilter11(minFilter, magFilter, mipFilter),
-			(D3D11_TEXTURE_ADDRESS_MODE)addrU,
-			(D3D11_TEXTURE_ADDRESS_MODE)addrV);
-	}
-}
-
-void CStateManager::GetSamplerState(DWORD dwStage, ESamplerStateType11 Type, DWORD* pdwValue)
-{
-	*pdwValue = m_CurrentState.m_SamplerStates[dwStage][Type];
-}
-
-// *** These states are cached, but not protected from multiple sends of the same value.
-// Transform
-void CStateManager::SaveTransform(ETransform Type, const D3DXMATRIX* pMatrix)
-{
-	m_TransformStack[Type].push_back(m_CurrentState.m_Matrices[Type]);
-	SetTransform(Type, pMatrix);
-}
-
-void CStateManager::RestoreTransform(ETransform Type)
-{
-#ifdef _DEBUG
-	if (m_TransformStack[Type].empty())
-	{
-		Tracef(" CStateManager::RestoreTransform - This transform was not saved [%d]\n", Type);
-		StateManager_Assert(!" This render state was not saved!");
-	}
-#endif _DEBUG
-
-	SetTransform(Type, &m_TransformStack[Type].back());
-	m_TransformStack[Type].pop_back();
-}
-
-// Transforms — forward to D3D11 renderer constant buffer
-void CStateManager::SetTransform(ETransform Type, const D3DXMATRIX* pMatrix)
-{
-	m_CurrentState.m_Matrices[Type] = *pMatrix;
-
-	if (m_pD3D11Renderer)
-	{
-		if (Type == World)
-			m_pD3D11Renderer->GetCbMgr()->SetWorldMatrix(*pMatrix);
-		else if (Type == View)
-			m_pD3D11Renderer->GetCbMgr()->SetViewMatrix(*pMatrix);
-		else if (Type == Projection)
-			m_pD3D11Renderer->GetCbMgr()->SetProjMatrix(*pMatrix);
-		else if (Type == Texture0)
-			m_pD3D11Renderer->GetCbMgr()->SetTexTransform(0, *pMatrix);
-		else if (Type == Texture1)
-			m_pD3D11Renderer->GetCbMgr()->SetTexTransform(1, *pMatrix);
-		else if (Type == Texture2)
-			m_pD3D11Renderer->GetCbMgr()->SetTexTransform(2, *pMatrix);
-		else if (Type == Texture3)
-			m_pD3D11Renderer->GetCbMgr()->SetTexTransform(3, *pMatrix);
-	}
-}
-
-void CStateManager::GetTransform(ETransform Type, D3DXMATRIX* pOut)
-{
-	UINT idx = static_cast<UINT>(Type);
-	if (idx >= SM_MAX_TRANSFORMS || !pOut)
-		return;
-	*pOut = m_CurrentState.m_Matrices[idx];
-}
-
 void CStateManager::SaveStreamSource(UINT StreamNumber, ID3D11Buffer* pStreamData, UINT Stride)
 {
 	m_StreamStack[StreamNumber].push_back(m_CurrentState.m_StreamData[StreamNumber]);
@@ -552,20 +344,19 @@ void CStateManager::SaveStreamSource(UINT StreamNumber, ID3D11Buffer* pStreamDat
 void CStateManager::RestoreStreamSource(UINT StreamNumber)
 {
 	const auto& topStream = m_StreamStack[StreamNumber].back();
-	SetStreamSource(StreamNumber,
-		topStream.m_lpStreamData,
-		topStream.m_Stride);
+	SetStreamSource(StreamNumber, topStream.pBuffer, topStream.stride);
 	m_StreamStack[StreamNumber].pop_back();
 }
 
 void CStateManager::SetStreamSource(UINT StreamNumber, ID3D11Buffer* pStreamData, UINT Stride)
 {
-	CStreamData kStreamData(pStreamData, Stride);
+	auto& cur = m_CurrentState.m_StreamData[StreamNumber];
 
-	if (!m_bForce && m_CurrentState.m_StreamData[StreamNumber] == kStreamData)
+	if (!m_bForce && cur.pBuffer == pStreamData && cur.stride == Stride)
 		return;
 
-	m_CurrentState.m_StreamData[StreamNumber] = kStreamData;
+	cur.pBuffer = pStreamData;
+	cur.stride = Stride;
 
 	if (CGraphicBase::ms_lpd3d11Context)
 	{
@@ -584,23 +375,22 @@ void CStateManager::SaveIndices(ID3D11Buffer* pIndexData, UINT BaseVertexIndex)
 void CStateManager::RestoreIndices()
 {
 	const auto& topIndex = m_IndexStack.back();
-	SetIndices(topIndex.m_lpIndexData, topIndex.m_BaseVertexIndex);
+	SetIndices(topIndex.pBuffer, topIndex.baseVertexIndex);
 	m_IndexStack.pop_back();
 }
 
 void CStateManager::SetIndices(ID3D11Buffer* pIndexData, UINT BaseVertexIndex)
 {
-	CIndexData kIndexData(pIndexData, BaseVertexIndex);
+	auto& cur = m_CurrentState.m_IndexData;
 
-	if (!m_bForce && m_CurrentState.m_IndexData == kIndexData)
+	if (!m_bForce && cur.pBuffer == pIndexData && cur.baseVertexIndex == BaseVertexIndex)
 		return;
 
-	m_CurrentState.m_IndexData = kIndexData;
+	cur.pBuffer = pIndexData;
+	cur.baseVertexIndex = BaseVertexIndex;
 
 	if (CGraphicBase::ms_lpd3d11Context)
-	{
 		CGraphicBase::ms_lpd3d11Context->IASetIndexBuffer(pIndexData, DXGI_FORMAT_R16_UINT, 0);
-	}
 }
 
 static UINT GetPrimitiveVertexCount(D3D11_PRIMITIVE_TOPOLOGY topology, UINT primCount)
@@ -672,7 +462,7 @@ HRESULT CStateManager::DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY Topology,
 
 	++g_frameDrawCount;
 
-	UINT stride = m_CurrentState.m_StreamData[0].m_Stride;
+	UINT stride = m_CurrentState.m_StreamData[0].stride;
 	if ((stride / 4) < 64)
 		g_drawByStride[stride / 4]++;
 

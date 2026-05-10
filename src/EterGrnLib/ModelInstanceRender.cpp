@@ -234,7 +234,7 @@ void CGrannyModelInstance::RenderMeshNodeList(TextureMode textureMode, CGrannyMe
         const CGrannyMesh* mesh = meshNode->pMesh;
         const int vertexBase = mesh->GetVertexBasePosition();
 
-        STATEMANAGER.SetTransform(World, &m_meshMatrices[meshNode->iMesh]);
+		STATEMANAGER.GetTransform().SetWorld(m_meshMatrices[meshNode->iMesh]);
         if (eMeshType == CGrannyMesh::TYPE_DEFORM)
             UploadMeshBonePaletteToShader(meshNode->iMesh);
 

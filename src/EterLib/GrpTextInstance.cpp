@@ -611,21 +611,21 @@ void CGraphicTextInstance::Render(RECT * pClipRect)
 	s_outlineBatches.clear();
 	s_mainBatches.clear();
 
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_SRC_ALPHA);
-	STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_ALPHA);
-	DWORD dwFogEnable = STATEMANAGER.GetRenderState(RS11_FOGENABLE);
-	DWORD dwLighting = STATEMANAGER.GetRenderState(RS11_LIGHTING);
-	STATEMANAGER.SetRenderState(RS11_FOGENABLE, FALSE);
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
+	STATEMANAGER.GetStateCache().Push();
+	STATEMANAGER.GetSampler().Push(0);
+
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+	STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
+	STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_INV_SRC_ALPHA);
+
+	_mgr->GetCbMgr()->SetFogEnable(false);
+	_mgr->GetCbMgr()->SetLightingEnable(false);
 
 	_mgr->SetShader(VF_PDT, BLEND_MODULATE);
 
-	STATEMANAGER.SaveSamplerState(0, SS11_MINFILTER, TF11_POINT);
-	STATEMANAGER.SaveSamplerState(0, SS11_MAGFILTER, TF11_POINT);
-	STATEMANAGER.SaveSamplerState(0, SS11_MIPFILTER, TF11_POINT);
+	STATEMANAGER.GetSampler().SetFilter(0, D3D11_FILTER_MIN_MAG_MIP_POINT);
 
-	STATEMANAGER.SaveRenderState(RS11_COLORWRITEENABLE,
+	STATEMANAGER.GetBlend().SetColorWriteMask(
 		D3D11_COLOR_WRITE_ENABLE_RED |
 		D3D11_COLOR_WRITE_ENABLE_GREEN |
 		D3D11_COLOR_WRITE_ENABLE_BLUE);
@@ -954,16 +954,16 @@ void CGraphicTextInstance::Render(RECT * pClipRect)
 
 			STATEMANAGER.SetTexture(0, pTexture);
 
-			// Pass 1: dest.rgb *= (1 - coverage.rgb)
-			STATEMANAGER.SetRenderState(RS11_SRCBLEND, D3D11_BLEND_ZERO);
-			STATEMANAGER.SetRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_COLOR);
+			STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_ZERO);
+			STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_INV_SRC_COLOR);
+
 			_mgr->SetShader(VF_PDT, BLEND_UI_TEX);
 			STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, (UINT)vtxBatch.size() / 3, sizeof(SVertex), vtxBatch.data());
 
 			if (!skipPass2) {
-				// Pass 2: dest.rgb += textColor.rgb * coverage.rgb
-				STATEMANAGER.SetRenderState(RS11_SRCBLEND, D3D11_BLEND_ONE);
-				STATEMANAGER.SetRenderState(RS11_DESTBLEND, D3D11_BLEND_ONE);
+				STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_ONE);
+				STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_ONE);
+
 				_mgr->SetShader(VF_PDT, BLEND_MODULATE);
 				STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, (UINT)vtxBatch.size() / 3, sizeof(SVertex), vtxBatch.data());
 			}
@@ -1083,17 +1083,11 @@ void CGraphicTextInstance::Render(RECT * pClipRect)
 		}
 	}
 
-	STATEMANAGER.RestoreSamplerState(0, SS11_MINFILTER);
-	STATEMANAGER.RestoreSamplerState(0, SS11_MAGFILTER);
-	STATEMANAGER.RestoreSamplerState(0, SS11_MIPFILTER);
+	STATEMANAGER.GetSampler().Restore(0);
+	STATEMANAGER.GetStateCache().Restore();
 
-	STATEMANAGER.RestoreRenderState(RS11_COLORWRITEENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
-	STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
-
-	STATEMANAGER.SetRenderState(RS11_FOGENABLE, dwFogEnable);
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, dwLighting);
+	_mgr->GetCbMgr()->SetFogEnable(false);
+	_mgr->GetCbMgr()->SetLightingEnable(false);
 
 	if (m_hyperlinkVector.size() != 0)
 	{

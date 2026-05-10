@@ -386,53 +386,47 @@ void CMapOutdoor::RenderArea(bool bRenderAmbience)
 	m_dwRenderedGraphicThingInstanceNum = 0;
 	m_dwRenderedCRCWithNumberVector.clear();
 
-	// NOTE - 20041201.levites.던젼 그림자 추가
 	for (int j = 0; j < AROUND_AREA_NUM; ++j)
 	{
-		CArea * pArea;
+		CArea* pArea;
 		if (GetAreaPointer(j, &pArea))
-		{
 			pArea->RenderDungeon();
-		}
 	}
 
-	// PCBlocker
 	std::for_each(m_PCBlockerVector.begin(), m_PCBlockerVector.end(), FPCBlockerHide());
 
-	// Shadow Receiver
 	if (m_bDrawShadow && m_bDrawChrShadow)
 	{
 		if (mc_pEnvironmentData != NULL)
-			STATEMANAGER.SetRenderState(RS11_FOGCOLOR, 0xFFFFFFFF);
+			_mgr->GetCbMgr()->SetFogColor(0xFFFFFFFF);
 
-
-		// Transform
-		STATEMANAGER.SaveTransform(Texture1, &m_matDynamicShadow);
+		STATEMANAGER.GetTransform().Push();
+		STATEMANAGER.GetTransform().SetTexture1(m_matDynamicShadow);
 		STATEMANAGER.SetTexture(1, m_lpCharacterShadowMapTexture);
 
-		STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_BORDER);
-		STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_BORDER);
+		STATEMANAGER.GetSampler().Push(1);
+		STATEMANAGER.GetSampler().SetAddressUV(1, D3D11_TEXTURE_ADDRESS_BORDER, D3D11_TEXTURE_ADDRESS_BORDER);
 
 		std::for_each(m_ShadowReceiverVector.begin(), m_ShadowReceiverVector.end(), FAreaRenderShadow());
 
-		STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSU);
-		STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSV);
+		STATEMANAGER.GetSampler().Restore(1);
 
-		STATEMANAGER.RestoreTransform(Texture1);
+		STATEMANAGER.GetTransform().Restore();
 
 		if (mc_pEnvironmentData != NULL)
-			STATEMANAGER.SetRenderState(RS11_FOGCOLOR, mc_pEnvironmentData->FogColor);
+			_mgr->GetCbMgr()->SetFogColor(mc_pEnvironmentData->FogColor);
 	}
 
-	STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, TRUE);
+	STATEMANAGER.GetDepthStencil().Push();
+	STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(true);
 
-	bool m_isDisableSortRendering=false;
+	bool m_isDisableSortRendering = false;
 
 	if (m_isDisableSortRendering)
 	{
 		for (int i = 0; i < AROUND_AREA_NUM; ++i)
 		{
-			CArea * pArea;
+			CArea* pArea;
 			if (GetAreaPointer(i, &pArea))
 			{
 				pArea->Render();
@@ -440,17 +434,17 @@ void CMapOutdoor::RenderArea(bool bRenderAmbience)
 				m_dwRenderedCRCNum += pArea->DEBUG_GetRenderedCRCNum();
 				m_dwRenderedGraphicThingInstanceNum += pArea->DEBUG_GetRenderedGrapphicThingInstanceNum();
 
-				CArea::TCRCWithNumberVector & rCRCWithNumberVector = pArea->DEBUG_GetRenderedCRCWithNumVector();
+				CArea::TCRCWithNumberVector& rCRCWithNumberVector = pArea->DEBUG_GetRenderedCRCWithNumVector();
 
 				CArea::TCRCWithNumberVector::iterator aIterator = rCRCWithNumberVector.begin();
 				while (aIterator != rCRCWithNumberVector.end())
 				{
 					DWORD dwCRC = (*aIterator++).dwCRC;
 
-					CArea::TCRCWithNumberVector::iterator aCRCWithNumberVectorIterator = 
+					CArea::TCRCWithNumberVector::iterator aCRCWithNumberVectorIterator =
 						std::find_if(m_dwRenderedCRCWithNumberVector.begin(), m_dwRenderedCRCWithNumberVector.end(), CArea::FFindIfCRC(dwCRC));
 
-					if ( m_dwRenderedCRCWithNumberVector.end() == aCRCWithNumberVectorIterator)
+					if (m_dwRenderedCRCWithNumberVector.end() == aCRCWithNumberVectorIterator)
 					{
 						CArea::TCRCWithNumber aCRCWithNumber;
 						aCRCWithNumber.dwCRC = dwCRC;
@@ -459,42 +453,36 @@ void CMapOutdoor::RenderArea(bool bRenderAmbience)
 					}
 					else
 					{
-						CArea::TCRCWithNumber & rCRCWithNumber = *aCRCWithNumberVectorIterator;
+						CArea::TCRCWithNumber& rCRCWithNumber = *aCRCWithNumberVectorIterator;
 						rCRCWithNumber.dwNumber += 1;
 					}
 				}
 			}
 		}
-	
+
 		std::sort(m_dwRenderedCRCWithNumberVector.begin(), m_dwRenderedCRCWithNumberVector.end(), CArea::CRCNumComp());
 	}
 	else
 	{
 		static std::vector<CGraphicThingInstance*> s_kVct_pkOpaqueThingInstSort;
 		s_kVct_pkOpaqueThingInstSort.clear();
-		s_kVct_pkOpaqueThingInstSort.reserve(512);  // Pre-allocate to avoid reallocations
+		s_kVct_pkOpaqueThingInstSort.reserve(512);
 
 		for (int i = 0; i < AROUND_AREA_NUM; ++i)
 		{
-			CArea * pArea;
+			CArea* pArea;
 			if (GetAreaPointer(i, &pArea))
-			{
 				pArea->CollectRenderingObject(s_kVct_pkOpaqueThingInstSort);
-			}
-
 		}
 
 		std::sort(s_kVct_pkOpaqueThingInstSort.begin(), s_kVct_pkOpaqueThingInstSort.end(), CMapOutdoor_LessThingInstancePtrRenderOrder());
 		std::for_each(s_kVct_pkOpaqueThingInstSort.begin(), s_kVct_pkOpaqueThingInstSort.end(), CMapOutdoor_FOpaqueThingInstanceRender());
 	}
 
-	STATEMANAGER.RestoreRenderState(RS11_ZWRITEENABLE);
+	STATEMANAGER.GetDepthStencil().Restore();
 
-	// Shadow Receiver
 	if (m_bDrawShadow && m_bDrawChrShadow)
-	{
 		std::for_each(m_ShadowReceiverVector.begin(), m_ShadowReceiverVector.end(), std::mem_fn(&CGraphicObjectInstance::Show));
-	}
 }
 
 void CMapOutdoor::RenderBlendArea()
@@ -519,17 +507,16 @@ void CMapOutdoor::RenderBlendArea()
 	{
 		std::sort(s_kVct_pkBlendThingInstSort.begin(), s_kVct_pkBlendThingInstSort.end(), CMapOutdoor_LessThingInstancePtrRenderOrder());
 
-		STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, TRUE);
-		STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-		STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_SRC_ALPHA);
-		STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_ALPHA);
+		STATEMANAGER.GetStateCache().Push();
+
+		STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(true);
+		STATEMANAGER.GetBlend().SetBlendEnable(true);
+		STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
+		STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_INV_SRC_ALPHA);
 
 		std::for_each(s_kVct_pkBlendThingInstSort.begin(), s_kVct_pkBlendThingInstSort.end(), CMapOutdoor_FBlendThingInstanceRender());
 
-		STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-		STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
-		STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
-		STATEMANAGER.RestoreRenderState(RS11_ZWRITEENABLE);
+		STATEMANAGER.GetStateCache().Restore();
 	}
 }
 void CMapOutdoor::RenderDungeon()
@@ -545,27 +532,27 @@ void CMapOutdoor::RenderDungeon()
 
 void CMapOutdoor::RenderPCBlocker()
 {
-	// PCBlocker
 	if (m_PCBlockerVector.size() != 0)
 	{
 		STATEMANAGER.SetTexture(0, NULL);
 
-		STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
+		STATEMANAGER.GetStateCache().Push();
+		STATEMANAGER.GetSampler().Push(1);
 
-		STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSU,	D3D11_TEXTURE_ADDRESS_CLAMP);
-		STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSV,	D3D11_TEXTURE_ADDRESS_CLAMP);
+		STATEMANAGER.GetBlend().SetBlendEnable(true);
+		STATEMANAGER.GetSampler().SetAddressUV(1, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
 
-		STATEMANAGER.SaveTransform(Texture1, &m_matBuildingTransparent);
+		STATEMANAGER.GetTransform().Push();
+		STATEMANAGER.GetTransform().SetTexture1(m_matBuildingTransparent);
 		STATEMANAGER.SetTexture(1, m_BuildingTransparentImageInstance.GetTexturePointer()->GetSRV());
 
 		std::for_each(m_PCBlockerVector.begin(), m_PCBlockerVector.end(), FRenderPCBlocker());
 
 		STATEMANAGER.SetTexture(1, NULL);
-		STATEMANAGER.RestoreTransform(Texture1);
+		STATEMANAGER.GetTransform().Restore();
 
-		STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSU);
-		STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSV);
-		STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
+		STATEMANAGER.GetSampler().Restore(1);
+		STATEMANAGER.GetStateCache().Restore();
 	}
 }
 
@@ -664,27 +651,26 @@ struct FPatchNumMatch
 	}
 };
 
-void CMapOutdoor::NEW_DrawWireFrame(CTerrainPatchProxy * pTerrainPatchProxy, WORD wPrimitiveCount, D3D11_PRIMITIVE_TOPOLOGY ePrimitiveType)
+void CMapOutdoor::NEW_DrawWireFrame(CTerrainPatchProxy* pTerrainPatchProxy, WORD wPrimitiveCount, D3D11_PRIMITIVE_TOPOLOGY ePrimitiveType)
 {
-	DWORD dwFillMode = STATEMANAGER.GetRenderState(RS11_FILLMODE);
-	STATEMANAGER.SetRenderState(RS11_FILLMODE, D3D11_FILL_WIREFRAME);
-	
-	DWORD dwFogEnable = STATEMANAGER.GetRenderState(RS11_FOGENABLE);
-	STATEMANAGER.SetRenderState(RS11_FOGENABLE, FALSE);
-	
+	STATEMANAGER.GetRaster().Push();
+
+	STATEMANAGER.GetRaster().SetFillMode(D3D11_FILL_WIREFRAME);
+	_mgr->GetCbMgr()->SetFogEnable(false);
+
 	STATEMANAGER.SetTexture(0, NULL);
 	STATEMANAGER.SetTexture(1, NULL);
-	
+
 	STATEMANAGER.DrawIndexedPrimitive11(ePrimitiveType, 0, 0, wPrimitiveCount);
-	STATEMANAGER.SetRenderState(RS11_FILLMODE, dwFillMode);
-	STATEMANAGER.SetRenderState(RS11_FOGENABLE, dwFogEnable);
+
+	STATEMANAGER.GetRaster().Restore();
 }
 
 void CMapOutdoor::DrawWireFrame(long patchnum, WORD wPrimitiveCount, D3D11_PRIMITIVE_TOPOLOGY ePrimitiveType)
 {
-	assert(NULL!=m_pTerrainPatchProxyList && "CMapOutdoor::DrawWireFrame");
+	assert(NULL != m_pTerrainPatchProxyList && "CMapOutdoor::DrawWireFrame");
 
-	CTerrainPatchProxy * pTerrainPatchProxy= &m_pTerrainPatchProxyList[patchnum];
+	CTerrainPatchProxy* pTerrainPatchProxy = &m_pTerrainPatchProxyList[patchnum];
 
 	if (!pTerrainPatchProxy->isUsed())
 		return;
@@ -692,23 +678,22 @@ void CMapOutdoor::DrawWireFrame(long patchnum, WORD wPrimitiveCount, D3D11_PRIMI
 	long sPatchNum = pTerrainPatchProxy->GetPatchNum();
 	if (sPatchNum < 0)
 		return;
+
 	BYTE ucTerrainNum = pTerrainPatchProxy->GetTerrainNum();
 	if (0xFF == ucTerrainNum)
 		return;
 
-	DWORD dwFillMode = STATEMANAGER.GetRenderState(RS11_FILLMODE);
-	STATEMANAGER.SetRenderState(RS11_FILLMODE, D3D11_FILL_WIREFRAME);
+	STATEMANAGER.GetRaster().Push();
 
-	DWORD dwFogEnable = STATEMANAGER.GetRenderState(RS11_FOGENABLE);
-	STATEMANAGER.SetRenderState(RS11_FOGENABLE, FALSE);
-	
+	STATEMANAGER.GetRaster().SetFillMode(D3D11_FILL_WIREFRAME);
+	_mgr->GetCbMgr()->SetFogEnable(false);
+
 	STATEMANAGER.SetTexture(0, NULL);
 	STATEMANAGER.SetTexture(1, NULL);
 
 	STATEMANAGER.DrawIndexedPrimitive11(ePrimitiveType, 0, 0, wPrimitiveCount);
 
-	STATEMANAGER.SetRenderState(RS11_FILLMODE, dwFillMode);
-	STATEMANAGER.SetRenderState(RS11_FOGENABLE, dwFogEnable);
+	STATEMANAGER.GetRaster().Restore();
 }
 
 // Attr
@@ -719,7 +704,8 @@ void CMapOutdoor::RenderMarkedArea()
 
 	m_matWorldForCommonUse._41 = 0.0f;
 	m_matWorldForCommonUse._42 = 0.0f;
-	STATEMANAGER.SetTransform(World, &m_matWorldForCommonUse);
+
+	STATEMANAGER.GetTransform().SetWorld(m_matWorldForCommonUse);
 
 	WORD wPrimitiveCount;
 	D3D11_PRIMITIVE_TOPOLOGY eType;
@@ -729,24 +715,25 @@ void CMapOutdoor::RenderMarkedArea()
 	D3DXMatrixScaling(&matTexTransform, m_fTerrainTexCoordBase * 32.0f, -m_fTerrainTexCoordBase * 32.0f, 0.0f);
 	D3DXMatrixMultiply(&matTexTransform, &m_matViewInverse, &matTexTransform);
 
-	STATEMANAGER.SaveTransform(Texture0, &matTexTransform);
-	STATEMANAGER.SaveTransform(Texture1, &matTexTransform);
+	STATEMANAGER.GetTransform().Push();
+	STATEMANAGER.GetTransform().SetTexture0(matTexTransform);
+	STATEMANAGER.GetTransform().SetTexture1(matTexTransform);
 
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_SRC_ALPHA);
-	STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_ALPHA);
+	STATEMANAGER.GetStateCache().Push();
+	STATEMANAGER.GetSampler().Push(1);
+
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+	STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
+	STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_INV_SRC_ALPHA);
 
 	static long lStartTime = timeGetTime();
 	float fTime = float((timeGetTime() - lStartTime) % 3000) / 3000.0f;
 	float fAlpha = fabs(fTime - 0.5f) / 2.0f + 0.1f;
 
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, D3DXCOLOR(1.0f, 1.0f, 1.0f, fAlpha));
+	_mgr->GetCbMgr()->SetTextureFactor(D3DXCOLOR(1.0f, 1.0f, 1.0f, fAlpha));
 
-	STATEMANAGER.SaveSamplerState(1, SS11_MINFILTER, TF11_POINT);
-	STATEMANAGER.SaveSamplerState(1, SS11_MAGFILTER, TF11_POINT);
-	STATEMANAGER.SaveSamplerState(1, SS11_MIPFILTER, TF11_POINT);
-	STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_CLAMP);
-	STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_CLAMP);
+	STATEMANAGER.GetSampler().SetFilter(1, D3D11_FILTER_MIN_MAG_MIP_POINT);
+	STATEMANAGER.GetSampler().SetAddressUV(1, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
 
 	STATEMANAGER.SetTexture(0, m_attrImageInstance.GetTexturePointer()->GetSRV());
 
@@ -754,18 +741,10 @@ void CMapOutdoor::RenderMarkedArea()
 
 	RecurseRenderAttr(m_pRootNode);
 
-	STATEMANAGER.RestoreSamplerState(1, SS11_MINFILTER);
-	STATEMANAGER.RestoreSamplerState(1, SS11_MAGFILTER);
-	STATEMANAGER.RestoreSamplerState(1, SS11_MIPFILTER);
-	STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSU);
-	STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSV);
+	STATEMANAGER.GetSampler().Restore(1);
+	STATEMANAGER.GetStateCache().Restore();
 
-	STATEMANAGER.RestoreTransform(Texture0);
-	STATEMANAGER.RestoreTransform(Texture1);
-
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
-	STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
+	STATEMANAGER.GetTransform().Restore();
 }
 
 void CMapOutdoor::RecurseRenderAttr(CTerrainQuadtreeNode *Node, bool bCullEnable)
@@ -826,7 +805,7 @@ void CMapOutdoor::DrawPatchAttr(long patchnum)
 	D3DXMATRIX matTexTransform, matTexTransformTemp;
 	D3DXMatrixMultiply(&matTexTransform, &m_matViewInverse, &m_matWorldForCommonUse);
 	D3DXMatrixMultiply(&matTexTransform, &matTexTransform, &m_matStaticShadow);
-	STATEMANAGER.SetTransform(Texture1, &matTexTransform);
+	STATEMANAGER.GetTransform().SetTexture1(matTexTransform);
 
 	TTerrainSplatPatch & rAttrSplatPatch = pTerrain->GetMarkedSplatPatch();
  	STATEMANAGER.SetTexture(1, rAttrSplatPatch.Splats[0].pd3dTexture);

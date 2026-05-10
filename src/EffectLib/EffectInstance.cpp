@@ -91,31 +91,29 @@ void CEffectInstance::OnUpdate()
 
 void CEffectInstance::OnRender()
 {
+	auto cb = _mgr->GetCbMgr();
+
 	_mgr->SetShader(VF_EFFECT);
-	STATEMANAGER.SaveSamplerState(0, SS11_MINFILTER, TF11_NONE);
-	STATEMANAGER.SaveSamplerState(0, SS11_MAGFILTER, TF11_NONE);
 
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_SRC_ALPHA);
-	STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_ALPHA);
-	STATEMANAGER.SaveRenderState(RS11_ALPHATESTENABLE, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
-	STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, FALSE);
-	/////
+	STATEMANAGER.GetStateCache().Push();
+	STATEMANAGER.GetSampler().Push(0);
 
-	std::for_each(m_ParticleInstanceVector.begin(),m_ParticleInstanceVector.end(),std::mem_fn(&CEffectElementBaseInstance::Render));
-	std::for_each(m_MeshInstanceVector.begin(),m_MeshInstanceVector.end(),std::mem_fn(&CEffectElementBaseInstance::Render));
+	STATEMANAGER.GetSampler().SetFilter(0, D3D11_FILTER_MIN_MAG_MIP_POINT);
 
-	/////
-	STATEMANAGER.RestoreSamplerState(0, SS11_MINFILTER);
-	STATEMANAGER.RestoreSamplerState(0, SS11_MAGFILTER);
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+	STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
+	STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_INV_SRC_ALPHA);
 
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
-	STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHATESTENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_CULLMODE);
-	STATEMANAGER.RestoreRenderState(RS11_ZWRITEENABLE);
+	cb->SetAlphaTestEnable(false);
+
+	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
+	STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(false);
+
+	std::for_each(m_ParticleInstanceVector.begin(), m_ParticleInstanceVector.end(), std::mem_fn(&CEffectElementBaseInstance::Render));
+	std::for_each(m_MeshInstanceVector.begin(), m_MeshInstanceVector.end(), std::mem_fn(&CEffectElementBaseInstance::Render));
+
+	STATEMANAGER.GetSampler().Restore(0);
+	STATEMANAGER.GetStateCache().Restore();
 
 	++ms_iRenderingEffectCount;
 }

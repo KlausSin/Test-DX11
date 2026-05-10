@@ -101,9 +101,9 @@ void CSnowEnvironment::__BeginBlur()
 	ms_lpd3d11Context->ClearRenderTargetView(m_lpSnowRTV, clearColor);
 	ms_lpd3d11Context->ClearDepthStencilView(m_lpSnowDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	STATEMANAGER.SetRenderState(RS11_ALPHABLENDENABLE, TRUE);
-	STATEMANAGER.SetRenderState(RS11_SRCBLEND, D3D11_BLEND_SRC_ALPHA);
-	STATEMANAGER.SetRenderState(RS11_DESTBLEND, D3D11_BLEND_DEST_ALPHA);
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+	STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
+	STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_DEST_ALPHA);
 }
 
 void CSnowEnvironment::__ApplyBlur()
@@ -111,32 +111,32 @@ void CSnowEnvironment::__ApplyBlur()
 	if (!m_bBlurEnable)
 		return;
 
+	ms_lpd3d11Context->OMSetRenderTargets(1, &m_lpOldRTV, m_lpOldDSV);
+
+	STATEMANAGER.SetTexture(0, m_lpSnowTexture);
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+
+	UINT numVP = 1;
+	D3D11_VIEWPORT vp;
+	ms_lpd3d11Context->RSGetViewports(&numVP, &vp);
+
+	float sx = vp.Width;
+	float sy = vp.Height;
+
+	SAFE_RELEASE(m_lpOldRTV);
+	SAFE_RELEASE(m_lpOldDSV);
+
+	BlurVertex V[4] =
 	{
-		// Restore previous render targets
-		ms_lpd3d11Context->OMSetRenderTargets(1, &m_lpOldRTV, m_lpOldDSV);
+		BlurVertex(D3DXVECTOR3(0.0f, 0.0f, 0.0f), 1.0f, 0xFFFFFF, 0, 0),
+		BlurVertex(D3DXVECTOR3(sx, 0.0f, 0.0f), 1.0f, 0xFFFFFF, 1, 0),
+		BlurVertex(D3DXVECTOR3(0.0f, sy, 0.0f), 1.0f, 0xFFFFFF, 0, 1),
+		BlurVertex(D3DXVECTOR3(sx, sy, 0.0f), 1.0f, 0xFFFFFF, 1, 1)
+	};
 
-		STATEMANAGER.SetTexture(0, m_lpSnowTexture);
-		STATEMANAGER.SetRenderState(RS11_ALPHABLENDENABLE, TRUE);
+	_mgr->SetShader(VF_SCREEN);
 
-		// Get backbuffer size from current viewport
-		UINT numVP = 1;
-		D3D11_VIEWPORT vp;
-		ms_lpd3d11Context->RSGetViewports(&numVP, &vp);
-		float sx = vp.Width;
-		float sy = vp.Height;
-
-		SAFE_RELEASE(m_lpOldRTV);
-		SAFE_RELEASE(m_lpOldDSV);
-
-		BlurVertex V[4] = {	BlurVertex(D3DXVECTOR3(0.0f,0.0f,0.0f),1.0f	,0xFFFFFF, 0,0) ,
-							BlurVertex(D3DXVECTOR3(sx,0.0f,0.0f),1.0f	,0xFFFFFF, 1,0) ,
-							BlurVertex(D3DXVECTOR3(0.0f,sy,0.0f),1.0f	,0xFFFFFF, 0,1) ,
-							BlurVertex(D3DXVECTOR3(sx,sy,0.0f),1.0f		,0xFFFFFF, 1,1) };
-
-		_mgr->SetShader(VF_SCREEN);
-
-		STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, 2, sizeof(BlurVertex), V);
-	}
+	STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, 2, sizeof(BlurVertex), V);
 }
 
 void CSnowEnvironment::Render()
@@ -147,23 +147,31 @@ void CSnowEnvironment::Render()
 			return;
 	}
 
+	STATEMANAGER.GetStateCache().Push();
+
 	__BeginBlur();
 
 	DWORD dwParticleCount = std::min((size_t)m_dwParticleMaxNum, m_kVct_pkParticleSnow.size());
 
-	CCamera * pCamera = CCameraManager::Instance().GetCurrentCamera();
+	CCamera* pCamera = CCameraManager::Instance().GetCurrentCamera();
 	if (!pCamera)
+	{
+		STATEMANAGER.GetStateCache().Restore();
 		return;
+	}
 
-	const D3DXVECTOR3 & c_rv3Up = pCamera->GetUp();
-	const D3DXVECTOR3 & c_rv3Cross = pCamera->GetCross();
+	const D3DXVECTOR3& c_rv3Up = pCamera->GetUp();
+	const D3DXVECTOR3& c_rv3Cross = pCamera->GetCross();
 
 	std::vector<SParticleVertex> tempVertices(dwParticleCount * 4);
+
 	int i = 0;
 	auto itor = m_kVct_pkParticleSnow.begin();
+
 	for (; i < dwParticleCount && itor != m_kVct_pkParticleSnow.end(); ++i, ++itor)
 	{
 		CSnowParticle* pSnow = *itor;
+
 		pSnow->SetCameraVertex(c_rv3Up, c_rv3Cross);
 		pSnow->GetVerticies(
 			tempVertices[i * 4 + 0],
@@ -171,25 +179,28 @@ void CSnowEnvironment::Render()
 			tempVertices[i * 4 + 2],
 			tempVertices[i * 4 + 3]);
 	}
+
 	m_pVB->Update(tempVertices.data(), dwParticleCount * 4);
 
-	STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
-	STATEMANAGER.SetRenderState(RS11_SRCBLEND,  D3D11_BLEND_SRC_ALPHA);
-	STATEMANAGER.SetRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_ALPHA);
+	STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(false);
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
+	STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
+	STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_INV_SRC_ALPHA);
+
 	STATEMANAGER.SetTexture(1, NULL);
 
 	m_pImageInstance->GetGraphicImagePointer()->GetTextureReference().SetTextureStage(0);
+
 	_mgr->SetIndexBuffer(m_pIB);
 	_mgr->SetShader(VF_PT);
 	_mgr->SetVertexBuffer(m_pVB);
+
 	STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, 0, 0, dwParticleCount * 2);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ZWRITEENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_CULLMODE);
 
 	__ApplyBlur();
+
+	STATEMANAGER.GetStateCache().Restore();
 }
 
 bool CSnowEnvironment::__CreateBlurTexture()

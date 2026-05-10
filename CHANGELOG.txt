@@ -60,3 +60,52 @@ Cleaning up unnecessary code.
 Remove TextureStageState.
 with this, 3 new bugs to fix in future, minimap + dot on minimap, specular mesh and shadow character
 /////////////////////////////             /////////////////////////////
+
+
+//////////////// new StateManager ////////////////
+Added more classes for more control.
+
+example:
+						before 
+	STATEMANAGER.SaveSamplerState(0, SS11_MINFILTER, TF11_NONE);
+	STATEMANAGER.SaveSamplerState(0, SS11_MAGFILTER, TF11_NONE);
+	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
+	STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_SRC_ALPHA);
+	STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_ALPHA);
+	STATEMANAGER.SaveRenderState(RS11_ALPHATESTENABLE, FALSE);
+	STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
+	STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, FALSE);
+	/////
+
+	...code 
+	
+	/////
+	STATEMANAGER.RestoreSamplerState(0, SS11_MINFILTER);
+	STATEMANAGER.RestoreSamplerState(0, SS11_MAGFILTER);
+	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
+	STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
+	STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
+	STATEMANAGER.RestoreRenderState(RS11_ALPHATESTENABLE);
+	STATEMANAGER.RestoreRenderState(RS11_CULLMODE);
+	STATEMANAGER.RestoreRenderState(RS11_ZWRITEENABLE);
+	
+					now
+					
+	STATEMANAGER.GetStateCache().Push(); // enter in save mode 
+	STATEMANAGER.GetSampler().Push(0);
+	STATEMANAGER.GetSampler().SetFilter(0, D3D11_FILTER_MIN_MAG_MIP_POINT);
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+	STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
+	STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_INV_SRC_ALPHA);
+
+	cb->SetAlphaTestEnable(false);
+
+	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
+	STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(false);
+
+	...code 
+	
+	STATEMANAGER.GetSampler().Restore(0); //no need to restore them manually = exit save mode
+	STATEMANAGER.GetStateCache().Restore(); //no need to restore them manually = exit save mode
+	
+/////////////////////////////             /////////////////////////////

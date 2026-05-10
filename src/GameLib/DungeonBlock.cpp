@@ -28,12 +28,16 @@ class CDungeonModelInstance : public CGrannyModelInstance
 			if (IsEmpty())
 				return;
 
-			STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, 0xffffffff);
-			STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-			STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_ZERO);
-			STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_SRC_COLOR);
+			_mgr->GetCbMgr()->SetTextureFactor(0xffffffff);
+
+			STATEMANAGER.GetBlend().Push();
+
+			STATEMANAGER.GetBlend().SetBlendEnable(true);
+			STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_ZERO);
+			STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_SRC_COLOR);
 
 			_mgr->SetShader(VF_MESH, HAS_TEX2);
+
 			auto lpd3dRigidPNTVtxBuf = m_pModel->GetVertexBuffer();
 			if (lpd3dRigidPNTVtxBuf)
 			{
@@ -41,9 +45,7 @@ class CDungeonModelInstance : public CGrannyModelInstance
 				RenderMeshNodeListWithoutTexture(CGrannyMesh::TYPE_RIGID, CGrannyMaterial::TYPE_BLEND_PNT);
 			}
 
-			STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-			STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
-			STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
+			STATEMANAGER.GetBlend().Restore();
 		}
 };
 

@@ -1,78 +1,11 @@
 #pragma once
 
-///////////////////////////////////////////////////////////////////////////////
-// CD3D11Renderer — D3D11 rendering backend
-//
-// Owned by CStateManager. Translates D3D9-style state calls into D3D11
-// context operations. Compiles and manages HLSL shaders, constant buffers,
-// state objects, and input layouts for all vertex formats.
-//
-// The game codebase keeps using D3D9 enums (D3DRS_*, TSS11_*, D3DFVF_*)
-// through StateManager's API. This class does the actual translation.
-///////////////////////////////////////////////////////////////////////////////
-
 #include <d3d11.h>
 #include <d3dcompiler.h>
-#include <unordered_map>
 #include "GrpBase.h"
-#include "StateManager.h"
+#include "qMin32Lib/D3D11StateCacheSet.h"
 #include "qMin32Lib/Core.h"
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-// Tracked D3D11 state (mirrors what we've set, avoids redundant API calls)
-///////////////////////////////////////////////////////////////////////////////
-struct SD3D11BlendKey
-{
-	BOOL blendEnable;
-	D3D11_BLEND srcBlend;
-	D3D11_BLEND destBlend;
-	D3D11_BLEND_OP blendOp;
-	D3D11_BLEND srcBlendAlpha;
-	D3D11_BLEND destBlendAlpha;
-	BYTE colorWriteMask;
-	BYTE _pad[3];  // explicit padding for deterministic hash/comparison
-
-	SD3D11BlendKey() { memset(this, 0, sizeof(*this)); }
-	bool operator==(const SD3D11BlendKey& o) const { return memcmp(this, &o, sizeof(*this)) == 0; }
-};
-
-struct SD3D11DepthKey
-{
-	BOOL depthEnable;
-	BOOL depthWrite;
-	D3D11_COMPARISON_FUNC depthFunc;
-	BOOL stencilEnable;
-
-	bool operator==(const SD3D11DepthKey& o) const { return memcmp(this, &o, sizeof(*this)) == 0; }
-};
-
-struct SD3D11RasterKey
-{
-	D3D11_FILL_MODE fillMode;
-	D3D11_CULL_MODE cullMode;
-	BOOL scissorEnable;
-
-	bool operator==(const SD3D11RasterKey& o) const { return memcmp(this, &o, sizeof(*this)) == 0; }
-};
-
-struct SD3D11SamplerKey
-{
-	D3D11_FILTER filter;
-	D3D11_TEXTURE_ADDRESS_MODE addrU;
-	D3D11_TEXTURE_ADDRESS_MODE addrV;
-
-	bool operator==(const SD3D11SamplerKey& o) const { return memcmp(this, &o, sizeof(*this)) == 0; }
-};
-
-struct SBlendKeyHash { size_t operator()(const SD3D11BlendKey& k) const { size_t h = 0; auto p = (const char*)&k; for (size_t i = 0; i < sizeof(k); ++i) h = h * 131 + p[i]; return h; } };
-struct SDepthKeyHash { size_t operator()(const SD3D11DepthKey& k) const { size_t h = 0; auto p = (const char*)&k; for (size_t i = 0; i < sizeof(k); ++i) h = h * 131 + p[i]; return h; } };
-struct SRasterKeyHash { size_t operator()(const SD3D11RasterKey& k) const { size_t h = 0; auto p = (const char*)&k; for (size_t i = 0; i < sizeof(k); ++i) h = h * 131 + p[i]; return h; } };
-struct SSamplerKeyHash { size_t operator()(const SD3D11SamplerKey& k) const { size_t h = 0; auto p = (const char*)&k; for (size_t i = 0; i < sizeof(k); ++i) h = h * 131 + p[i]; return h; } };
-
-///////////////////////////////////////////////////////////////////////////////
-// CD3D11Renderer
-///////////////////////////////////////////////////////////////////////////////
 class CD3D11Renderer
 {
 public:
@@ -84,58 +17,21 @@ public:
 
 	CBManagerPtr GetCbMgr();
 
-	// Render states → blend/depth/rasterizer state objects
-	void SetAlphaBlendEnable(BOOL bEnable);
-	void SetSrcBlend(D3D11_BLEND blend);
-	void SetDestBlend(D3D11_BLEND blend);
-	void SetBlendOp(D3D11_BLEND_OP op);
+	CD3D11StateCacheSet& GetStateCache() { return m_StateCache; }
+	const CD3D11StateCacheSet& GetStateCache() const { return m_StateCache; }
 
-	void SetZEnable(BOOL bEnable);
-	void SetZWriteEnable(BOOL bEnable);
-	void SetZFunc(D3D11_COMPARISON_FUNC func);
-	void SetStencilEnable(BOOL bEnable);
-	void SetCullMode(D3D11_CULL_MODE mode);
-	void SetFillMode(D3D11_FILL_MODE mode);
-	void SetScissorEnable(BOOL bEnable);
-	void SetColorWriteEnable(BYTE mask);
-	void FlushBlendState();
-	void FlushDepthState();
-	void FlushRasterState();
+	void PushStateCache() { m_StateCache.Push(); }
+	bool RestoreStateCache() { bool ok = m_StateCache.Restore(); m_StateCache.ForceDirty(); return ok; }
+	void ClearStateCacheStacks() { m_StateCache.ClearStacks(); }
+	void ResetStateCacheDefault() { m_StateCache.ResetDefault(); m_StateCache.ForceDirty(); }
+	void ForceStateCacheDirty() { m_StateCache.ForceDirty(); }
 
-	// Texture binding → PSSetShaderResources
 	void SetTexture(DWORD dwStage, ID3D11ShaderResourceView* pSRV);
-
-	// Sampler state
-	void SetSamplerState(DWORD dwStage, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addrU, D3D11_TEXTURE_ADDRESS_MODE addrV);
-
-	// --- Draw ---
 	void FlushAllState();
 
 private:
-
-	ID3D11BlendState* GetOrCreateBlendState(const SD3D11BlendKey& key);
-	ID3D11DepthStencilState* GetOrCreateDepthState(const SD3D11DepthKey& key);
-	ID3D11RasterizerState* GetOrCreateRasterState(const SD3D11RasterKey& key);
-	ID3D11SamplerState* GetOrCreateSamplerState(const SD3D11SamplerKey& key);
-
-	ComPtr<ID3D11Device>			m_pDevice = nullptr;
-	ComPtr<ID3D11DeviceContext>		m_pContext = nullptr;
-
-	// State object caches (created on demand, never destroyed until shutdown)
-	std::unordered_map<SD3D11BlendKey, ID3D11BlendState*, SBlendKeyHash>  m_mapBlendStates;
-	std::unordered_map<SD3D11DepthKey, ID3D11DepthStencilState*, SDepthKeyHash>  m_mapDepthStates;
-	std::unordered_map<SD3D11RasterKey, ID3D11RasterizerState*, SRasterKeyHash> m_mapRasterStates;
-	std::unordered_map<SD3D11SamplerKey, ID3D11SamplerState*, SSamplerKeyHash> m_mapSamplerStates;
-
-	// Default samplers
-	ComPtr<ID3D11SamplerState>		m_pDefaultSampler = nullptr;
-
-
-	SD3D11BlendKey			m_curBlendKey;
-	SD3D11DepthKey			m_curDepthKey;
-	SD3D11RasterKey			m_curRasterKey;
-
-	bool					m_bBlendDirty = true;
-	bool					m_bDepthDirty = true;
-	bool					m_bRasterDirty = true;
+	ComPtr<ID3D11Device> m_pDevice = nullptr;
+	ComPtr<ID3D11DeviceContext> m_pContext = nullptr;
+	CD3D11StateCacheSet m_StateCache;
+	bool m_bInitialized = false;
 };

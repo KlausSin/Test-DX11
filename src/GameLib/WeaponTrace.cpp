@@ -287,39 +287,39 @@ void CWeaponTrace::Render()
 	D3DXMATRIX matWorld;
 	D3DXMatrixIdentity(&matWorld);
 
-	STATEMANAGER.SaveTransform(World, &matWorld);
-	STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
+	STATEMANAGER.GetStateCache().Push();
+	STATEMANAGER.GetTransform().SetWorld(matWorld);
 
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_SRC_ALPHA);
-	STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_ALPHA);
-	STATEMANAGER.SaveRenderState(RS11_ALPHATESTENABLE, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_ALPHAREF, 0x00000011);
+	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
 
-	STATEMANAGER.SaveRenderState(RS11_ZENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_ZFUNC, D3D11_COMPARISON_LESS_EQUAL);
-	STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, FALSE);
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+	STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
+	STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_INV_SRC_ALPHA);
 
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
+	_mgr->GetCbMgr()->SetAlphaTestEnable(false);
+	_mgr->GetCbMgr()->SetAlphaRef(0x00000011);
+
+	STATEMANAGER.GetDepthStencil().SetDepthEnable(true);
+	STATEMANAGER.GetDepthStencil().SetDepthFunc(D3D11_COMPARISON_LESS_EQUAL);
+	STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(false);
+
+	_mgr->GetCbMgr()->SetLightingEnable(false);
+
 	STATEMANAGER.SetTexture(0, NULL);
 	STATEMANAGER.SetTexture(1, NULL);
 
 	_mgr->SetShader(VF_PDT, m_bUseTexture ? BLEND_UI_TEX : BLEND_UI_DIFFUSE);
 
-	STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, (UINT)(m_PDTVertexVector.size() - 2), sizeof(TPDTVertex), m_PDTVertexVector.data());
+	STATEMANAGER.DrawPrimitive11(
+		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,
+		(UINT)(m_PDTVertexVector.size() - 2),
+		sizeof(TPDTVertex),
+		m_PDTVertexVector.data());
 
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, TRUE);
+	STATEMANAGER.GetTransform().Restore();
+	STATEMANAGER.GetStateCache().Restore();
 
-	STATEMANAGER.RestoreRenderState(RS11_ZENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ZFUNC);
-	STATEMANAGER.RestoreRenderState(RS11_ZWRITEENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHATESTENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHAREF);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
-	STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
-	STATEMANAGER.RestoreTransform(World);
-	STATEMANAGER.RestoreRenderState(RS11_CULLMODE);
+	_mgr->GetCbMgr()->SetLightingEnable(true);
 }
 
 void CWeaponTrace::UseAlpha()

@@ -30,40 +30,35 @@ void CMapOutdoor::RenderWater()
 	if (!IsVisiblePart(PART_WATER))
 		return;
 
-	//////////////////////////////////////////////////////////////////////////
-	// RenderState
 	D3DXMATRIX matTexTransformWater;
-	
-	STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
-	
+
+	STATEMANAGER.GetStateCache().Push();
+	STATEMANAGER.GetSampler().Push(0);
+
+	STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(false);
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
+
 	STATEMANAGER.SetTexture(0, m_WaterInstances[((ELTimer_GetMSec() / 70) % 30)].GetTexturePointer()->GetSRV());
 
 	D3DXMatrixScaling(&matTexTransformWater, m_fWaterTexCoordBase, -m_fWaterTexCoordBase, 0.0f);
 	D3DXMatrixMultiply(&matTexTransformWater, &m_matViewInverse, &matTexTransformWater);
-	
-	STATEMANAGER.SaveTransform(Texture0, &matTexTransformWater);
 
-	STATEMANAGER.SaveSamplerState(0, SS11_MINFILTER, TF11_ANISOTROPIC);
-	STATEMANAGER.SaveSamplerState(0, SS11_MAGFILTER, TF11_ANISOTROPIC);
-	STATEMANAGER.SaveSamplerState(0, SS11_MIPFILTER, TF11_LINEAR);
-	STATEMANAGER.SaveSamplerState(0, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_WRAP);
-	STATEMANAGER.SaveSamplerState(0, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_WRAP);
+	STATEMANAGER.GetTransform().Push();
+	STATEMANAGER.GetTransform().SetTexture0(matTexTransformWater);
 
-	STATEMANAGER.SetTexture(1,NULL);
+	STATEMANAGER.GetSampler().SetFilter(0, D3D11_FILTER_ANISOTROPIC);
+	STATEMANAGER.GetSampler().SetMaxAnisotropy(0, 8);
+	STATEMANAGER.GetSampler().SetAddressUV(0, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP);
 
-	// RenderState
-	//////////////////////////////////////////////////////////////////////////
+	STATEMANAGER.SetTexture(1, NULL);
 
-	// 물 위 아래 애니시키기...
 	static float s_fWaterHeightCurrent = 0;
 	static float s_fWaterHeightBegin = 0;
 	static float s_fWaterHeightEnd = 0;
 	static DWORD s_dwLastHeightChangeTime = CTimer::Instance().GetCurrentMillisecond();
 	static DWORD s_dwBlendtime = 300;
 
-	// 1.5초 마다 변경
 	if ((CTimer::Instance().GetCurrentMillisecond() - s_dwLastHeightChangeTime) > s_dwBlendtime)
 	{
 		s_dwBlendtime = random_range(1000, 3000);
@@ -77,47 +72,37 @@ void CMapOutdoor::RenderWater()
 		s_dwLastHeightChangeTime = CTimer::Instance().GetCurrentMillisecond();
 	}
 
-	s_fWaterHeightCurrent = s_fWaterHeightBegin + (s_fWaterHeightEnd - s_fWaterHeightBegin) * (float) ((CTimer::Instance().GetCurrentMillisecond() - s_dwLastHeightChangeTime) / (float) s_dwBlendtime);
+	s_fWaterHeightCurrent = s_fWaterHeightBegin + (s_fWaterHeightEnd - s_fWaterHeightBegin) * (float)((CTimer::Instance().GetCurrentMillisecond() - s_dwLastHeightChangeTime) / (float)s_dwBlendtime);
 	m_matWorldForCommonUse._43 = s_fWaterHeightCurrent;
 
 	m_matWorldForCommonUse._41 = 0.0f;
 	m_matWorldForCommonUse._42 = 0.0f;
-	STATEMANAGER.SetTransform(World, &m_matWorldForCommonUse);
-	
+	STATEMANAGER.GetTransform().SetWorld(m_matWorldForCommonUse);
+
 	float fFogDistance = __GetFogDistance();
 
-	std::vector<std::pair<float, long> >::iterator i;
+	std::vector<std::pair<float, long>>::iterator i;
 
-	for(i = m_PatchVector.begin();i != m_PatchVector.end(); ++i)
+	for (i = m_PatchVector.begin(); i != m_PatchVector.end(); ++i)
 	{
-		if (i->first<fFogDistance)	
+		if (i->first < fFogDistance)
 			DrawWater(i->second);
 	}
 
 	STATEMANAGER.SetTexture(0, NULL);
-	STATEMANAGER.SetRenderState(RS11_ALPHABLENDENABLE, FALSE);
+	STATEMANAGER.GetBlend().SetBlendEnable(false);
 
-	for(i = m_PatchVector.begin();i != m_PatchVector.end(); ++i)
+	for (i = m_PatchVector.begin(); i != m_PatchVector.end(); ++i)
 	{
-		if (i->first>=fFogDistance)	
+		if (i->first >= fFogDistance)
 			DrawWater(i->second);
 	}
 
-	// 렌더링 한 후에는 물 z 위치를 복구
 	m_matWorldForCommonUse._43 = 0.0f;
 
-	//////////////////////////////////////////////////////////////////////////
-	// RenderState
-	STATEMANAGER.RestoreTransform(Texture0);
-	STATEMANAGER.RestoreSamplerState(0, SS11_MINFILTER);
-	STATEMANAGER.RestoreSamplerState(0, SS11_MAGFILTER);
-	STATEMANAGER.RestoreSamplerState(0, SS11_MIPFILTER);
-	STATEMANAGER.RestoreSamplerState(0, SS11_ADDRESSU);
-	STATEMANAGER.RestoreSamplerState(0, SS11_ADDRESSV);
-	
-	STATEMANAGER.RestoreRenderState(RS11_ZWRITEENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_CULLMODE);	
+	STATEMANAGER.GetTransform().Restore();
+	STATEMANAGER.GetSampler().Restore(0);
+	STATEMANAGER.GetStateCache().Restore();
 }
 
 void CMapOutdoor::DrawWater(long patchnum)

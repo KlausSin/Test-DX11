@@ -7,22 +7,23 @@ void CScreenFilter::Render()
 	if (!m_bEnable)
 		return;
 
-	STATEMANAGER.SaveTransform(Projection, &ms_matIdentity);
- 	STATEMANAGER.SaveTransform(View, &ms_matIdentity);
- 	STATEMANAGER.SetTransform(World, &ms_matIdentity);
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_SRCBLEND, m_bySrcType);
-	STATEMANAGER.SaveRenderState(RS11_DESTBLEND, m_byDestType);
+	STATEMANAGER.GetTransform().Push();
+	STATEMANAGER.GetBlend().Push();
+
+	STATEMANAGER.GetTransform().SetProjection(ms_matIdentity);
+	STATEMANAGER.GetTransform().SetView(ms_matIdentity);
+	STATEMANAGER.GetTransform().SetWorld(ms_matIdentity);
+
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+	STATEMANAGER.GetBlend().SetSrcBlend((D3D11_BLEND)m_bySrcType);
+	STATEMANAGER.GetBlend().SetDestBlend((D3D11_BLEND)m_byDestType);
 
 	SetOrtho2D(CScreen::ms_iWidth, CScreen::ms_iHeight, 400.0f);
 	SetDiffuseColor(m_Color.r, m_Color.g, m_Color.b, m_Color.a);
 	RenderBar2d(0, 0, CScreen::ms_iWidth, CScreen::ms_iHeight);
 
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
-	STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
- 	STATEMANAGER.RestoreTransform(View);
-	STATEMANAGER.RestoreTransform(Projection);
+	STATEMANAGER.GetBlend().Restore();
+	STATEMANAGER.GetTransform().Restore();
 }
 
 void CScreenFilter::SetEnable(BOOL /*bFlag*/)

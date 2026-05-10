@@ -120,6 +120,8 @@ public:
 	void SetAmbient(DWORD dwColor);
 	void FlushLighting();
 
+	DWORD GetAlphaRef() const { return DWORD(m_cbMaterial.alphaRef); }
+
 	// Fog → constant buffer b4
 	void SetFogEnable(BOOL bEnable);
 	void SetFogColor(DWORD dwColor);

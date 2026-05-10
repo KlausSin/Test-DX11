@@ -217,7 +217,7 @@ const TSphereData & CSphereCollisionInstance::GetAttribute() const
 void CSphereCollisionInstance::Render(D3D11_FILL_MODE D3D11_FILL_MODE)
 {
 	static CScreen s;
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, 0xffffffff);
+	_mgr->GetCbMgr()->SetTextureFactor(0xffffffff);
 	s.RenderSphere(NULL, m_attribute.v3Position.x, m_attribute.v3Position.y, m_attribute.v3Position.z, m_attribute.fRadius, D3D11_FILL_MODE);
 }
 
@@ -513,7 +513,8 @@ D3DXVECTOR3 CCylinderCollisionInstance::OnGetCollisionMovementAdjust(const CDyna
 void CCylinderCollisionInstance::Render(D3D11_FILL_MODE D3D11_FILL_MODE)
 {
 	static CScreen s;
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, 0xffffffff);
+	_mgr->GetCbMgr()->SetTextureFactor(0xffffffff);
+
 	s.RenderCylinder(NULL, m_attribute.v3Position.x, m_attribute.v3Position.y, m_attribute.v3Position.z+m_attribute.fHeight/2, m_attribute.fRadius, m_attribute.fHeight, D3D11_FILL_MODE);
 }
 
@@ -646,7 +647,8 @@ D3DXVECTOR3 CAABBCollisionInstance::OnGetCollisionMovementAdjust(const CDynamicS
 void CAABBCollisionInstance::Render(D3D11_FILL_MODE D3D11_FILL_MODE)
 {
 	static CScreen s;
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, 0xffffffff);
+	_mgr->GetCbMgr()->SetTextureFactor(0xffffffff);
+
 	s.RenderCube(m_attribute.v3Min.x, m_attribute.v3Min.y, m_attribute.v3Min.z, m_attribute.v3Max.x, m_attribute.v3Max.y, m_attribute.v3Max.z);
 	return;
 }
@@ -750,7 +752,7 @@ D3DXVECTOR3 COBBCollisionInstance::OnGetCollisionMovementAdjust(const CDynamicSp
 void COBBCollisionInstance::Render(D3D11_FILL_MODE D3D11_FILL_MODE)
 {
 	static CScreen s;
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, 0xffffffff);
+	_mgr->GetCbMgr()->SetTextureFactor(0xffffffff);
 	s.RenderCube(m_attribute.v3Min.x, m_attribute.v3Min.y, m_attribute.v3Min.z, m_attribute.v3Max.x, m_attribute.v3Max.y, m_attribute.v3Max.z, m_attribute.matRot);
 	return;
 }

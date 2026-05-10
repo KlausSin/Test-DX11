@@ -2018,32 +2018,32 @@ void CInstanceBase::Render()
 	}
 	
 	if (CActorInstance::IsDirLine())
-	{	
+	{
 		if (NEW_GetDstPixelPositionRef().x != 0.0f)
 		{
 			static CScreen s_kScreen;
 
-			STATEMANAGER.SaveRenderState(RS11_ZENABLE, FALSE);
-			STATEMANAGER.SetRenderState(RS11_FOGENABLE, FALSE);
-			STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
-			
+			STATEMANAGER.GetStateCache().Push();
+
+			STATEMANAGER.GetDepthStencil().SetDepthEnable(false);
+			_mgr->GetCbMgr()->SetFogEnable(false);
+			_mgr->GetCbMgr()->SetLightingEnable(false);
+
 			TPixelPosition px;
 			m_GraphicThingInstance.GetPixelPosition(&px);
-			D3DXVECTOR3 kD3DVt3Cur(px.x, px.y, px.z);
-			//D3DXVECTOR3 kD3DVt3Cur(NEW_GetSrcPixelPositionRef().x, -NEW_GetSrcPixelPositionRef().y, NEW_GetSrcPixelPositionRef().z);
-			D3DXVECTOR3 kD3DVt3Dest(NEW_GetDstPixelPositionRef().x, -NEW_GetDstPixelPositionRef().y, NEW_GetDstPixelPositionRef().z);
 
-			//printf("%s %f\n", GetNameString(), kD3DVt3Cur.y - kD3DVt3Dest.y);
-			//float fdx = NEW_GetDstPixelPositionRef().x - NEW_GetSrcPixelPositionRef().x;
-			//float fdy = NEW_GetDstPixelPositionRef().y - NEW_GetSrcPixelPositionRef().y;
+			D3DXVECTOR3 kD3DVt3Cur(px.x, px.y, px.z);
+			D3DXVECTOR3 kD3DVt3Dest(NEW_GetDstPixelPositionRef().x, -NEW_GetDstPixelPositionRef().y, NEW_GetDstPixelPositionRef().z);
 
 			s_kScreen.SetDiffuseColor(0.0f, 0.0f, 1.0f);
 			s_kScreen.RenderLine3d(kD3DVt3Cur.x, kD3DVt3Cur.y, px.z, kD3DVt3Dest.x, kD3DVt3Dest.y, px.z);
-			STATEMANAGER.RestoreRenderState(RS11_ZENABLE);
-			STATEMANAGER.SetRenderState(RS11_FOGENABLE, TRUE);
-			STATEMANAGER.SetRenderState(RS11_LIGHTING, TRUE);
+
+			STATEMANAGER.GetStateCache().Restore();
+
+			_mgr->GetCbMgr()->SetFogEnable(true);
+			_mgr->GetCbMgr()->SetLightingEnable(true);
 		}
-	}	
+	}
 }
 
 void CInstanceBase::RenderToShadowMap()

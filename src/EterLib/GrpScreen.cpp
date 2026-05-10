@@ -158,7 +158,7 @@ void CScreen::RenderLineCube(float sx, float sy, float sz, float ex, float ey, f
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
 		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
-		STATEMANAGER.SetTransform(World, ms_lpd3dMatStack->GetTop());
+		STATEMANAGER.GetTransform().SetWorld(*ms_lpd3dMatStack->GetTop());
 		SetDefaultIndexBuffer(DEFAULT_IB_LINE_CUBE);
 
 		STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_LINELIST, 0, 0, 4 * 3);
@@ -185,7 +185,7 @@ void CScreen::RenderCube(float sx, float sy, float sz, float ex, float ey, float
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
 		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
-		STATEMANAGER.SetTransform(World, ms_lpd3dMatStack->GetTop());
+		STATEMANAGER.GetTransform().SetWorld(*ms_lpd3dMatStack->GetTop());
 
 		SetDefaultIndexBuffer(DEFAULT_IB_FILL_CUBE);
 		STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, 0, 0, 4 * 3);
@@ -223,7 +223,7 @@ void CScreen::RenderCube(float sx, float sy, float sz, float ex, float ey, float
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
 		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
-		STATEMANAGER.SetTransform(World, ms_lpd3dMatStack->GetTop());
+		STATEMANAGER.GetTransform().SetWorld(*ms_lpd3dMatStack->GetTop());
 
 		SetDefaultIndexBuffer(DEFAULT_IB_FILL_CUBE);
 		STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, 0, 0, 4 * 3);
@@ -313,23 +313,22 @@ void CScreen::RenderCircle3d(float fx, float fy, float fz, float fRadius, int iS
 class CD3DXMeshRenderingOption : public CScreen
 {
 public:
-	DWORD	m_dwVS;
-	
-	CD3DXMeshRenderingOption(D3D11_FILL_MODE D3D11_FILL_MODE, const D3DXMATRIX & c_rmatWorld)
+	CD3DXMeshRenderingOption(D3D11_FILL_MODE eFillMode, const D3DXMATRIX& c_rmatWorld)
 	{
-		STATEMANAGER.SetRenderState(RS11_FILLMODE, D3D11_FILL_MODE);
-		STATEMANAGER.SaveTransform(World, &c_rmatWorld);
+		STATEMANAGER.GetRaster().Push();
+		STATEMANAGER.GetTransform().Push();
+
+		STATEMANAGER.GetRaster().SetFillMode(eFillMode);
+		STATEMANAGER.GetTransform().SetWorld(c_rmatWorld);
 
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
 	}
-	
+
 	virtual ~CD3DXMeshRenderingOption()
 	{
-		//STATEMANAGER.SetFVF(m_dwVS);
-
-		STATEMANAGER.RestoreTransform(World);
-		STATEMANAGER.SetRenderState(RS11_FILLMODE, D3D11_FILL_SOLID);
+		STATEMANAGER.GetTransform().Restore();
+		STATEMANAGER.GetRaster().Restore();
 	}
 };
 
@@ -740,7 +739,7 @@ void CScreen::SetAddColorOperation(D3DXCOLOR& rColor)
 
 void CScreen::Identity()
 {
-	STATEMANAGER.SetTransform(World, &ms_matIdentity);
+	STATEMANAGER.GetTransform().SetWorld(ms_matIdentity);
 }
 
 CScreen::CScreen()

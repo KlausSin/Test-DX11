@@ -5,6 +5,9 @@
 
 void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch()
 {
+	auto& state = STATEMANAGER.GetStateCache();
+	auto cb = _mgr->GetCbMgr();
+
 	DWORD dwFogColor;
 	float fFogFarDistance;
 	float fFogNearDistance;
@@ -22,28 +25,30 @@ void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch()
 		fFogFarDistance = 10000.0f;
 	}
 
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_ALPHATESTENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_ALPHAREF, 0x00000000);
-	STATEMANAGER.SaveRenderState(RS11_TEXTUREFACTOR, dwFogColor);
+	state.Push();
 
-	STATEMANAGER.SetSamplerState(0, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_WRAP);
-	STATEMANAGER.SetSamplerState(0, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_WRAP);
-	STATEMANAGER.SetSamplerState(1, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_CLAMP);
-	STATEMANAGER.SetSamplerState(1, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_CLAMP);
+	state.Blend.SetBlendEnable(true);
+	cb->SetAlphaTestEnable(true);
+	cb->SetAlphaRef(0x00000000);
+	cb->SetTextureFactor(dwFogColor);
+
+	state.Sampler.SetAddressUV(0, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP);
+	state.Sampler.SetAddressUV(1, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
 
 	CSpeedTreeWrapper::ms_bSelfShadowOn = true;
 
-
-	STATEMANAGER.SetBestFiltering(0);
-	STATEMANAGER.SetBestFiltering(1);
+	state.Sampler.SetFilter(0, D3D11_FILTER_ANISOTROPIC);
+	state.Sampler.SetMaxAnisotropy(0, 8);
+	state.Sampler.SetFilter(1, D3D11_FILTER_ANISOTROPIC);
+	state.Sampler.SetMaxAnisotropy(1, 8);
 
 	m_matWorldForCommonUse._41 = 0.0f;
 	m_matWorldForCommonUse._42 = 0.0f;
-	STATEMANAGER.SetTransform(World, &m_matWorldForCommonUse);
+	STATEMANAGER.GetTransform().SetWorld(m_matWorldForCommonUse);
 
-	STATEMANAGER.SaveTransform(Texture0, &m_matWorldForCommonUse);
-	STATEMANAGER.SaveTransform(Texture1, &m_matWorldForCommonUse);
+	STATEMANAGER.GetTransform().Push();
+	STATEMANAGER.GetTransform().SetTexture0(m_matWorldForCommonUse);
+	STATEMANAGER.GetTransform().SetTexture1(m_matWorldForCommonUse);
 
 	m_iRenderedSplatNumSqSum = 0;
 	m_iRenderedPatchNum = 0;
@@ -118,7 +123,7 @@ void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch()
 		}
 	}
 
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
+	cb->SetLightingEnable(false);
 	STATEMANAGER.SetTexture(0, NULL);
 	STATEMANAGER.SetTexture(1, NULL);
 
@@ -149,23 +154,20 @@ void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch()
 		}
 	}
 
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, TRUE);
+	cb->SetLightingEnable(true);
 
 	std::sort(m_RenderedTextureNumVector.begin(), m_RenderedTextureNumVector.end());
 
-	STATEMANAGER.RestoreRenderState(RS11_TEXTUREFACTOR);
-
-	STATEMANAGER.RestoreTransform(Texture0);
-	STATEMANAGER.RestoreTransform(Texture1);
-
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHATESTENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHAREF);
+	STATEMANAGER.GetTransform().Restore();
+	state.Restore();
 }
 
 void CMapOutdoor::__HardwareTransformPatch_RenderPatchSplat(long patchnum, WORD wPrimitiveCount, D3D11_PRIMITIVE_TOPOLOGY ePrimitiveType)
 {
 	assert(NULL != m_pTerrainPatchProxyList && "__HardwareTransformPatch_RenderPatchSplat");
+
+	auto& state = STATEMANAGER.GetStateCache();
+	auto cb = _mgr->GetCbMgr();
 
 	CTerrainPatchProxy* pTerrainPatchProxy = &m_pTerrainPatchProxyList[patchnum];
 
@@ -201,15 +203,14 @@ void CMapOutdoor::__HardwareTransformPatch_RenderPatchSplat(long patchnum, WORD 
 	D3DXMatrixMultiply(&matTexTransform, &m_matViewInverse, &m_matWorldForCommonUse);
 	D3DXMatrixMultiply(&matSplatAlphaTexTransform, &matTexTransform, &m_matSplatAlpha);
 
-	STATEMANAGER.SetTransform(Texture1, &matSplatAlphaTexTransform);
-
+	STATEMANAGER.GetTransform().SetTexture1(matSplatAlphaTexTransform);
 	auto pkVB = pTerrainPatchProxy->HardwareTransformPatch_GetVertexBufferPtr();
 	if (!pkVB)
 		return;
 
 	_mgr->SetVertexBuffer(pkVB);
 
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
+	cb->SetLightingEnable(false);
 
 	int iPrevRenderedSplatNum = m_iRenderedSplatNum;
 	bool isFirst = true;
@@ -227,20 +228,13 @@ void CMapOutdoor::__HardwareTransformPatch_RenderPatchSplat(long patchnum, WORD 
 		const TTerrainTexture& rTexture = m_TextureSet.GetTexture(j);
 
 		D3DXMatrixMultiply(&matSplatColorTexTransform, &m_matViewInverse, &rTexture.m_matTransform);
-		STATEMANAGER.SetTransform(Texture0, &matSplatColorTexTransform);
+		STATEMANAGER.GetTransform().SetTexture0(matSplatColorTexTransform);
 
 		STATEMANAGER.SetTexture(0, rTexture.pd3dTexture);
 		STATEMANAGER.SetTexture(1, rSplat.pd3dTexture);
 
-		if (isFirst)
-		{
-			_mgr->SetShader(VF_TERRAIN, TERRAIN_SPLAT);
-			isFirst = false;
-		}
-		else
-		{
-			_mgr->SetShader(VF_TERRAIN, TERRAIN_SPLAT);
-		}
+		_mgr->SetShader(VF_TERRAIN, TERRAIN_SPLAT);
+		isFirst = false;
 
 		STATEMANAGER.DrawIndexedPrimitive11(ePrimitiveType, 0, 0, wPrimitiveCount);
 
@@ -256,26 +250,29 @@ void CMapOutdoor::__HardwareTransformPatch_RenderPatchSplat(long patchnum, WORD 
 
 	if (m_bDrawShadow)
 	{
-		STATEMANAGER.SetRenderState(RS11_LIGHTING, TRUE);
-		STATEMANAGER.SetRenderState(RS11_FOGCOLOR, 0xFFFFFFFF);
-		STATEMANAGER.SetRenderState(RS11_SRCBLEND, D3D11_BLEND_ZERO);
-		STATEMANAGER.SetRenderState(RS11_DESTBLEND, D3D11_BLEND_SRC_COLOR);
+		state.Push();
+
+		cb->SetLightingEnable(true);
+		cb->SetFogColor(0xFFFFFFFF);
+
+		state.Blend.SetSrcBlend(D3D11_BLEND_ZERO);
+		state.Blend.SetDestBlend(D3D11_BLEND_SRC_COLOR);
 
 		D3DXMATRIX matShadowTexTransform;
 		D3DXMatrixMultiply(&matShadowTexTransform, &matTexTransform, &m_matStaticShadow);
 
-		STATEMANAGER.SetTransform(Texture0, &matShadowTexTransform);
+		STATEMANAGER.GetTransform().SetTexture0(matShadowTexTransform);
+
 		STATEMANAGER.SetTexture(0, pTerrain->GetShadowTexture());
 
-		STATEMANAGER.SetSamplerState(0, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_CLAMP);
-		STATEMANAGER.SetSamplerState(0, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_CLAMP);
+		state.Sampler.SetAddressUV(0, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
 
 		if (m_bDrawChrShadow)
 		{
-			STATEMANAGER.SetTransform(Texture1, &m_matDynamicShadow);
+			STATEMANAGER.GetTransform().SetTexture1(m_matDynamicShadow);
+
 			STATEMANAGER.SetTexture(1, m_lpCharacterShadowMapTexture);
-			STATEMANAGER.SetSamplerState(1, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_CLAMP);
-			STATEMANAGER.SetSamplerState(1, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_CLAMP);
+			state.Sampler.SetAddressUV(1, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
 
 			_mgr->SetShader(VF_TERRAIN, TERRAIN_SHADOW | TERRAIN_SHADOW_CHR);
 		}
@@ -289,13 +286,10 @@ void CMapOutdoor::__HardwareTransformPatch_RenderPatchSplat(long patchnum, WORD 
 		STATEMANAGER.DrawIndexedPrimitive11(ePrimitiveType, 0, 0, wPrimitiveCount);
 		++m_iRenderedSplatNum;
 
-		STATEMANAGER.SetSamplerState(0, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_WRAP);
-		STATEMANAGER.SetSamplerState(0, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_WRAP);
+		state.Restore();
 
-		STATEMANAGER.SetRenderState(RS11_SRCBLEND, D3D11_BLEND_SRC_ALPHA);
-		STATEMANAGER.SetRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_ALPHA);
-		STATEMANAGER.SetRenderState(RS11_FOGCOLOR, dwFogColor);
-		STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
+		cb->SetFogColor(dwFogColor);
+		cb->SetLightingEnable(false);
 	}
 
 	++m_iRenderedPatchNum;

@@ -58,6 +58,9 @@ void CSpeedTreeForestDirectX::UpdateCompundMatrix(const D3DXVECTOR3& c_rEyeVec, 
 
 void CSpeedTreeForestDirectX::Render(unsigned long ulRenderBitVector)
 {
+	auto& state = STATEMANAGER.GetStateCache();
+	auto cb = _mgr->GetCbMgr();
+
 	UpdateSystem(CTimer::Instance().GetCurrentSecond());
 
 	if (m_pMainTreeMap.empty())
@@ -67,9 +70,9 @@ void CSpeedTreeForestDirectX::Render(unsigned long ulRenderBitVector)
 		UpdateCompundMatrix(CCameraManager::Instance().GetCurrentCamera()->GetEye(), ms_matView, ms_matProj);
 
 #ifdef WRAPPER_USE_DYNAMIC_LIGHTING
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, TRUE);
+	cb->SetLightingEnable(true);
 #else
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
+	cb->SetLightingEnable(false);
 #endif
 
 	UINT uiCount = 0;
@@ -80,38 +83,35 @@ void CSpeedTreeForestDirectX::Render(unsigned long ulRenderBitVector)
 			inst->Advance();
 	}
 
-	if (_mgr)
-	{
-		_mgr->GetCbMgr()->SetSpeedTreeLight(m_afLighting);
-		_mgr->GetCbMgr()->SetSpeedTreeFog(m_afFog);
-	}
+	cb->SetSpeedTreeLight(m_afLighting);
+	cb->SetSpeedTreeFog(m_afFog);
 
-	STATEMANAGER.SetSamplerState(0, SS11_MINFILTER, TF11_LINEAR);
-	STATEMANAGER.SetSamplerState(0, SS11_MAGFILTER, TF11_LINEAR);
-	STATEMANAGER.SetSamplerState(0, SS11_MIPFILTER, TF11_LINEAR);
+	state.Push();
 
-	STATEMANAGER.SetSamplerState(1, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_WRAP);
-	STATEMANAGER.SetSamplerState(1, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_WRAP);
+	state.Sampler.SetFilter(0, D3D11_FILTER_MIN_MAG_MIP_LINEAR);
+	state.Sampler.SetAddressUV(1, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP);
 
-	STATEMANAGER.SaveRenderState(RS11_ALPHATESTENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
+	cb->SetAlphaTestEnable(true);
+	state.Raster.SetCullMode(D3D11_CULL_NONE);
 
 	if (ulRenderBitVector & Forest_RenderBranches)
 	{
 		_mgr->SetShader(VF_BRANCH);
+
 		for (auto& it : m_pMainTreeMap)
 		{
 			auto pMainTree = it.second;
 			auto ppInstances = pMainTree->GetInstances(uiCount);
 
 			pMainTree->SetupBranchForTreeType();
+
 			for (auto& inst : ppInstances)
 				if (inst->isShow())
 					inst->RenderBranches();
 		}
 	}
 
-	STATEMANAGER.SetRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
+	state.Raster.SetCullMode(D3D11_CULL_NONE);
 
 	if (ulRenderBitVector & Forest_RenderFronds)
 	{
@@ -123,6 +123,7 @@ void CSpeedTreeForestDirectX::Render(unsigned long ulRenderBitVector)
 			auto ppInstances = pMainTree->GetInstances(uiCount);
 
 			pMainTree->SetupFrondForTreeType();
+
 			for (auto& inst : ppInstances)
 				if (inst->isShow())
 					inst->RenderFronds();
@@ -133,8 +134,10 @@ void CSpeedTreeForestDirectX::Render(unsigned long ulRenderBitVector)
 	{
 		_mgr->SetShader(VF_LEAF);
 
+		DWORD oldAlphaRef = cb->GetAlphaRef();
+
 		if (ulRenderBitVector & Forest_RenderToShadow || ulRenderBitVector & Forest_RenderToMiniMap)
-			STATEMANAGER.SaveRenderState(RS11_ALPHAREF, 0);
+			cb->SetAlphaRef(0);
 
 		for (auto& it : m_pMainTreeMap)
 		{
@@ -142,29 +145,31 @@ void CSpeedTreeForestDirectX::Render(unsigned long ulRenderBitVector)
 			auto ppInstances = pMainTree->GetInstances(uiCount);
 
 			pMainTree->SetupLeafForTreeType();
+
 			for (auto& inst : ppInstances)
 				if (inst->isShow())
 					inst->RenderLeaves();
+
 			pMainTree->EndLeafForTreeType();
 		}
 
 		if (ulRenderBitVector & Forest_RenderToShadow || ulRenderBitVector & Forest_RenderToMiniMap)
-			STATEMANAGER.RestoreRenderState(RS11_ALPHAREF);
+			cb->SetAlphaRef(oldAlphaRef);
 	}
 
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
+	cb->SetLightingEnable(false);
 
 	if (ulRenderBitVector & Forest_RenderBillboards)
 	{
 		for (auto& it : m_pMainTreeMap)
 		{
 			auto ppInstances = it.second->GetInstances(uiCount);
+
 			for (auto& inst : ppInstances)
 				if (inst->isShow())
 					inst->RenderBillboards();
 		}
 	}
 
-	STATEMANAGER.RestoreRenderState(RS11_CULLMODE);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHATESTENABLE);
+	state.Restore();
 }

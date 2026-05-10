@@ -5,6 +5,7 @@
 #include "ResourceManager.h"
 
 #include "EterBase/Timer.h"
+#include "qMin32Lib/all.h"
 
 //////////////////////////////////////////////////////////////////////////
 // CSkyObjectQuad
@@ -804,22 +805,26 @@ void CSkyBox::Update()
 
 void CSkyBox::Render()
 {
-	STATEMANAGER.SaveRenderState(RS11_ZENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_LIGHTING, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_FOGENABLE, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, FALSE);
+	auto& state = STATEMANAGER.GetStateCache();
+
+	state.Push();
+
+	state.DepthStencil.SetDepthEnable(TRUE);
+	state.DepthStencil.SetDepthWriteEnable(FALSE);
+	state.Blend.SetBlendEnable(FALSE);
+
+	_mgr->GetCbMgr()->SetLightingEnable(FALSE);
+	_mgr->GetCbMgr()->SetFogEnable(FALSE);
 
 	STATEMANAGER.SetTexture(1, NULL);
-
-	STATEMANAGER.SetTransform(World, &m_matWorld);
+	STATEMANAGER.GetTransform().SetWorld(m_matWorld);
 
 	if (m_ucRenderMode == CSkyObject::SKY_RENDER_MODE_TEXTURE)
 	{
 		_mgr->SetShader(VF_SKYBOX, SKY_USE_TEXTURE);
 
-		STATEMANAGER.SaveSamplerState(0, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_CLAMP);
-		STATEMANAGER.SaveSamplerState(0, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_CLAMP);
+		state.Sampler.Push(0);
+		state.Sampler.SetAddressUV(0, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
 
 		for (uint32_t i = 0; i < 6; ++i)
 		{
@@ -831,8 +836,7 @@ void CSkyBox::Render()
 			m_Faces[i].Render();
 		}
 
-		STATEMANAGER.RestoreSamplerState(0, SS11_ADDRESSU);
-		STATEMANAGER.RestoreSamplerState(0, SS11_ADDRESSV);
+		state.Sampler.Restore(0);
 	}
 	else
 	{
@@ -842,11 +846,7 @@ void CSkyBox::Render()
 			m_Faces[i].Render();
 	}
 
-	STATEMANAGER.RestoreRenderState(RS11_LIGHTING);
-	STATEMANAGER.RestoreRenderState(RS11_ZENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ZWRITEENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_FOGENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
+	state.Restore();
 }
 
 void CSkyBox::RenderCloud()
@@ -858,13 +858,18 @@ void CSkyBox::RenderCloud()
 	if (!pCloudGraphicImageInstance)
 		return;
 
-	STATEMANAGER.SaveRenderState(RS11_ZENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_LIGHTING, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_FOGENABLE, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_ONE);
-	STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_COLOR);
+	auto& state = STATEMANAGER.GetStateCache();
+
+	state.Push();
+
+	state.DepthStencil.SetDepthEnable(TRUE);
+	state.DepthStencil.SetDepthWriteEnable(FALSE);
+	state.Blend.SetBlendEnable(TRUE);
+	state.Blend.SetSrcBlend(D3D11_BLEND_ONE);
+	state.Blend.SetDestBlend(D3D11_BLEND_INV_SRC_COLOR);
+
+	_mgr->GetCbMgr()->SetLightingEnable(FALSE);
+	_mgr->GetCbMgr()->SetFogEnable(FALSE);
 
 	m_matTextureCloud._31 = m_fCloudPositionU;
 	m_matTextureCloud._32 = m_fCloudPositionV;
@@ -881,27 +886,21 @@ void CSkyBox::RenderCloud()
 
 	m_dwlastTime = dwCurTime;
 
-	STATEMANAGER.SaveTransform(Texture0, &m_matTextureCloud);
+	STATEMANAGER.GetTransform().Push();
+
+	STATEMANAGER.GetTransform().SetTexture0(m_matTextureCloud);
 
 	D3DXMATRIX matProjCloud;
 	D3DXMatrixPerspectiveFovRH(&matProjCloud, D3DX_PI * 0.25f, 1.33333f, 50.0f, 999999.0f);
 
 	_mgr->SetShader(VF_SKYBOX, SKY_CLOUD);
 
-	STATEMANAGER.SetTransform(World, &m_matWorldCloud);
-	STATEMANAGER.SaveTransform(Projection, &matProjCloud);
+	STATEMANAGER.GetTransform().SetWorld(m_matWorldCloud);
+	STATEMANAGER.GetTransform().SetProjection(matProjCloud);
 
 	STATEMANAGER.SetTexture(0, pCloudGraphicImageInstance->GetTexturePointer()->GetSRV());
 	m_FaceCloud.Render();
 
-	STATEMANAGER.RestoreTransform(Projection);
-	STATEMANAGER.RestoreTransform(Texture0);
-
-	STATEMANAGER.RestoreRenderState(RS11_LIGHTING);
-	STATEMANAGER.RestoreRenderState(RS11_ZENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ZWRITEENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_FOGENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
-	STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
+	STATEMANAGER.GetTransform().Restore();
+	state.Restore();
 }

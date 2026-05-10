@@ -91,17 +91,16 @@ void CTerrainDecal::Update()
 
 void CTerrainDecal::Render()
 {
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-	
-	STATEMANAGER.SaveSamplerState(0, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_CLAMP);
-	STATEMANAGER.SaveSamplerState(0, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_CLAMP);
-	
+	STATEMANAGER.GetStateCache().Push();
+	STATEMANAGER.GetSampler().Push(0);
+
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+	STATEMANAGER.GetSampler().SetAddressUV(0, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
 
 	CDecal::Render();
-	STATEMANAGER.RestoreSamplerState(0, SS11_ADDRESSU);
-	STATEMANAGER.RestoreSamplerState(0, SS11_ADDRESSV);
 
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
+	STATEMANAGER.GetSampler().Restore(0);
+	STATEMANAGER.GetStateCache().Restore();
 }
 
 void CTerrainDecal::SearchAffectedTerrainMesh(float fMinX,

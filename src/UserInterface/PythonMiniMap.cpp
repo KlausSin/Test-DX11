@@ -267,24 +267,22 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 		__SetPosition();
 	}
 
-	STATEMANAGER.SaveSamplerState(0, SS11_MIPFILTER, TF11_POINT);
-	STATEMANAGER.SaveSamplerState(0, SS11_MINFILTER, TF11_POINT);
-	STATEMANAGER.SaveSamplerState(0, SS11_MAGFILTER, TF11_POINT);
+	STATEMANAGER.GetStateCache().Push();
+	STATEMANAGER.GetSampler().Push(0);
+	STATEMANAGER.GetSampler().Push(1);
 
-	STATEMANAGER.SaveSamplerState(0, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_CLAMP);
-	STATEMANAGER.SaveSamplerState(0, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_CLAMP);
-
-	STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_CLAMP);
-	STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_CLAMP);
+	STATEMANAGER.GetSampler().SetFilter(0, D3D11_FILTER_MIN_MAG_MIP_POINT);
+	STATEMANAGER.GetSampler().SetAddressUV(0, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
+	STATEMANAGER.GetSampler().SetAddressUV(1, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
 
 	STATEMANAGER.SetTexture(1, m_MiniMapFilterGraphicImageInstance.GetTexturePointer()->GetSRV());
-	STATEMANAGER.SetTransform(Texture1, &m_matMiniMapCover);
+	STATEMANAGER.GetTransform().SetTexture1(m_matMiniMapCover);
 
 	_mgr->SetShader(VF_PT, TERRAIN_BASE);
 	_mgr->SetVertexBuffer(m_VertexBuffer);
 	_mgr->SetIndexBuffer(m_IndexBuffer);
 
-	STATEMANAGER.SetTransform(World, &m_matWorld);
+	STATEMANAGER.GetTransform().SetWorld(m_matWorld);
 
 	for (BYTE byTerrainNum = 0; byTerrainNum < AROUND_AREA_NUM; ++byTerrainNum)
 	{
@@ -293,45 +291,32 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 
 		if (pMiniMapTexture)
 		{
-			STATEMANAGER.DrawIndexedPrimitive11(
-				D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
-				byTerrainNum * 4,
-				byTerrainNum * 6,
-				2
-			);
+			STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, byTerrainNum * 4, byTerrainNum * 6, 2);
 		}
 		else
 		{
-			STATEMANAGER.SaveRenderState(RS11_TEXTUREFACTOR, 0xFF000000);
+			_mgr->GetCbMgr()->SetTextureFactor(0xFF000000);
 			_mgr->SetShader(VF_PT, TERRAIN_SPLAT);
 
-			STATEMANAGER.DrawIndexedPrimitive11(
-				D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
-				byTerrainNum * 4,
-				byTerrainNum * 6,
-				2
-			);
+			STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, byTerrainNum * 4, byTerrainNum * 6, 2);
 
-			STATEMANAGER.RestoreRenderState(RS11_TEXTUREFACTOR);
+			_mgr->GetCbMgr()->SetTextureFactor(0xFFFFFFFF);
 			_mgr->SetShader(VF_PT, TERRAIN_BASE);
 		}
 	}
-	STATEMANAGER.RestoreSamplerState(0, SS11_ADDRESSU);
-	STATEMANAGER.RestoreSamplerState(0, SS11_ADDRESSV);
-	STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSU);
-	STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSV);
+
 	STATEMANAGER.SetTexture(1, nullptr);
+	STATEMANAGER.GetTransform().SetWorld(m_matIdentity);
 
-	STATEMANAGER.SetTransform(World, &m_matIdentity);
-
-	STATEMANAGER.SaveRenderState(RS11_TEXTUREFACTOR, 0xFFFFFFFF);
+	_mgr->GetCbMgr()->SetTextureFactor(0xFFFFFFFF);
 	_mgr->SetShader(VF_PT, TERRAIN_SPLAT);
 
 	TInstancePositionVectorIterator aIterator;
 
 	if (m_fScale >= 2.0f)
 	{
-		STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_MOB));
+		_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_MOB));
+
 		aIterator = m_MonsterPositionVector.begin();
 		while (aIterator != m_MonsterPositionVector.end())
 		{
@@ -345,7 +330,7 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 		while (aIterator != m_OtherPCPositionVector.end())
 		{
 			TMarkPosition& rPosition = *aIterator;
-			STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, CInstanceBase::GetIndexedNameColor(rPosition.m_eNameColor));
+			_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(rPosition.m_eNameColor));
 			m_WhiteMark.SetPosition(rPosition.m_fX, rPosition.m_fY);
 			m_WhiteMark.Render();
 			++aIterator;
@@ -358,7 +343,7 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 			D3DXCOLOR d(v, v, v, 1);
 			D3DXColorModulate(&c, &c, &d);
 
-			STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, (DWORD)c);
+			_mgr->GetCbMgr()->SetTextureFactor((DWORD)c);
 
 			aIterator = m_PartyPCPositionVector.begin();
 			while (aIterator != m_PartyPCPositionVector.end())
@@ -371,7 +356,8 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 		}
 	}
 
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_NPC));
+	_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_NPC));
+
 	aIterator = m_NPCPositionVector.begin();
 	while (aIterator != m_NPCPositionVector.end())
 	{
@@ -381,7 +367,8 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 		++aIterator;
 	}
 
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WARP));
+	_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WARP));
+
 	aIterator = m_WarpPositionVector.begin();
 	while (aIterator != m_WarpPositionVector.end())
 	{
@@ -391,14 +378,9 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 		++aIterator;
 	}
 
-	STATEMANAGER.RestoreRenderState(RS11_TEXTUREFACTOR);
+	_mgr->GetCbMgr()->SetTextureFactor(0xFFFFFFFF);
 
-	STATEMANAGER.RestoreSamplerState(0, SS11_MIPFILTER);
-	STATEMANAGER.RestoreSamplerState(0, SS11_MINFILTER);
-	STATEMANAGER.RestoreSamplerState(0, SS11_MAGFILTER);
-
-	STATEMANAGER.SaveSamplerState(0, SS11_MINFILTER, TF11_LINEAR);
-	STATEMANAGER.SaveSamplerState(0, SS11_MAGFILTER, TF11_LINEAR);
+	STATEMANAGER.GetSampler().SetFilter(0, D3D11_FILTER_MIN_MAG_MIP_LINEAR);
 
 	_mgr->SetShader(VF_PT);
 
@@ -433,8 +415,7 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 
 		__RenderTargetMark(
 			rAtlasMarkInfo.m_fMiniMapX + m_WhiteMark.GetWidth() / 2,
-			rAtlasMarkInfo.m_fMiniMapY + m_WhiteMark.GetHeight() / 2
-		);
+			rAtlasMarkInfo.m_fMiniMapY + m_WhiteMark.GetHeight() / 2);
 	}
 
 	CCamera* pkCmrCur = CCameraManager::Instance().GetCurrentCamera();
@@ -445,8 +426,9 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 		m_MiniMapCameraraphicImageInstance.Render();
 	}
 
-	STATEMANAGER.RestoreSamplerState(0, SS11_MINFILTER);
-	STATEMANAGER.RestoreSamplerState(0, SS11_MAGFILTER);
+	STATEMANAGER.GetSampler().Restore(1);
+	STATEMANAGER.GetSampler().Restore(0);
+	STATEMANAGER.GetStateCache().Restore();
 }
 
 void CPythonMiniMap::SetScale(float fScale)
@@ -870,36 +852,35 @@ void CPythonMiniMap::RenderAtlas(float fScreenX, float fScreenY)
 		m_fAtlasScreenY = fScreenY;
 	}
 
-	STATEMANAGER.SetTransform(World, &m_matWorldAtlas);
+	STATEMANAGER.GetSampler().Push(0);
 
-	STATEMANAGER.SaveSamplerState(0, SS11_MINFILTER, TF11_POINT);
-	STATEMANAGER.SaveSamplerState(0, SS11_MAGFILTER, TF11_POINT);
+	STATEMANAGER.GetTransform().SetWorld(m_matWorldAtlas);
+	STATEMANAGER.GetSampler().SetFilter(0, D3D11_FILTER_MIN_MAG_MIP_POINT);
 
 	_mgr->SetShader(VF_PT);
 	m_AtlasImageInstance.Render();
 
-	STATEMANAGER.SaveRenderState(RS11_TEXTUREFACTOR, 0xFFFFFFFF);
+	_mgr->GetCbMgr()->SetTextureFactor(0xFFFFFFFF);
 
 	_mgr->SetShader(VF_PT, TERRAIN_SPLAT);
 
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_NPC));
+	_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_NPC));
 	for (auto& rAtlasMarkInfo : m_AtlasNPCInfoVector)
 	{
 		m_WhiteMark.SetPosition(rAtlasMarkInfo.m_fScreenX, rAtlasMarkInfo.m_fScreenY);
 		m_WhiteMark.Render();
 	}
 
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WARP));
+	_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WARP));
 	for (auto& rAtlasMarkInfo : m_AtlasWarpInfoVector)
 	{
 		m_WhiteMark.SetPosition(rAtlasMarkInfo.m_fScreenX, rAtlasMarkInfo.m_fScreenY);
 		m_WhiteMark.Render();
 	}
 
-	STATEMANAGER.SetSamplerState(0, SS11_MINFILTER, TF11_LINEAR);
-	STATEMANAGER.SetSamplerState(0, SS11_MAGFILTER, TF11_LINEAR);
+	STATEMANAGER.GetSampler().SetFilter(0, D3D11_FILTER_MIN_MAG_MIP_LINEAR);
 
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WAYPOINT));
+	_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WAYPOINT));
 	for (auto& rAtlasMarkInfo : m_AtlasWayPointInfoVector)
 	{
 		if (rAtlasMarkInfo.m_fScreenX <= 0.0f || rAtlasMarkInfo.m_fScreenY <= 0.0f)
@@ -909,29 +890,26 @@ void CPythonMiniMap::RenderAtlas(float fScreenX, float fScreenY)
 		{
 			__RenderMiniWayPointMark(
 				rAtlasMarkInfo.m_fScreenX + m_WhiteMark.GetWidth() / 2,
-				rAtlasMarkInfo.m_fScreenY + m_WhiteMark.GetHeight() / 2
-			);
+				rAtlasMarkInfo.m_fScreenY + m_WhiteMark.GetHeight() / 2);
 		}
 		else
 		{
 			__RenderWayPointMark(
 				rAtlasMarkInfo.m_fScreenX + m_WhiteMark.GetWidth() / 2,
-				rAtlasMarkInfo.m_fScreenY + m_WhiteMark.GetHeight() / 2
-			);
+				rAtlasMarkInfo.m_fScreenY + m_WhiteMark.GetHeight() / 2);
 		}
 	}
 
-	STATEMANAGER.RestoreRenderState(RS11_TEXTUREFACTOR);
+	_mgr->GetCbMgr()->SetTextureFactor(0xFFFFFFFF);
 
 	_mgr->SetShader(VF_PT);
 
 	if ((ELTimer_GetMSec() / 500) % 2)
 		m_AtlasPlayerMark.Render();
 
-	STATEMANAGER.RestoreSamplerState(0, SS11_MINFILTER);
-	STATEMANAGER.RestoreSamplerState(0, SS11_MAGFILTER);
+	STATEMANAGER.GetSampler().Restore(0);
 
-	STATEMANAGER.SetTransform(World, &m_matIdentity);
+	STATEMANAGER.GetTransform().SetWorld(m_matIdentity);
 
 	_mgr->SetShader(VF_PT);
 
@@ -939,8 +917,7 @@ void CPythonMiniMap::RenderAtlas(float fScreenX, float fScreenY)
 	{
 		m_GuildAreaFlagImageInstance.SetPosition(
 			fScreenX + (rInfo.fsxRender + rInfo.fexRender) / 2.0f - m_GuildAreaFlagImageInstance.GetWidth() / 2,
-			fScreenY + (rInfo.fsyRender + rInfo.feyRender) / 2.0f - m_GuildAreaFlagImageInstance.GetHeight() / 2
-		);
+			fScreenY + (rInfo.fsyRender + rInfo.feyRender) / 2.0f - m_GuildAreaFlagImageInstance.GetHeight() / 2);
 
 		m_GuildAreaFlagImageInstance.Render();
 	}

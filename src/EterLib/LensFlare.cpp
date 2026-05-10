@@ -181,42 +181,38 @@ void CLensFlare::Compute(const D3DXVECTOR3 & c_rv3LightDirection)
 
 void CLensFlare::DrawBeforeFlare()
 {
-    if (!m_bFlareVisible || !m_bEnabled || !m_bShowMainFlare)
-        return;
+	if (!m_bFlareVisible || !m_bEnabled || !m_bShowMainFlare)
+		return;
 
 	if (m_SunFlareImageInstance.IsEmpty())
 		return;
 
+	STATEMANAGER.GetTransform().Push();
+	STATEMANAGER.GetDepthStencil().Push();
+	STATEMANAGER.GetRaster().Push();
+	STATEMANAGER.GetBlend().Push();
+
 	D3DXMATRIX matProj;
 	D3DXMatrixOrthoOffCenterRH(&matProj, 0.0f, 1.0f, 1.0f, 0.0f, -1.0f, 1.0f);
-	STATEMANAGER.SaveTransform(Projection, &matProj);
-	STATEMANAGER.SaveTransform(View, &ms_matIdentity);
 
 	D3DXMATRIX matWorld;
 	D3DXMatrixTranslation(&matWorld, m_afFlarePos[0], m_afFlarePos[1], 0.0f);
-	STATEMANAGER.SetTransform(World, &matWorld);
 
-	STATEMANAGER.SaveRenderState(RS11_LIGHTING, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_ZENABLE, FALSE);					// glDisable(GL_DEPTH_TEST);
-	STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE);			// glDisable(GL_CULL_FACE);
-    STATEMANAGER.SaveRenderState(RS11_ALPHATESTENABLE, FALSE);			// glDisable(GL_ALPHA_TEST);
-    STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);			// glEnable(GL_BLEND);
-	STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_SRC_ALPHA);
-	STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_ALPHA);
-	/*
-	if (m_fBeforeBright != 0.0f && m_bDrawFlare && m_bDrawBrightScreen && false)	// ¿Ø false?
-	{
-		glColor4f(1.0f, 1.0f, 1.0f, m_fBeforeBright);
-		glDisable(GL_TEXTURE_2D);
-		glBegin(GL_TRIANGLE_STRIP);
-			glVertex2f(0.0f, 0.0f);
-			glVertex2f(0.0f, 1.0f);
-			glVertex2f(1.0f, 0.0f);
-			glVertex2f(1.0f, 1.0f);
-		glEnd();
-	}
-	*/
+	STATEMANAGER.GetTransform().SetProjection(matProj);
+	STATEMANAGER.GetTransform().SetView(ms_matIdentity);
+	STATEMANAGER.GetTransform().SetWorld(matWorld);
+
+	_mgr->GetCbMgr()->SetLightingEnable(false);
+	_mgr->GetCbMgr()->SetAlphaTestEnable(false);
+
+	STATEMANAGER.GetDepthStencil().SetDepthEnable(false);
+	STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(false);
+	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
+
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+	STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
+	STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_INV_SRC_ALPHA);
+
 	float fAspectRatio = ms_Viewport.Width / float(ms_Viewport.Height);
 	float fHeight = m_fSunSize * fAspectRatio;
 	D3DXCOLOR color(1.0f, 1.0f, 1.0f, 1.0f);
@@ -256,17 +252,10 @@ void CLensFlare::DrawBeforeFlare()
 	_mgr->SetShader(VF_PDT, BLEND_MODULATE);
 	STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, 2, sizeof(TVertex), vertices);
 
-	STATEMANAGER.RestoreRenderState(RS11_LIGHTING);
-	STATEMANAGER.RestoreRenderState(RS11_ZENABLE); // glDisable(GL_DEPTH_TEST);
-	STATEMANAGER.RestoreRenderState(RS11_ZWRITEENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_CULLMODE); // glDisable(GL_CULL_FACE);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHATESTENABLE); // glDisable(GL_ALPHA_TEST);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE); // glEnable(GL_BLEND);
-	STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
-	STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
-
-	STATEMANAGER.RestoreTransform(View);
-	STATEMANAGER.RestoreTransform(Projection);
+	STATEMANAGER.GetBlend().Restore();
+	STATEMANAGER.GetRaster().Restore();
+	STATEMANAGER.GetDepthStencil().Restore();
+	STATEMANAGER.GetTransform().Restore();
 }
 
 
@@ -308,42 +297,41 @@ void CLensFlare::DrawFlare()
 {
 	if (m_bEnabled && m_bFlareVisible && m_bDrawFlare && m_fAfterBright != 0.0f)
 	{
-        //glPushAttrib(GL_ENABLE_BIT);
-		STATEMANAGER.SaveRenderState(RS11_LIGHTING, FALSE); // glDisable(GL_LIGHTING);
-		STATEMANAGER.SaveRenderState(RS11_ZENABLE, FALSE); // glDisable(GL_DEPTH_TEST);
-		STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE); // glDisable(GL_CULL_FACE);
-		STATEMANAGER.SaveRenderState(RS11_ALPHATESTENABLE, FALSE); // glDisable(GL_ALPHA_TEST);
-		STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE); // glEnable(GL_BLEND);
+		STATEMANAGER.GetTransform().Push();
+		STATEMANAGER.GetDepthStencil().Push();
+		STATEMANAGER.GetRaster().Push();
+		STATEMANAGER.GetBlend().Push();
+
+		_mgr->GetCbMgr()->SetLightingEnable(false);
+		_mgr->GetCbMgr()->SetAlphaTestEnable(false);
+
+		STATEMANAGER.GetDepthStencil().SetDepthEnable(false);
+		STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
+		STATEMANAGER.GetBlend().SetBlendEnable(true);
+
 		D3DXMATRIX matProj;
 		D3DXMatrixOrthoOffCenterRH(&matProj, 0.0f, ms_Viewport.Width, ms_Viewport.Height, 0.0f, -1.0f, 1.0f);
-		STATEMANAGER.SaveTransform(Projection, &matProj);
-		STATEMANAGER.SaveTransform(View, &ms_matIdentity);
 
-		STATEMANAGER.SetTransform(World, &ms_matIdentity);
-		//glMatrixMode(GL_MODELVIEW);
-		//glLoadIdentity();
+		STATEMANAGER.GetTransform().SetProjection(matProj);
+		STATEMANAGER.GetTransform().SetView(ms_matIdentity);
+		STATEMANAGER.GetTransform().SetWorld(ms_matIdentity);
 
-		//glDisable(GL_TEXTURE_2D);
 		DrawAfterFlare();
 
-		//glEnable(GL_TEXTURE_2D);
-		m_cFlare.Draw(m_fAfterBright,
-					  ms_Viewport.Width,
-					  ms_Viewport.Height,
-					  static_cast<int>(m_afFlareWinPos[0]),
-					  static_cast<int>(m_afFlareWinPos[1]));
+		m_cFlare.Draw(
+			m_fAfterBright,
+			ms_Viewport.Width,
+			ms_Viewport.Height,
+			static_cast<int>(m_afFlareWinPos[0]),
+			static_cast<int>(m_afFlareWinPos[1]));
 
-		STATEMANAGER.RestoreRenderState(RS11_LIGHTING); // glDisable(GL_LIGHTING);
-		STATEMANAGER.RestoreRenderState(RS11_ZENABLE); // glDisable(GL_DEPTH_TEST);
-		STATEMANAGER.RestoreRenderState(RS11_CULLMODE); // glDisable(GL_CULL_FACE);
-		STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE); // glEnable(GL_BLEND);
-		STATEMANAGER.RestoreRenderState(RS11_ALPHATESTENABLE); // glDisable(GL_ALPHA_TEST);
-		STATEMANAGER.RestoreTransform(Projection);
-		STATEMANAGER.RestoreTransform(View);
-		//glDisable(GL_TEXTURE_2D);
-        //glPopAttrib();
+		STATEMANAGER.GetBlend().Restore();
+		STATEMANAGER.GetRaster().Restore();
+		STATEMANAGER.GetDepthStencil().Restore();
+		STATEMANAGER.GetTransform().Restore();
 	}
 }
+
 
 ///////////////////////////////////////////////////////////////////////  
 //	CLensFlare::CharacterizeFlare
@@ -525,7 +513,8 @@ void CFlare::Init(std::string strPath)
 //	CFlare::Draw
 void CFlare::Draw(float fBrightScale, int nWidth, int nHeight, int nX, int nY)
 {
-	STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_ONE);
+	STATEMANAGER.GetBlend().Push();
+	STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_ONE);
 
 	float fDX = float(nX) - float(nWidth) / 2.0f;
 	float fDY = float(nY) - float(nHeight) / 2.0f;
@@ -579,5 +568,5 @@ void CFlare::Draw(float fBrightScale, int nWidth, int nHeight, int nX, int nY)
 		STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, 2, sizeof(TVertex), vertices);
 	}
 
-	STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
+	STATEMANAGER.GetBlend().Restore();
 }

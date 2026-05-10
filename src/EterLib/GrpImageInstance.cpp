@@ -85,13 +85,18 @@ void CGraphicImageInstance::OnRender()
 	vertices[3].texCoord = TTextureCoordinate(eu, ev);
 	vertices[3].diffuse = m_DiffuseColor;
 
-	STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
-	STATEMANAGER.SaveRenderState(RS11_ZENABLE, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, FALSE);
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_SRC_ALPHA);
-	STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_ALPHA);
-	STATEMANAGER.SaveRenderState(RS11_ALPHATESTENABLE, FALSE);
+	STATEMANAGER.GetStateCache().Push();
+
+	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
+
+	STATEMANAGER.GetDepthStencil().SetDepthEnable(false);
+	STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(false);
+
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+	STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
+	STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_INV_SRC_ALPHA);
+
+	_mgr->GetCbMgr()->SetAlphaTestEnable(false);
 
 	if (CGraphicBase::SetPDTStream(vertices, 4))
 	{
@@ -99,17 +104,13 @@ void CGraphicImageInstance::OnRender()
 
 		STATEMANAGER.SetTexture(0, pTexture->GetSRV());
 		STATEMANAGER.SetTexture(1, NULL);
+
 		_mgr->SetShader(VF_PDT, BLEND_UI_TEX);
+
 		STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, 0, 0, 2);
 	}
 
-	STATEMANAGER.RestoreRenderState(RS11_ALPHATESTENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
-	STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ZWRITEENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ZENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_CULLMODE);
+	STATEMANAGER.GetStateCache().Restore();
 }
 
 const CGraphicTexture & CGraphicImageInstance::GetTextureReference() const

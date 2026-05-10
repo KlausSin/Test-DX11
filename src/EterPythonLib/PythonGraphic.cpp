@@ -17,35 +17,38 @@ float CPythonGraphic::GetOrthoDepth()
 
 void CPythonGraphic::SetInterfaceRenderState()
 {
-	STATEMANAGER.SetTransform(Projection, &ms_matIdentity);
- 	STATEMANAGER.SetTransform(View, &ms_matIdentity);
-	STATEMANAGER.SetTransform(World, &ms_matIdentity);
+	auto& state = STATEMANAGER.GetStateCache();
+	auto cb = _mgr->GetCbMgr();
 
-	STATEMANAGER.SetSamplerState(0, SS11_MINFILTER, TF11_NONE);
-	STATEMANAGER.SetSamplerState(0, SS11_MAGFILTER, TF11_NONE);
-	STATEMANAGER.SetSamplerState(0, SS11_MIPFILTER, TF11_NONE);
+	STATEMANAGER.GetTransform().SetProjection(ms_matIdentity);
+	STATEMANAGER.GetTransform().SetView(ms_matIdentity);
+	STATEMANAGER.GetTransform().SetWorld(ms_matIdentity);
 
-	STATEMANAGER.SetRenderState(RS11_ALPHABLENDENABLE, TRUE);
-	STATEMANAGER.SetRenderState(RS11_SRCBLEND,	D3D11_BLEND_SRC_ALPHA);
-	STATEMANAGER.SetRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_ALPHA);
+	state.Sampler.SetFilter(0, D3D11_FILTER_MIN_MAG_MIP_POINT);
 
-	// D3D11 fix: ensure scissor test is OFF for UI baseline (windows that need it enable it via ScopedScissorRect)
-	STATEMANAGER.SetRenderState(RS11_SCISSORTESTENABLE, FALSE);
+	state.Blend.SetBlendEnable(true);
+	state.Blend.SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
+	state.Blend.SetDestBlend(D3D11_BLEND_INV_SRC_ALPHA);
+
+	state.Raster.SetScissorEnable(false);
 
 	CPythonGraphic::Instance().SetBlendOperation();
 	CPythonGraphic::Instance().SetOrtho2D(ms_iWidth, ms_iHeight, GetOrthoDepth());
 
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
+	cb->SetLightingEnable(false);
 }
 
 void CPythonGraphic::SetGameRenderState()
 {
-	STATEMANAGER.SetSamplerState(0, SS11_MINFILTER, TF11_ANISOTROPIC);
-	STATEMANAGER.SetSamplerState(0, SS11_MAGFILTER, TF11_ANISOTROPIC);
-	STATEMANAGER.SetSamplerState(0, SS11_MIPFILTER, TF11_LINEAR);
+	auto& state = STATEMANAGER.GetStateCache();
+	auto cb = _mgr->GetCbMgr();
 
-	STATEMANAGER.SetRenderState(RS11_ALPHABLENDENABLE, FALSE);
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, TRUE);
+	state.Sampler.SetFilter(0, D3D11_FILTER_ANISOTROPIC);
+	state.Sampler.SetMaxAnisotropy(0, 8);
+
+	state.Blend.SetBlendEnable(false);
+
+	cb->SetLightingEnable(true);
 }
 
 void CPythonGraphic::SetCursorPosition(int x, int y)
@@ -212,10 +215,8 @@ void CPythonGraphic::PushState()
 
 	curState.matProj = ms_matProj;
 	curState.matView = ms_matView;
-	//STATEMANAGER.SaveTransform(World, &m_SaveWorldMatrix);
 
 	m_stateStack.push(curState);
-	//CCamera::Instance().PushParams();
 }
 
 void CPythonGraphic::PopState()

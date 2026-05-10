@@ -13,7 +13,7 @@ namespace UI
 {
 	struct ScopedScissorRect
 	{
-		DWORD __OldState = 0;
+		bool __OldEnable = false;
 		RECT __OldRect = { 0 };
 
 		bool __Enable;
@@ -22,16 +22,16 @@ namespace UI
 		ScopedScissorRect(const RECT& rect, bool enable)
 			: __Rect(rect), __Enable(enable)
 		{
-			__OldState = STATEMANAGER.GetRenderState(RS11_SCISSORTESTENABLE);
+			__OldEnable = STATEMANAGER.GetRaster().GetScissorEnable();
 			STATEMANAGER.GetScissorRect(&__OldRect);
 
-			STATEMANAGER.SetRenderState(RS11_SCISSORTESTENABLE, enable);
+			STATEMANAGER.GetRaster().SetScissorEnable(enable);
 			STATEMANAGER.SetScissorRect(rect);
 		}
 
 		~ScopedScissorRect()
 		{
-			STATEMANAGER.SetRenderState(RS11_SCISSORTESTENABLE, __OldState);
+			STATEMANAGER.GetRaster().SetScissorEnable(__OldEnable);
 			STATEMANAGER.SetScissorRect(__OldRect);
 		}
 	};

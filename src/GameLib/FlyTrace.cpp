@@ -116,156 +116,138 @@ struct TFlyVertexSet
 
 typedef std::vector<std::pair<float, TFlyVertexSet> > TFlyVertexSetVector;
 
+
 void CFlyTrace::Render()
 {
-	if (m_TimePositionDeque.size()<=1)
+	if (m_TimePositionDeque.size() <= 1)
 		return;
+
 	TFlyVertexSetVector VSVector;
 
-	STATEMANAGER.SaveRenderState(RS11_ZFUNC,D3D11_COMPARISON_LESS);
+	STATEMANAGER.GetStateCache().Push();
+
+	STATEMANAGER.GetDepthStencil().SetDepthFunc(D3D11_COMPARISON_LESS);
+	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
+
+	STATEMANAGER.GetBlend().SetBlendEnable(true);
+	STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
+	STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_ONE);
+	STATEMANAGER.GetBlend().SetBlendOp(D3D11_BLEND_OP_ADD);
+
+	_mgr->GetCbMgr()->SetAlphaTestEnable(true);
+	_mgr->GetCbMgr()->SetAlphaRef(0x00000000);
+	_mgr->GetCbMgr()->SetLightingEnable(false);
 
 	D3DXMATRIX matWorld;
 	D3DXMatrixIdentity(&matWorld);
-	
-	STATEMANAGER.SaveTransform(World, &matWorld);
-
-	STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
-	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_SRC_ALPHA);
-	STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_ONE);
-	STATEMANAGER.SaveRenderState(RS11_ALPHATESTENABLE, TRUE);
-	STATEMANAGER.SaveRenderState(RS11_ALPHAREF, 0x00000000);
-	STATEMANAGER.SaveRenderState(RS11_BLENDOP, D3D11_BLEND_OP_ADD );
-	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
+	STATEMANAGER.GetTransform().Push();
+	STATEMANAGER.GetTransform().SetWorld(matWorld);
 
 	STATEMANAGER.SetTexture(0, NULL);
 	STATEMANAGER.SetTexture(1, NULL);
 	_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 
-	
 	D3DXMATRIX m;
-	CScreen s;s.UpdateViewMatrix();
-	CCamera * pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
-	if (!pCurrentCamera)
-		return;
+	CScreen s;
+	s.UpdateViewMatrix();
 
-	const D3DXMATRIX & M = pCurrentCamera->GetViewMatrix();
+	CCamera* pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
+	if (!pCurrentCamera)
+	{
+		STATEMANAGER.GetStateCache().Restore();
+		return;
+	}
+
+	const D3DXMATRIX& M = pCurrentCamera->GetViewMatrix();
 	D3DXMatrixIdentity(&m);
+
 	D3DXVECTOR3 F(pCurrentCamera->GetView());
 	m._31 = F.x;
 	m._32 = F.y;
 	m._33 = F.z;
 
-	Frustum & frustum = s.GetFrustum();
-	//frustum.BuildViewFrustum(ms_matView * ms_matProj);
+	Frustum& frustum = s.GetFrustum();
 
 	TTimePositionDeque::iterator it1, it2;
 	it2 = it1 = m_TimePositionDeque.begin();
 	++it2;
-	for(;it2!=m_TimePositionDeque.end();++it2,++it1)
+
+	for (; it2 != m_TimePositionDeque.end(); ++it2, ++it1)
 	{
-		const D3DXVECTOR3& rkOld=it1->second;
-		const D3DXVECTOR3& rkNew=it2->second;
+		const D3DXVECTOR3& rkOld = it1->second;
+		const D3DXVECTOR3& rkNew = it2->second;
 		D3DXVECTOR3 B = rkNew - rkOld;
-		
-		float radius = std::max(fabs(B.x),std::max(fabs(B.y),fabs(B.z)))/2;
-		Vector3d c(it1->second.x+B.x*0.5f,
-			it1->second.y+B.y*0.5f,
-			it1->second.z+B.z*0.5f
-			);
-		if (frustum.ViewVolumeTest(c, radius)==VS_OUTSIDE)
+
+		float radius = std::max(fabs(B.x), std::max(fabs(B.y), fabs(B.z))) / 2;
+
+		Vector3d c(
+			it1->second.x + B.x * 0.5f,
+			it1->second.y + B.y * 0.5f,
+			it1->second.z + B.z * 0.5f);
+
+		if (frustum.ViewVolumeTest(c, radius) == VS_OUTSIDE)
 			continue;
 
-		float rate1 = (1-(CTimer::Instance().GetCurrentSecond()-it1->first)/m_fTailLength);
-		float rate2 = (1-(CTimer::Instance().GetCurrentSecond()-it2->first)/m_fTailLength);
+		float rate1 = (1 - (CTimer::Instance().GetCurrentSecond() - it1->first) / m_fTailLength);
+		float rate2 = (1 - (CTimer::Instance().GetCurrentSecond() - it2->first) / m_fTailLength);
+
 		float size1 = m_fSize;
 		float size2 = m_fSize;
+
 		if (!m_bRectShape)
 		{
 			size1 *= rate1;
 			size2 *= rate2;
 		}
-		TFlyVertex v[6] = 
+
+		TFlyVertex v[6] =
 		{
-			TFlyVertex(D3DXVECTOR3(0.0f,size1,0.0f), m_dwColor,D3DXVECTOR2(0.0f,0.0f)),
-			TFlyVertex(D3DXVECTOR3(-size1,0.0f,0.0f),m_dwColor,D3DXVECTOR2(0.0f,0.5f)),
-			TFlyVertex(D3DXVECTOR3(size1,0.0f,0.0f), m_dwColor,D3DXVECTOR2(0.5f,0.0f)),
-			TFlyVertex(D3DXVECTOR3(-size2,0.0f,0.0f),m_dwColor,D3DXVECTOR2(0.5f,1.0f)),
-			TFlyVertex(D3DXVECTOR3(size2,0.0f,0.0f), m_dwColor,D3DXVECTOR2(1.0f,0.5f)),
-			TFlyVertex(D3DXVECTOR3(0.0f,-size2,0.0f),m_dwColor,D3DXVECTOR2(1.0f,1.0f)),
-	
-			/*TVertex(D3DXVECTOR3(0.0f,size1,0.0f), ((DWORD)(0x40*rate1)<<24) + 0x0000ff,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(-size1,0.0f,0.0f),((DWORD)(0x40*rate1)<<24) + 0x0000ff,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(size1,0.0f,0.0f), ((DWORD)(0x40*rate1)<<24) + 0x0000ff,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(-size2,0.0f,0.0f),((DWORD)(0x40*rate2)<<24) + 0x0000ff,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(size2,0.0f,0.0f), ((DWORD)(0x40*rate2)<<24) + 0x0000ff,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(0.0f,-size2,0.0f),((DWORD)(0x40*rate2)<<24) + 0x0000ff,D3DXVECTOR2(0.0f,0.0f)),*/
-
-			/*TVertex(D3DXVECTOR3(0.0f,size1,0.0f),0x20ff0000,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(-size1,0.0f,0.0f),0x20ff0000,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(size1,0.0f,0.0f),0x20ff0000,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(-size2,0.0f,0.0f),0x20ff0000,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(size2,0.0f,0.0f),0x20ff0000,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(0.0f,-size2,0.0f),0x20ff0000,D3DXVECTOR2(0.0f,0.0f)),*/
-
-			/*TVertex(D3DXVECTOR3(0.0f,size1,0.0f),0xffff0000,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(-size1,0.0f,0.0f),0xffff0000,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(size1,0.0f,0.0f),0xffff0000,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(-size2,0.0f,0.0f),0xff0000ff,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(size2,0.0f,0.0f),0xff0000ff,D3DXVECTOR2(0.0f,0.0f)),
-			TVertex(D3DXVECTOR3(0.0f,-size2,0.0f),0xff0000ff,D3DXVECTOR2(0.0f,0.0f)),*/
+			TFlyVertex(D3DXVECTOR3(0.0f, size1, 0.0f), m_dwColor, D3DXVECTOR2(0.0f, 0.0f)),
+			TFlyVertex(D3DXVECTOR3(-size1, 0.0f, 0.0f), m_dwColor, D3DXVECTOR2(0.0f, 0.5f)),
+			TFlyVertex(D3DXVECTOR3(size1, 0.0f, 0.0f), m_dwColor, D3DXVECTOR2(0.5f, 0.0f)),
+			TFlyVertex(D3DXVECTOR3(-size2, 0.0f, 0.0f), m_dwColor, D3DXVECTOR2(0.5f, 1.0f)),
+			TFlyVertex(D3DXVECTOR3(size2, 0.0f, 0.0f), m_dwColor, D3DXVECTOR2(1.0f, 0.5f)),
+			TFlyVertex(D3DXVECTOR3(0.0f, -size2, 0.0f), m_dwColor, D3DXVECTOR2(1.0f, 1.0f)),
 		};
 
-
-		D3DXVECTOR3 E(M._41,M._42,M._43);
+		D3DXVECTOR3 E(M._41, M._42, M._43);
 		E = pCurrentCamera->GetEye();
-		E-=it1->second;
+		E -= it1->second;
 
 		D3DXVECTOR3 P;
-		D3DXVec3Cross(&P, &B,&E);
+		D3DXVec3Cross(&P, &B, &E);
 
 		D3DXVECTOR3 U;
-		D3DXVec3Cross(&U,&F,&P);
-		D3DXVec3Normalize(&U,&U);
+		D3DXVec3Cross(&U, &F, &P);
+		D3DXVec3Normalize(&U, &U);
+
 		D3DXVECTOR3 R;
-		D3DXVec3Cross(&R,&F,&U);
-		//D3DXMatrixIdentity(&m);
+		D3DXVec3Cross(&R, &F, &U);
+
 		m._21 = U.x;
 		m._22 = U.y;
 		m._23 = U.z;
 		m._11 = R.x;
 		m._12 = R.y;
 		m._13 = R.z;
+
 		int i;
-		for(i=0;i<6;i++)
-			D3DXVec3TransformNormal(&v[i].p,&v[i].p,&m);
-		for(i=0;i<3;i++)
+		for (i = 0; i < 6; i++)
+			D3DXVec3TransformNormal(&v[i].p, &v[i].p, &m);
+
+		for (i = 0; i < 3; i++)
 			v[i].p += it1->second;
-		for(;i<6;i++)
+
+		for (; i < 6; i++)
 			v[i].p += it2->second;
-		//for(i=0;i<6;i++)
-		//	Tracenf("#%d:%f %f %f", i, v[i].p.x,v[i].p.y,v[i].p.z);
-		
-		VSVector.push_back(std::make_pair(-D3DXVec3Dot(&E,&pCurrentCamera->GetView()),TFlyVertexSet(v)));
-		//OLD: STATEMANAGER.DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 4, v, sizeof(TVertex));
-		//OLD: STATEMANAGER.DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v+1, sizeof(TVertex));		
+
+		VSVector.push_back(std::make_pair(-D3DXVec3Dot(&E, &pCurrentCamera->GetView()), TFlyVertexSet(v)));
 	}
 
-	std::sort(VSVector.begin(),VSVector.end());
+	std::sort(VSVector.begin(), VSVector.end());
 
-	for(TFlyVertexSetVector::iterator it = VSVector.begin();it!=VSVector.end();++it)
-	{
+	for (TFlyVertexSetVector::iterator it = VSVector.begin(); it != VSVector.end(); ++it)
 		STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, 4, sizeof(TVertex), it->second.v);
-	}
-	STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
-	STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_CULLMODE);
-	STATEMANAGER.RestoreTransform(World);
-	STATEMANAGER.RestoreRenderState(RS11_ZFUNC);
-	STATEMANAGER.RestoreRenderState(RS11_BLENDOP);
 
-	STATEMANAGER.RestoreRenderState(RS11_ALPHATESTENABLE);
-	STATEMANAGER.RestoreRenderState(RS11_ALPHAREF);
-
+	STATEMANAGER.GetStateCache().Restore();
 }

@@ -78,7 +78,7 @@ void CGraphicExpandedImageInstance::OnRender()
 		vertices[3].position.x += fimgWidth + m_RenderingRect.right;
 		vertices[3].position.y += fimgHeight + m_RenderingRect.bottom;
 		if ((0.0f < m_v2Scale.x && 0.0f > m_v2Scale.y) || (0.0f > m_v2Scale.x && 0.0f < m_v2Scale.y)) {
-			STATEMANAGER.SetRenderState(RS11_CULLMODE, D3D11_CULL_BACK);
+			STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_BACK);
 		}
 	}
 	else
@@ -107,12 +107,15 @@ void CGraphicExpandedImageInstance::OnRender()
 	{
 		case RENDERING_MODE_SCREEN:
 		case RENDERING_MODE_COLOR_DODGE:
-			STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_INV_DEST_COLOR);
-			STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_ONE);
+			STATEMANAGER.GetBlend().Push();
+			STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_INV_DEST_COLOR);
+			STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_ONE);
 			break;
+
 		case RENDERING_MODE_MODULATE:
-			STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_ZERO);
-			STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_SRC_COLOR);
+			STATEMANAGER.GetBlend().Push();
+			STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_ZERO);
+			STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_SRC_COLOR);
 			break;
 	}
 
@@ -133,11 +136,11 @@ void CGraphicExpandedImageInstance::OnRender()
 		case RENDERING_MODE_SCREEN:
 		case RENDERING_MODE_COLOR_DODGE:
 		case RENDERING_MODE_MODULATE:
-			STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
-			STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
+			STATEMANAGER.GetBlend().Restore();
 			break;
 	}
-	STATEMANAGER.SetRenderState(RS11_CULLMODE, D3D11_CULL_FRONT);
+
+	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_FRONT);
 }
 
 void CGraphicExpandedImageInstance::SetDepth(float fDepth)

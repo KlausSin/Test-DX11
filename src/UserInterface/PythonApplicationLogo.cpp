@@ -202,48 +202,75 @@ int CPythonApplication::OnLogoUpdate()
 
 void CPythonApplication::OnLogoRender()
 {
-	if(!m_pLogoTex->IsEmpty() && !m_bLogoError && true == bInitializedLogo)
+	if (!m_pLogoTex->IsEmpty() && !m_bLogoError && true == bInitializedLogo)
 	{
-		STATEMANAGER.SetSamplerState(0, SS11_MINFILTER, TF11_LINEAR);
-		STATEMANAGER.SetSamplerState(0, SS11_MAGFILTER, TF11_LINEAR);
+		STATEMANAGER.GetSampler().Push(0);
+
+		STATEMANAGER.GetSampler().SetFilter(0, D3D11_FILTER_MIN_MAG_MIP_LINEAR);
+
 		m_pLogoTex->SetTextureStage(0);
-		CPythonGraphic::instance().RenderTextureBox(m_nLeft, m_nTop, m_nRight, m_nBottom, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
+
+		CPythonGraphic::instance().RenderTextureBox(
+			m_nLeft,
+			m_nTop,
+			m_nRight,
+			m_nBottom,
+			0.0f,
+			0.0f,
+			1.0f,
+			1.0f,
+			0.0f);
+
+		STATEMANAGER.GetSampler().Restore(0);
 	}
 }
 
 void CPythonApplication::OnLogoClose()
 {
-	// NOTE: LOGO µ¿¿µ»óÀÌ ÇÑ ¹øµµ ¾È ºÒ·ÈÀ» °æ¿ì¿¡´Â OnLogoClose °úÁ¤¿¡¼­ Å©·¡½Ã°¡ ³ª´Â ¹®Á¦ ¼öÁ¤
 	if (false == bInitializedLogo)
 		return;
 
-	if(m_pCaptureBuffer != NULL)
+	if (m_pCaptureBuffer != NULL)
 	{
 		delete[] m_pCaptureBuffer;
 		m_pCaptureBuffer = NULL;
 	}
-	if(m_pLogoTex != NULL)
+
+	if (m_pLogoTex != NULL)
 	{
 		m_pLogoTex->Destroy();
 		delete m_pLogoTex;
 		m_pLogoTex = NULL;
 	}
 
-	if(m_pMediaEvent != NULL)
+	if (m_pMediaEvent != NULL)
 	{
 		m_pMediaEvent->SetNotifyWindow(NULL, 0, 0);
 		m_pMediaEvent->Release();
 		m_pMediaEvent = NULL;
 	}
-	if(m_pBasicVideo != NULL) m_pBasicVideo->Release(); m_pBasicVideo = NULL;
-	if(m_pVideoWnd != NULL) m_pVideoWnd->Release(); m_pVideoWnd = NULL;
-	if(m_pMediaCtrl != NULL) m_pMediaCtrl->Release(); m_pMediaCtrl = NULL;
-	if(m_pSampleGrabber != NULL) m_pSampleGrabber->Release(); m_pSampleGrabber = NULL;
-	if(m_pFilterSG != NULL) m_pFilterSG->Release(); m_pFilterSG = NULL;
-	if(m_pGraphBuilder != NULL) m_pGraphBuilder->Release(); m_pGraphBuilder = NULL;
 
-	STATEMANAGER.SetSamplerState(0, SS11_MINFILTER, TF11_POINT);
-	STATEMANAGER.SetSamplerState(0, SS11_MAGFILTER, TF11_POINT);
+	if (m_pBasicVideo != NULL)
+		m_pBasicVideo->Release();
+	m_pBasicVideo = NULL;
 
-	
+	if (m_pVideoWnd != NULL)
+		m_pVideoWnd->Release();
+	m_pVideoWnd = NULL;
+
+	if (m_pMediaCtrl != NULL)
+		m_pMediaCtrl->Release();
+	m_pMediaCtrl = NULL;
+
+	if (m_pSampleGrabber != NULL)
+		m_pSampleGrabber->Release();
+	m_pSampleGrabber = NULL;
+
+	if (m_pFilterSG != NULL)
+		m_pFilterSG->Release();
+	m_pFilterSG = NULL;
+
+	if (m_pGraphBuilder != NULL)
+		m_pGraphBuilder->Release();
+	m_pGraphBuilder = NULL;
 }

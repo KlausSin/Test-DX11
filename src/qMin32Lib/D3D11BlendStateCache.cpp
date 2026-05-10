@@ -1,4 +1,6 @@
 #include "D3D11BlendStateCache.h"
+#include <EterBase/Debug.h>
+#include <assert.h>
 
 SD3D11BlendStateKey::SD3D11BlendStateKey()
 {
@@ -88,8 +90,18 @@ void CD3D11BlendStateCache::Push()
 
 bool CD3D11BlendStateCache::Restore() 
 { 
+#ifdef _DEBUG
+	if (m_stack.empty())
+	{
+		Tracef("CD3D11BlendStateCache::Restore - state was not pushed\n");
+		assert(!"CD3D11BlendStateCache::Restore - state was not pushed");
+		return false;
+	}
+#else
 	if (m_stack.empty())
 		return false;
+#endif
+
 	SD3D11BlendRuntimeState s = m_stack.back();
 	m_stack.pop_back();
 	m_key = s.key;

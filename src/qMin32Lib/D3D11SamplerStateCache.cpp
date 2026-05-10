@@ -1,4 +1,6 @@
 #include "D3D11SamplerStateCache.h"
+#include <EterBase/Debug.h>
+#include <assert.h>
 
 SD3D11SamplerStateKey::SD3D11SamplerStateKey()
 {
@@ -104,10 +106,7 @@ bool CD3D11SamplerStateCache::CanRestore() const
 	return true;
 }
 
-bool CD3D11SamplerStateCache::CanRestore(UINT slot) const
-{
-	return IsValidSlot(slot) && !m_stack[slot].empty();
-}
+
 
 void CD3D11SamplerStateCache::Push()
 {
@@ -121,10 +120,28 @@ void CD3D11SamplerStateCache::Push(UINT slot)
 		m_stack[slot].push_back(m_key[slot]);
 }
 
+bool CD3D11SamplerStateCache::CanRestore(UINT slot) const
+{
+	return IsValidSlot(slot) && !m_stack[slot].empty();
+}
+
 bool CD3D11SamplerStateCache::Restore()
 {
+#ifdef _DEBUG
+	for (UINT i = 0; i < D3D11_SAMPLER_CACHE_SLOT_COUNT; ++i)
+	{
+		if (m_stack[i].empty())
+		{
+			Tracef("CD3D11SamplerStateCache::Restore - sampler slot %u was not pushed\n", i);
+			assert(!"CD3D11SamplerStateCache::Restore - sampler slot was not pushed");
+			return false;
+		}
+	}
+#else
 	if (!CanRestore())
 		return false;
+#endif
+
 	for (UINT i = 0; i < D3D11_SAMPLER_CACHE_SLOT_COUNT; ++i)
 	{
 		SetKey(i, m_stack[i].back());

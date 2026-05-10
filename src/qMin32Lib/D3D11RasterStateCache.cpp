@@ -1,4 +1,6 @@
 #include "D3D11RasterStateCache.h"
+#include <EterBase/Debug.h>
+#include <assert.h>
 
 SD3D11RasterStateKey::SD3D11RasterStateKey()
 {
@@ -68,8 +70,17 @@ void CD3D11RasterStateCache::Push()
 
 bool CD3D11RasterStateCache::Restore()
 {
+#ifdef _DEBUG
+	if (m_stack.empty())
+	{
+		Tracef("CD3D11RasterStateCache::Restore - state was not pushed\n");
+		assert(!"CD3D11RasterStateCache::Restore - state was not pushed");
+		return false;
+	}
+#else
 	if (m_stack.empty())
 		return false;
+#endif
 	SetKey(m_stack.back());
 	m_stack.pop_back();
 	return true;

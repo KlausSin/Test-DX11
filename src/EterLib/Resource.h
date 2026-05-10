@@ -1,69 +1,76 @@
 #pragma once
 
 #include "ReferenceObject.h"
+
+#include <algorithm>
+#include <chrono>
+#include <cctype>
+#include <cstdint>
+#include <cstring>
 #include <string>
+#include <string_view>
+#include <vector>
 
 class CResource : public CReferenceObject
 {
-	public:
-		typedef DWORD TType;
+public:
+    using TType = uint32_t;
 
-		enum EState
-		{
-			STATE_EMPTY,
-			STATE_ERROR,			
-			STATE_EXIST,
-			STATE_LOAD,
-			STATE_FREE
-		};
+    enum EState : uint8_t
+    {
+        STATE_EMPTY,
+        STATE_ERROR,
+        STATE_EXIST,
+        STATE_LOAD,
+        STATE_FREE
+    };
 
-	public:
-		void			Clear();
+public:
+    explicit CResource(const char* c_szFileName);
+    ~CResource() override = default;
 
-		static TType	StringToType(const char* c_szType);
-		static TType	Type();
+    CResource(const CResource&) = delete;
+    CResource& operator=(const CResource&) = delete;
 
-		void			Load();
-		void			Reload();
-		int				ConvertPathName(const char * c_szPathName, char * pszRetPathName, int retLen);
+    void Clear();
+    void Load();
+    void Reload();
 
-		virtual bool	CreateDeviceObjects();
-		virtual void	DestroyDeviceObjects();
+    static TType StringToType(const char* c_szType);
+    static TType Type();
+    static void SetDeleteImmediately(bool isSet = false) noexcept;
 
-	public:
-		CResource(const char* c_szFileName);
-		virtual ~CResource();
+    int ConvertPathName(const char* c_szPathName, char* pszRetPathName, int retLen);
 
-		static void		SetDeleteImmediately(bool isSet = false);
+    virtual bool CreateDeviceObjects();
+    virtual void DestroyDeviceObjects();
 
-		// is loaded?
-		bool			IsData() const;
-		bool			IsEmpty() const;
-		bool			IsType(TType type);
+    bool IsData() const noexcept;
+    bool IsEmpty() const;
+    bool IsType(TType type);
 
-		DWORD			GetLoadCostMilliSecond()	{ return m_dwLoadCostMiliiSecond;	}
-		//const char *	GetFileName() const			{ return m_pszFileName;				}
-		const char *	GetFileName() const			{ return m_stFileName.c_str();				}
-		const std::string& GetFileNameString() const { return m_stFileName;	}
+    DWORD GetLoadCostMilliSecond() const noexcept { return m_dwLoadCostMiliiSecond; }
+    const char* GetFileName() const noexcept { return m_stFileName.c_str(); }
+    const std::string& GetFileNameString() const noexcept { return m_stFileName; }
+    EState GetState() const noexcept { return me_state; }
 
-		virtual bool	OnLoad(int iSize, const void * c_pvBuf) = 0;
+    virtual bool OnLoad(int iSize, const void* c_pvBuf) = 0;
 
-	protected:
-		void			SetFileName(const char* c_szFileName);
+protected:
+    void SetFileName(const char* c_szFileName);
 
-		virtual void	OnClear() = 0;		
-		virtual bool	OnIsEmpty() const = 0;
-		virtual bool	OnIsType(TType type) = 0;
+    virtual void OnClear() = 0;
+    virtual bool OnIsEmpty() const = 0;
+    virtual bool OnIsType(TType type);
 
-		virtual void	OnConstruct();
-		virtual void	OnSelfDestruct();
+    void OnConstruct() override;
+    void OnSelfDestruct() override;
 
-	protected:
-		std::string		m_stFileName;
-		//char *			m_pszFileName;
-		DWORD			m_dwLoadCostMiliiSecond;
-		EState			me_state;
+protected:
+    std::string m_stFileName;
+    DWORD m_dwLoadCostMiliiSecond{ 0 };
+    EState me_state{ STATE_EMPTY };
 
-	protected:
-		static bool		ms_bDeleteImmediately;
+protected:
+    static bool ms_bDeleteImmediately;
 };

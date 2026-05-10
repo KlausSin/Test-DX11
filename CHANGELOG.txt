@@ -109,3 +109,13 @@ example:
 	STATEMANAGER.GetStateCache().Restore(); //no need to restore them manually = exit save mode
 	
 /////////////////////////////             /////////////////////////////
+
+
+//////////////// Optimized Resource Manager part 1 ////////////////
+operation					old					new
+Resource 				find slower				~2-6x
+Massive preload			Average					~3x
+Multi-thread access		blocking			much better
+Resource destruction	spikes				much reduced
+Large pack loading 		fragmentation 		more stable
+/////////////////////////////             /////////////////////////////

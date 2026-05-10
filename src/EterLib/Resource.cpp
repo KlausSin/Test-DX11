@@ -1,177 +1,138 @@
 #include "StdAfx.h"
-#include "PackLib/PackManager.h"
-#include "EterBase/Stl.h"
-#include "EterBase/CRC32.h"
-#include "EterBase/Timer.h"
 
 #include "Resource.h"
 #include "ResourceManager.h"
 
+#include "PackLib/PackManager.h"
+#include "EterBase/CRC32.h"
+#include "EterBase/Stl.h"
+
 bool CResource::ms_bDeleteImmediately = false;
 
-CResource::CResource(const char* c_szFileName) : me_state(STATE_EMPTY)
+namespace
 {
-	SetFileName(c_szFileName);
+    DWORD NowMS()
+    {
+        using namespace std::chrono;
+        return static_cast<DWORD>(duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count());
+    }
 }
 
-CResource::~CResource()
+CResource::CResource(const char* c_szFileName)
 {
+    SetFileName(c_szFileName);
 }
 
-void CResource::SetDeleteImmediately(bool isSet)
+void CResource::SetDeleteImmediately(bool isSet) noexcept
 {
-	ms_bDeleteImmediately = isSet;
+    ms_bDeleteImmediately = isSet;
 }
 
 void CResource::OnConstruct()
 {
-	Load();
+    CReferenceObject::OnConstruct();
+    Load();
 }
 
 void CResource::OnSelfDestruct()
-{	
-	if (ms_bDeleteImmediately)
-		Clear();
-	else
-		CResourceManager::Instance().ReserveDeletingResource(this);
+{
+    if (ms_bDeleteImmediately)
+        Clear();
+    else
+        CResourceManager::Instance().ReserveDeletingResource(this);
 }
 
 void CResource::Load()
 {
-	if (me_state != STATE_EMPTY)
-		return;
+    if (me_state != STATE_EMPTY)
+        return;
 
-	const char * c_szFileName = GetFileName();
+    me_state = STATE_LOAD;
+    const DWORD start = NowMS();
+    TPackFile file;
 
-	DWORD		dwStart = ELTimer_GetMSec();
-	TPackFile	file;
+    if (CPackManager::Instance().GetFile(GetFileName(), file))
+    {
+        m_dwLoadCostMiliiSecond = NowMS() - start;
+        me_state = OnLoad(static_cast<int>(file.size()), file.data()) ? STATE_EXIST : STATE_ERROR;
+        if (me_state == STATE_ERROR)
+            Tracef("CResource::Load Error %s\n", GetFileName());
+        return;
+    }
 
-	//Tracenf("Load %s", c_szFileName);
-
-	if (CPackManager::Instance().GetFile(c_szFileName, file))
-	{
-		m_dwLoadCostMiliiSecond = ELTimer_GetMSec() - dwStart;
-		//Tracef("CResource::Load %s (%d bytes) in %d ms\n", c_szFileName, file.Size(), m_dwLoadCostMiliiSecond);
-
-		if (OnLoad(file.size(), file.data()))
-		{
-			me_state = STATE_EXIST;
-		}
-		else
-		{
-			Tracef("CResource::Load Error %s\n", c_szFileName);
-			me_state = STATE_ERROR;
-			return;
-		}
-	}
-	else
-	{
-		if (OnLoad(0, NULL))
-			me_state = STATE_EXIST;
-		else
-		{
-			Tracef("CResource::Load file not exist %s\n", c_szFileName);
-			me_state = STATE_ERROR;
-		}
-	}
+    me_state = OnLoad(0, nullptr) ? STATE_EXIST : STATE_ERROR;
+    if (me_state == STATE_ERROR)
+        Tracef("CResource::Load file not exist %s\n", GetFileName());
 }
 
 void CResource::Reload()
 {
-	Clear();
-	Tracef("CResource::Reload %s\n", GetFileName());
-
-	TPackFile	file;
-	if (CPackManager::Instance().GetFile(GetFileName(), file))
-	{
-		if (OnLoad(file.size(), file.data()))
-		{
-			me_state = STATE_EXIST;
-		}
-		else
-		{
-			me_state = STATE_ERROR;
-			return;
-		}
-	}
-	else
-	{
-		if (OnLoad(0, NULL))
-			me_state = STATE_EXIST;
-		else
-		{
-			me_state = STATE_ERROR;
-		}
-	}
+    Clear();
+    Tracef("CResource::Reload %s\n", GetFileName());
+    Load();
 }
 
 CResource::TType CResource::StringToType(const char* c_szType)
 {
-	return GetCRC32(c_szType, strlen(c_szType));
-}
-
-int CResource::ConvertPathName(const char * c_szPathName, char * pszRetPathName, int retLen)
-{
-	const char * pc;
-	int len = 0;
-
-	for (pc = c_szPathName; *pc && len < retLen; ++pc, ++len)
-	{
-		if (*pc == '/')
-			*(pszRetPathName++) = '\\';
-		else
-			*(pszRetPathName++) = (char) ascii_tolower(*pc);
-	}
-
-	*pszRetPathName = '\0';
-	return len;
-}
-
-void CResource::SetFileName(const char* c_szFileName)
-{
-	// 2004. 2. 1. myevan. 쓰레드가 사용되는 상황에서 static 변수는 사용하지 않는것이 좋다.
-	// 2004. 2. 1. myevan. 파일 이름 처리를 std::string 사용
-	m_stFileName=c_szFileName;
-}
-
-void CResource::Clear()
-{
-	OnClear();
-	me_state = STATE_EMPTY;
-}
-
-bool CResource::IsType(TType type)
-{
-	return OnIsType(type);
+    return c_szType ? GetCRC32(c_szType, std::strlen(c_szType)) : 0u;
 }
 
 CResource::TType CResource::Type()
 {
-	static TType s_type = StringToType("CResource");
-	return s_type;
+    static const TType s_type = StringToType("CResource");
+    return s_type;
+}
+
+int CResource::ConvertPathName(const char* c_szPathName, char* pszRetPathName, int retLen)
+{
+    if (!c_szPathName || !pszRetPathName || retLen <= 0)
+        return 0;
+
+    int len = 0;
+    for (; c_szPathName[len] && len < retLen - 1; ++len)
+    {
+        const unsigned char ch = static_cast<unsigned char>(c_szPathName[len]);
+        pszRetPathName[len] = ch == '/' ? '\\' : static_cast<char>(std::tolower(ch));
+    }
+
+    pszRetPathName[len] = '\0';
+    return len;
+}
+
+void CResource::SetFileName(const char* c_szFileName)
+{
+    m_stFileName = c_szFileName ? c_szFileName : "";
+}
+
+void CResource::Clear()
+{
+    OnClear();
+    me_state = STATE_EMPTY;
+}
+
+bool CResource::IsType(TType type)
+{
+    return OnIsType(type);
 }
 
 bool CResource::OnIsType(TType type)
 {
-	if (CResource::Type() == type)
-		return true;
-	
-	return false;
+    return Type() == type;
 }
 
-bool CResource::IsData() const
+bool CResource::IsData() const noexcept
 {
-	return me_state != STATE_EMPTY;
+    return me_state != STATE_EMPTY && me_state != STATE_ERROR;
 }
 
 bool CResource::IsEmpty() const
 {
-	return OnIsEmpty();
+    return OnIsEmpty();
 }
 
 bool CResource::CreateDeviceObjects()
 {
-	return true;
+    return true;
 }
 
 void CResource::DestroyDeviceObjects()

@@ -3,6 +3,8 @@
 #include "DxManager.h"
 #include "ConstantBufferManager.h"
 #include "EterLib/GrpBase.h"
+#include <EterBase/Debug.h>
+
 
 SD3D11TransformStateKey::SD3D11TransformStateKey()
 {
@@ -12,6 +14,7 @@ SD3D11TransformStateKey::SD3D11TransformStateKey()
 
 	for (UINT i = 0; i < 2; ++i)
 		D3DXMatrixIdentity(&texture[i]);
+
 }
 
 bool SD3D11TransformStateKey::operator==(const SD3D11TransformStateKey& rhs) const
@@ -52,8 +55,18 @@ void CD3D11TransformStateCache::Push()
 
 bool CD3D11TransformStateCache::Restore()
 {
+#ifdef _DEBUG
+	if (m_stack.empty())
+	{
+		Tracef("CD3D11TransformStateCache::Restore - state was not pushed\n");
+		assert(!"CD3D11TransformStateCache::Restore - state was not pushed");
+		return false;
+	}
+#else
 	if (m_stack.empty())
 		return false;
+#endif
+
 
 	m_key = m_stack.back();
 	m_stack.pop_back();
@@ -104,11 +117,23 @@ void CD3D11TransformStateCache::SetProjection(const D3DXMATRIX& value)
 
 void CD3D11TransformStateCache::SetTexture0(const D3DXMATRIX& value)
 {
+	if (std::memcmp(&m_key.texture[0], &value, sizeof(value)) != 0)
+	{
+		m_key.texture[0] = value;
+		m_dirty = true;
+	}
+
 	_mgr->GetCbMgr()->SetTexTransform(0, value);
 }
 
 void CD3D11TransformStateCache::SetTexture1(const D3DXMATRIX& value)
 {
+	if (std::memcmp(&m_key.texture[1], &value, sizeof(value)) != 0)
+	{
+		m_key.texture[1] = value;
+		m_dirty = true;
+	}
+
 	_mgr->GetCbMgr()->SetTexTransform(1, value);
 }
 

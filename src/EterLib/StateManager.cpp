@@ -393,9 +393,9 @@ HRESULT CStateManager::DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY Topology, UINT P
 	}
 
 	m_pD3D11Renderer->FlushAllState();
+
 	CGraphicBase::ms_lpd3d11Context->IASetPrimitiveTopology(Topology);
 	CGraphicBase::ms_lpd3d11Context->Draw(vertexCount, StartVertex_VertexStride);
-
 	if (vb)
 		vb->Release();
 
@@ -418,6 +418,7 @@ HRESULT CStateManager::DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY Topology,
 		return E_FAIL;
 
 	m_pD3D11Renderer->FlushAllState();
+
 	CGraphicBase::ms_lpd3d11Context->IASetPrimitiveTopology(Topology);
 	CGraphicBase::ms_lpd3d11Context->DrawIndexed(GetPrimitiveVertexCount(Topology, PrimitiveCount), StartIndex, BaseVertexIndex);
 
@@ -470,6 +471,7 @@ HRESULT CStateManager::DrawTriangleFan11(UINT PrimitiveCount, const void* pVerte
 	CGraphicBase::ms_lpd3d11Context->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
 
 	m_pD3D11Renderer->FlushAllState();
+
 	CGraphicBase::ms_lpd3d11Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	CGraphicBase::ms_lpd3d11Context->Draw(finalVertexCount, 0);
 

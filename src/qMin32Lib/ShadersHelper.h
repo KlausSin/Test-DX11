@@ -35,6 +35,7 @@ enum ShaderFlags : uint32_t
 	//mesh 
 	MESH_SPECULAR = 1 << 17,
 	TERRAIN_BASE = 1 << 18,
+	MINIMAP_MARK = 1 << 19,
 };
 
 static std::string BuildShaderPath(const std::string& basePath)
@@ -108,6 +109,9 @@ static std::vector<D3D_SHADER_MACRO> BuildDefinesFromFlags(uint32_t flags)
 
 	if (flags & TERRAIN_BASE)
 		out.push_back({ "TERRAIN_BASE", "1" });
+
+	if (flags & MINIMAP_MARK)
+		out.push_back({ "MINIMAP_MARK", "1" });
 
 	out.push_back({ nullptr, nullptr });
 

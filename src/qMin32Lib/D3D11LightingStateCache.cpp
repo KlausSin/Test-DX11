@@ -3,6 +3,7 @@
 #include "DxManager.h"
 #include "ConstantBufferManager.h"
 #include "EterLib/GrpBase.h"
+#include <EterBase/Debug.h>
 
 SD3D11LightingStateKey::SD3D11LightingStateKey()
 {
@@ -53,8 +54,17 @@ void CD3D11LightingStateCache::Push()
 
 bool CD3D11LightingStateCache::Restore()
 {
+#ifdef _DEBUG
+	if (m_stack.empty())
+	{
+		Tracef("CD3D11LightingStateCache::Restore - state was not pushed\n");
+		assert(!"CD3D11LightingStateCache::Restore - state was not pushed");
+		return false;
+	}
+#else
 	if (m_stack.empty())
 		return false;
+#endif
 
 	m_key = m_stack.back();
 	m_stack.pop_back();

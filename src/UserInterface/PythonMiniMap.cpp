@@ -309,7 +309,7 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 	STATEMANAGER.GetTransform().SetWorld(m_matIdentity);
 
 	_mgr->GetCbMgr()->SetTextureFactor(0xFFFFFFFF);
-	_mgr->SetShader(VF_PT, TERRAIN_SPLAT);
+	_mgr->SetShader(VF_PT, MINIMAP_MARK);
 
 	TInstancePositionVectorIterator aIterator;
 
@@ -862,7 +862,7 @@ void CPythonMiniMap::RenderAtlas(float fScreenX, float fScreenY)
 
 	_mgr->GetCbMgr()->SetTextureFactor(0xFFFFFFFF);
 
-	_mgr->SetShader(VF_PT, TERRAIN_SPLAT);
+	_mgr->SetShader(VF_PT, MINIMAP_MARK);
 
 	_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_NPC));
 	for (auto& rAtlasMarkInfo : m_AtlasNPCInfoVector)

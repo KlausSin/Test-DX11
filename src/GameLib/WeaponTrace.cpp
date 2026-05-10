@@ -316,7 +316,6 @@ void CWeaponTrace::Render()
 		sizeof(TPDTVertex),
 		m_PDTVertexVector.data());
 
-	STATEMANAGER.GetTransform().Restore();
 	STATEMANAGER.GetStateCache().Restore();
 
 	_mgr->GetCbMgr()->SetLightingEnable(true);

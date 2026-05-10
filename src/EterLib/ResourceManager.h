@@ -3,79 +3,90 @@
 #include "Resource.h"
 #include "FileLoaderThread.h"
 
-#include <set>
+#include <cstdint>
+#include <functional>
 #include <map>
-#include <string>
+#include <memory>
 #include <mutex>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 class CTextureCache;
 
+template <class T>
+class CSingleton;
+
 class CResourceManager : public CSingleton<CResourceManager>
 {
-	public:
-		CResourceManager();
-		virtual ~CResourceManager();
-		
-		void		LoadStaticCache(const char* c_szFileName);
+public:
+    using ResourceFactory = CResource * (*)(const char*);
+    using TResourcePointerMap = std::unordered_map<DWORD, CResource*>;
+    using TResourceNewFunctionPointerMap = std::unordered_map<std::string, ResourceFactory>;
+    using TResourceNewFunctionByTypePointerMap = std::unordered_map<int, ResourceFactory>;
+    using TResourceDeletingMap = std::map<CResource*, DWORD>;
+    using TResourceRequestMap = std::unordered_map<DWORD, std::string>;
+    using TResourceRefDecreaseWaitingMap = std::multimap<DWORD, CResource*>;
 
-		void		DestroyDeletingList();
-		void		Destroy();
-		
-		void		BeginThreadLoading();
-		void		EndThreadLoading();
+public:
+    CResourceManager();
+    ~CResourceManager() override;
 
-		CResource *	InsertResourcePointer(DWORD dwFileCRC, CResource* pResource);
-		CResource *	FindResourcePointer(DWORD dwFileCRC);
-		CResource *	GetResourcePointer(const char * c_szFileName);
-		CResource *	GetTypeResourcePointer(const char * c_szFileName, int iType=-1);
+    CResourceManager(const CResourceManager&) = delete;
+    CResourceManager& operator=(const CResourceManager&) = delete;
 
-		// 추가
-		bool		isResourcePointerData(DWORD dwFileCRC);
+    void LoadStaticCache(const char* c_szFileName);
+    void DestroyDeletingList();
+    void Destroy();
 
-		void		RegisterResourceNewFunctionPointer(const char* c_szFileExt, CResource* (*pResNewFunc)(const char* c_szFileName));
-		void		RegisterResourceNewFunctionByTypePointer(int iType, CResource* (*pNewFunc) (const char* c_szFileName));
-		
-		void		DumpFileListToTextFile(const char* c_szFileName);
-		bool		IsFileExist(const char * c_szFileName);
+    void BeginThreadLoading();
+    void EndThreadLoading();
 
-		void		Update();
-		void		ReserveDeletingResource(CResource * pResource);
+    CResource* InsertResourcePointer(DWORD dwFileCRC, CResource* pResource);
+    CResource* FindResourcePointer(DWORD dwFileCRC);
+    CResource* GetResourcePointer(const char* c_szFileName);
+    CResource* GetTypeResourcePointer(const char* c_szFileName, int iType = -1);
 
-	public:
-		void		ProcessBackgroundLoading();
-		void		PushBackgroundLoadingSet(std::set<std::string> & LoadingSet);
+    bool isResourcePointerData(DWORD dwFileCRC);
 
-		CTextureCache* GetTextureCache() { return m_pTextureCache; }
+    void RegisterResourceNewFunctionPointer(const char* c_szFileExt, ResourceFactory pResNewFunc);
+    void RegisterResourceNewFunctionByTypePointer(int iType, ResourceFactory pNewFunc);
 
-	protected:
-		void		__DestroyDeletingResourceMap();
-		void		__DestroyResourceMap();
-		void		__DestroyCacheMap();
+    void DumpFileListToTextFile(const char* c_szFileName);
+    bool IsFileExist(const char* c_szFileName);
 
-		DWORD		__GetFileCRC(const char * c_szFileName, const char ** c_pszLowerFile = NULL);
-	
-	protected:
-		typedef std::map<DWORD,	CResource *>									TResourcePointerMap;
-		typedef std::map<std::string, CResource* (*)(const char*)>				TResourceNewFunctionPointerMap;
-		typedef std::map<int, CResource* (*)(const char*)>						TResourceNewFunctionByTypePointerMap;
-		typedef std::map<CResource *, DWORD>									TResourceDeletingMap;
-		typedef std::map<DWORD, std::string>									TResourceRequestMap;
-		typedef std::map<long, CResource*>										TResourceRefDecreaseWaitingMap;
+    void Update();
+    void ReserveDeletingResource(CResource* pResource);
 
-	protected:
-		TResourcePointerMap						m_pCacheMap;
-		TResourcePointerMap						m_pResMap;
-		TResourceNewFunctionPointerMap			m_pResNewFuncMap;
-		TResourceNewFunctionByTypePointerMap	m_pResNewFuncByTypeMap;
-		TResourceDeletingMap					m_ResourceDeletingMap;
-		TResourceRequestMap						m_RequestMap;	// 쓰레드로 로딩 요청한 리스트
-		TResourceRequestMap						m_WaitingMap;
-		TResourceRefDecreaseWaitingMap			m_pResRefDecreaseWaitingMap;
+    void ProcessBackgroundLoading();
+    void PushBackgroundLoadingSet(std::set<std::string>& LoadingSet);
 
-		static CFileLoaderThread				ms_loadingThread;
-		CTextureCache*							m_pTextureCache;
+    CTextureCache* GetTextureCache() noexcept { return m_pTextureCache.get(); }
 
-		mutable std::mutex						m_ResourceMapMutex;  // Thread-safe resource map access
+protected:
+    void __DestroyDeletingResourceMap();
+    void __DestroyResourceMap();
+    void __DestroyCacheMap();
+
+    DWORD __GetFileCRC(const char* c_szFileName, const char** c_pszLowerFile = nullptr);
+    std::string NormalizeFileName(const char* c_szFileName) const;
+    ResourceFactory FindFactory(const std::string& normalizedFileName, int iType);
+
+protected:
+    TResourcePointerMap m_pCacheMap;
+    TResourcePointerMap m_pResMap;
+    TResourceNewFunctionPointerMap m_pResNewFuncMap;
+    TResourceNewFunctionByTypePointerMap m_pResNewFuncByTypeMap;
+    TResourceDeletingMap m_ResourceDeletingMap;
+    TResourceRequestMap m_RequestMap;
+    TResourceRequestMap m_WaitingMap;
+    TResourceRefDecreaseWaitingMap m_pResRefDecreaseWaitingMap;
+
+    static CFileLoaderThread ms_loadingThread;
+    std::unique_ptr<CTextureCache> m_pTextureCache;
+
+    mutable std::recursive_mutex m_ResourceMapMutex;
 };
 
 extern int g_iLoadingDelayTime;

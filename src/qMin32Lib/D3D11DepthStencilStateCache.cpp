@@ -1,4 +1,6 @@
 #include "D3D11DepthStencilStateCache.h"
+#include <EterBase/Debug.h>
+#include <assert.h>
 
 SD3D11DepthStencilStateKey::SD3D11DepthStencilStateKey()
 {
@@ -80,8 +82,18 @@ void CD3D11DepthStencilStateCache::Push()
 
 bool CD3D11DepthStencilStateCache::Restore()
 { 
-	if (m_stack.empty()) 
+#ifdef _DEBUG
+	if (m_stack.empty())
+	{
+		Tracef("CD3D11DepthStencilStateCache::Restore - state was not pushed\n");
+		assert(!"CD3D11DepthStencilStateCache::Restore - state was not pushed");
 		return false;
+	}
+#else
+	if (m_stack.empty())
+		return false;
+#endif
+
 	SD3D11DepthStencilRuntimeState s = m_stack.back();
 	m_stack.pop_back(); 
 	m_key = s.key; 

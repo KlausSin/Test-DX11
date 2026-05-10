@@ -92,85 +92,109 @@ void CGraphicDevice::DisableWebBrowserMode()
 		
 bool CGraphicDevice::ResizeBackBuffer(UINT uWidth, UINT uHeight)
 {
-	if (!ms_lpd3d11SwapChain)
+	if (!ms_lpd3d11Device || !ms_lpd3d11Context || !ms_lpd3d11SwapChain)
 		return false;
 
-	if ((UINT)ms_iWidth == uWidth && (UINT)ms_iHeight == uHeight)
+	if (uWidth == 0 || uHeight == 0)
+		return false;
+
+	if ((UINT)ms_iWidth == uWidth && (UINT)ms_iHeight == uHeight && ms_lpd3d11RTV && ms_lpd3d11DSV)
 		return true;
 
-	// Release existing views before resizing
-	if (ms_lpd3d11Context)
-		ms_lpd3d11Context->OMSetRenderTargets(0, NULL, NULL);
+	const UINT oldWidth = (UINT)ms_iWidth;
+	const UINT oldHeight = (UINT)ms_iHeight;
+
+	auto recreateViews = [&](UINT width, UINT height) -> bool
+		{
+			ID3D11Texture2D* pBackBuffer = NULL;
+			HRESULT hr = ms_lpd3d11SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer);
+			if (FAILED(hr) || !pBackBuffer)
+				return false;
+
+			hr = ms_lpd3d11Device->CreateRenderTargetView(pBackBuffer, NULL, &ms_lpd3d11RTV);
+			pBackBuffer->Release();
+			if (FAILED(hr))
+				return false;
+
+			D3D11_TEXTURE2D_DESC descDepth = {};
+			descDepth.Width = width;
+			descDepth.Height = height;
+			descDepth.MipLevels = 1;
+			descDepth.ArraySize = 1;
+			descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+			descDepth.SampleDesc.Count = 1;
+			descDepth.SampleDesc.Quality = 0;
+			descDepth.Usage = D3D11_USAGE_DEFAULT;
+			descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+			hr = ms_lpd3d11Device->CreateTexture2D(&descDepth, NULL, &ms_lpd3d11DepthStencil);
+			if (FAILED(hr))
+			{
+				safe_release(ms_lpd3d11RTV);
+				return false;
+			}
+
+			hr = ms_lpd3d11Device->CreateDepthStencilView(ms_lpd3d11DepthStencil, NULL, &ms_lpd3d11DSV);
+			if (FAILED(hr))
+			{
+				safe_release(ms_lpd3d11DepthStencil);
+				safe_release(ms_lpd3d11RTV);
+				return false;
+			}
+
+			ms_lpd3d11Context->OMSetRenderTargets(1, &ms_lpd3d11RTV, ms_lpd3d11DSV);
+
+			D3D11_VIEWPORT vp = {};
+			vp.TopLeftX = 0.0f;
+			vp.TopLeftY = 0.0f;
+			vp.Width = (float)width;
+			vp.Height = (float)height;
+			vp.MinDepth = 0.0f;
+			vp.MaxDepth = 1.0f;
+			ms_lpd3d11Context->RSSetViewports(1, &vp);
+
+			ms_Viewport = vp;
+			return true;
+		};
+
+	ms_lpd3d11Context->OMSetRenderTargets(0, NULL, NULL);
+	ms_lpd3d11Context->Flush();
 
 	safe_release(ms_lpd3d11DSV);
 	safe_release(ms_lpd3d11DepthStencil);
 	safe_release(ms_lpd3d11RTV);
 
-	HRESULT hr = ms_lpd3d11SwapChain->ResizeBuffers(0, uWidth, uHeight, DXGI_FORMAT_UNKNOWN, 0);
+	DXGI_SWAP_CHAIN_DESC scDesc = {};
+	ms_lpd3d11SwapChain->GetDesc(&scDesc);
+
+	UINT resizeFlags = 0;
+	if (scDesc.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
+		resizeFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
+	HRESULT hr = ms_lpd3d11SwapChain->ResizeBuffers(0, uWidth, uHeight, DXGI_FORMAT_UNKNOWN, resizeFlags);
 	if (FAILED(hr))
 	{
 		Tracenf("D3D11: ResizeBuffers failed (0x%08X)", hr);
+		recreateViews(oldWidth, oldHeight);
 		return false;
 	}
 
-	// Recreate render target view
-	ID3D11Texture2D* pBackBuffer = NULL;
-	hr = ms_lpd3d11SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer);
-	if (FAILED(hr))
+	if (!recreateViews(uWidth, uHeight))
+	{
+		Tracenf("D3D11: Resize recreate views failed");
 		return false;
+	}
 
-	hr = ms_lpd3d11Device->CreateRenderTargetView(pBackBuffer, NULL, &ms_lpd3d11RTV);
-	pBackBuffer->Release();
-	if (FAILED(hr))
-		return false;
+	ms_iWidth = (int)uWidth;
+	ms_iHeight = (int)uHeight;
 
-	// Recreate depth stencil
-	D3D11_TEXTURE2D_DESC descDepth = {};
-	descDepth.Width = uWidth;
-	descDepth.Height = uHeight;
-	descDepth.MipLevels = 1;
-	descDepth.ArraySize = 1;
-	descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	descDepth.SampleDesc.Count = 1;
-	descDepth.Usage = D3D11_USAGE_DEFAULT;
-	descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-
-	hr = ms_lpd3d11Device->CreateTexture2D(&descDepth, NULL, &ms_lpd3d11DepthStencil);
-	if (FAILED(hr))
-		return false;
-
-	hr = ms_lpd3d11Device->CreateDepthStencilView(ms_lpd3d11DepthStencil, NULL, &ms_lpd3d11DSV);
-	if (FAILED(hr))
-		return false;
-
-	ms_lpd3d11Context->OMSetRenderTargets(1, &ms_lpd3d11RTV, ms_lpd3d11DSV);
-
-	// Update viewport
-	D3D11_VIEWPORT vp = {};
-	vp.Width = (float)uWidth;
-	vp.Height = (float)uHeight;
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	ms_lpd3d11Context->RSSetViewports(1, &vp);
-
-	ms_iWidth = uWidth;
-	ms_iHeight = uHeight;
-
-	// Update viewport struct
-	ms_Viewport.TopLeftX = 0;
-	ms_Viewport.TopLeftY = 0;
-	ms_Viewport.Width = (float)uWidth;
-	ms_Viewport.Height = (float)uHeight;
-	ms_Viewport.MinDepth = 0.0f;
-	ms_Viewport.MaxDepth = 1.0f;
-
-	if (m_pD3D11Renderer)
-		m_pD3D11Renderer->SetScreenSize((float)uWidth, (float)uHeight);
+	if (_mgr)
+		_mgr->GetCbMgr()->SetScreenSize((float)uWidth, (float)uHeight);
 
 	STATEMANAGER.SetDefaultState();
-
 	return true;
 }
+
 
 CGraphicDevice::EDeviceState CGraphicDevice::GetDeviceState()
 {
@@ -561,7 +585,7 @@ bool CGraphicDevice::CreateD3D11(HWND hWnd, int iHres, int iVres, bool bWindowed
 		m_pD3D11Renderer = NULL;
 		return false;
 	}
-	m_pD3D11Renderer->SetScreenSize((float)iHres, (float)iVres);
+	_mgr->GetCbMgr()->SetScreenSize((float)iHres, (float)iVres);
 
 	Tracenf("D3D11: Device ready (%dx%d)", iHres, iVres);
 	return true;

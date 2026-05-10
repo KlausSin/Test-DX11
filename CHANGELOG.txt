@@ -55,3 +55,8 @@ Cleaning up unnecessary code.
 //////////////// Cleaning 2 ////////////////
 Cleaning up unnecessary code.
 /////////////////////////////             /////////////////////////////
+
+//////////////// remove TextureStageState ////////////////
+Remove TextureStageState.
+with this, 3 new bugs to fix in future, minimap + dot on minimap, specular mesh and shadow character
+/////////////////////////////             /////////////////////////////

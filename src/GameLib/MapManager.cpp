@@ -241,7 +241,7 @@ void CMapManager::BeginEnvironment()
 	}
 	else
 	{
-		STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
+		STATEMANAGER.SetRenderState(RS11_LIGHTING, TRUE);
 	}
 
 	if (mc_pcurEnvironmentData->bFogEnable)

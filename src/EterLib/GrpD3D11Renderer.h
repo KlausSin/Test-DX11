@@ -89,8 +89,7 @@ public:
 	void SetSrcBlend(D3D11_BLEND blend);
 	void SetDestBlend(D3D11_BLEND blend);
 	void SetBlendOp(D3D11_BLEND_OP op);
-	void SetAlphaTestEnable(BOOL bEnable);
-	void SetAlphaRef(DWORD dwRef);
+
 	void SetZEnable(BOOL bEnable);
 	void SetZWriteEnable(BOOL bEnable);
 	void SetZFunc(D3D11_COMPARISON_FUNC func);
@@ -106,21 +105,13 @@ public:
 	// Texture binding → PSSetShaderResources
 	void SetTexture(DWORD dwStage, ID3D11ShaderResourceView* pSRV);
 
-	// Vertex format → selects shader + input layout
-	void SetVertexFormat(ED3D11VertexFormat eFormat);
-	ED3D11VertexFormat GetCurrentFormat() const { return m_eCurrentFormat; }
-
 	// Sampler state
 	void SetSamplerState(DWORD dwStage, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addrU, D3D11_TEXTURE_ADDRESS_MODE addrV);
-
-	// Screen size (for XYZRHW conversion)
-	void SetScreenSize(float width, float height);
 
 	// --- Draw ---
 	void FlushAllState();
 
 private:
-	bool CreateConstantBuffers();
 
 	ID3D11BlendState* GetOrCreateBlendState(const SD3D11BlendKey& key);
 	ID3D11DepthStencilState* GetOrCreateDepthState(const SD3D11DepthKey& key);
@@ -139,9 +130,6 @@ private:
 	// Default samplers
 	ComPtr<ID3D11SamplerState>		m_pDefaultSampler = nullptr;
 
-
-	// Current state tracking
-	ED3D11VertexFormat		m_eCurrentFormat = VF_PDT;
 
 	SD3D11BlendKey			m_curBlendKey;
 	SD3D11DepthKey			m_curDepthKey;

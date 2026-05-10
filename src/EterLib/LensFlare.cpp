@@ -252,13 +252,8 @@ void CLensFlare::DrawBeforeFlare()
 
 	STATEMANAGER.SetTexture(0, m_SunFlareImageInstance.GetTexturePointer()->GetSRV());
 	STATEMANAGER.SetTexture(1, NULL);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_MODULATE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2, TA11_DIFFUSE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, TOP11_SELECTARG1);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
-	
-	_mgr->SetShader(VF_PDT);
+
+	_mgr->SetShader(VF_PDT, BLEND_MODULATE);
 	STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, 2, sizeof(TVertex), vertices);
 
 	STATEMANAGER.RestoreRenderState(RS11_LIGHTING);
@@ -536,14 +531,7 @@ void CFlare::Draw(float fBrightScale, int nWidth, int nHeight, int nX, int nY)
 	float fDY = float(nY) - float(nHeight) / 2.0f;
 
 	STATEMANAGER.SetTexture(1, NULL);
-	_mgr->SetShader(VF_PDT);
-
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2,	TA11_DIFFUSE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP,	TOP11_MODULATE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG2,	TA11_DIFFUSE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP,	TOP11_MODULATE);
+	_mgr->SetShader(VF_PDT, BLEND_MODULATE);
 
 	for (unsigned int i = 0; i < m_vFlares.size(); i++)
 	{

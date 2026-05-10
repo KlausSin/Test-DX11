@@ -19,7 +19,6 @@ class CD3D11Renderer;
 		assert(!#a);		\
 }
 
-static const DWORD STATEMANAGER_MAX_TEXTURESTATES = 128;
 static const DWORD STATEMANAGER_MAX_STAGES = 8;
 static const DWORD STATEMANAGER_MAX_VCONSTANTS = 96;
 static const DWORD STATEMANAGER_MAX_PCONSTANTS = 8;
@@ -33,7 +32,9 @@ enum ETransform
 	Projection = 2,
 	Texture0 = 3,
 	Texture1 = 4,
-	COUNT = 5,
+	Texture2 = 5,
+	Texture3 = 6,
+	COUNT = 7,
 };
 
 static constexpr UINT SM_MAX_TRANSFORMS = (UINT)ETransform::COUNT;
@@ -91,92 +92,6 @@ enum ERenderState11
 	RS11_MAX
 };
 static DWORD gs_DefaultRenderStates[RS11_MAX];
-
-typedef enum ETextureStageState11
-{
-	TSS11_COLOROP = 1,
-	TSS11_COLORARG1 = 2,
-	TSS11_COLORARG2 = 3,
-	TSS11_ALPHAOP = 4,
-	TSS11_ALPHAARG1 = 5,
-	TSS11_ALPHAARG2 = 6,
-	TSS11_BUMPENVMAT00 = 7,
-	TSS11_BUMPENVMAT01 = 8,
-	TSS11_BUMPENVMAT10 = 9,
-	TSS11_BUMPENVMAT11 = 10,
-	TSS11_TEXCOORDINDEX = 11,
-	TSS11_BUMPENVLSCALE = 22,
-	TSS11_BUMPENVLOFFSET = 23,
-	TSS11_TEXTURETRANSFORMFLAGS = 24,
-	TSS11_COLORARG0 = 26,
-	TSS11_ALPHAARG0 = 27,
-	TSS11_RESULTARG = 28,
-	TSS11_CONSTANT = 32,
-	TSS11_FORCE_DWORD = 0x7fffffff
-} ETextureStageState11;
-
-enum ETextureTransformFlags11
-{
-	TTFF11_DISABLE = 0,
-	TTFF11_COUNT1 = 1,
-	TTFF11_COUNT2 = 2,
-	TTFF11_COUNT3 = 3,
-	TTFF11_COUNT4 = 4
-};
-
-typedef enum ETextureOp11
-{
-	TOP11_DISABLE = 0,
-	TOP11_MODULATE,
-	TOP11_SELECTARG1,
-	TOP11_ADD,
-	TOP11_SELECTARG2,
-	TOP11_MODULATE2X,
-	TOP11_MODULATE4X,
-	TOP11_BLENDDIFFUSEALPHA,
-	TOP11_MODULATEALPHA_ADDCOLOR
-} ETextureOp11;
-
-typedef enum ETextureArg11
-{
-	TA11_DIFFUSE = 0,
-	TA11_CURRENT = 1,
-	TA11_TEXTURE = 2,
-	TA11_TFACTOR = 3
-} ETextureArg11;
-
-typedef enum ETexCoordGen11
-{
-	TCG11_UV = 0,
-	TCG11_CAMERASPACEPOSITION = 1,
-	TCG11_CAMERASPACEREFLECTIONVECTOR = 2,
-	TCG11_CAMERASPACENORMAL = 3
-} ETexCoordGen11;
-
-enum
-{
-	TSS11_TCI_PASSTHRU = 0x00000000,
-	TSS11_TCI_CAMERASPACENORMAL = 0x00010000,
-	TSS11_TCI_CAMERASPACEPOSITION = 0x00020000,
-	TSS11_TCI_CAMERASPACEREFLECTIONVECTOR = 0x00030000
-};
-
-static int MapTextureOp(DWORD op)
-{
-	switch (op)
-	{
-	case TOP11_MODULATE: return 0;
-	case TOP11_SELECTARG1: return 1;
-	case TOP11_ADD: return 2;
-	case TOP11_SELECTARG2: return 3;
-	case TOP11_MODULATE2X: return 4;
-	case TOP11_MODULATE4X: return 5;
-	case TOP11_BLENDDIFFUSEALPHA: return 6;
-	case TOP11_MODULATEALPHA_ADDCOLOR: return 7;
-	case TOP11_DISABLE: return -1;
-	default: return 0;
-	}
-}
 
 static inline D3D11_FILTER MapSamplerFilter11(DWORD minFilter, DWORD magFilter, DWORD mipFilter)
 {
@@ -246,10 +161,6 @@ public:
 			m_RenderStates[i] = gs_DefaultRenderStates[i];
 
 		for (i = 0; i < STATEMANAGER_MAX_STAGES; i++)
-			for (y = 0; y < STATEMANAGER_MAX_TEXTURESTATES; y++)
-				m_TextureStates[i][y] = 0x7FFFFFFF;
-
-		for (i = 0; i < STATEMANAGER_MAX_STAGES; i++)
 		{
 			m_SamplerStates[i][SS11_MINFILTER] = TF11_LINEAR;
 			m_SamplerStates[i][SS11_MAGFILTER] = TF11_LINEAR;
@@ -274,7 +185,6 @@ public:
 	}
 
 	DWORD					m_RenderStates[RS11_MAX];
-	DWORD					m_TextureStates[STATEMANAGER_MAX_STAGES][STATEMANAGER_MAX_TEXTURESTATES];
 	DWORD					m_SamplerStates[STATEMANAGER_MAX_STAGES][SS11_MAX];
 
 	ID3D11ShaderResourceView* m_Textures[STATEMANAGER_MAX_STAGES];
@@ -322,11 +232,6 @@ public:
 	void	RestoreTexture(DWORD dwStage);
 	void	SetTexture(DWORD dwStage, ID3D11ShaderResourceView* pSRV);
 	void	GetTexture(DWORD dwStage, ID3D11ShaderResourceView** ppSRV);
-
-	void	SaveTextureStageState(DWORD dwStage, ETextureStageState11 Type, DWORD dwValue);
-	void	RestoreTextureStageState(DWORD dwStage, ETextureStageState11 Type);
-	void	SetTextureStageState(DWORD dwStage, ETextureStageState11 Type, DWORD dwValue);
-	void	GetTextureStageState(DWORD dwStage, ETextureStageState11 Type, DWORD* pdwValue);
 
 	void	SetBestFiltering(DWORD dwStage);
 
@@ -378,7 +283,6 @@ private:
 
 	std::vector<DWORD>						m_RenderStateStack[RS11_MAX];
 	std::vector<DWORD>						m_SamplerStateStack[STATEMANAGER_MAX_STAGES][SS11_MAX];
-	std::vector<DWORD>						m_TextureStageStateStack[STATEMANAGER_MAX_STAGES][STATEMANAGER_MAX_TEXTURESTATES];
 	std::vector<D3DXMATRIX>					m_TransformStack[SM_MAX_TRANSFORMS];
 	std::vector<ID3D11ShaderResourceView*>	m_TextureStack[STATEMANAGER_MAX_STAGES];
 	std::vector<D3DMATERIAL11>				m_MaterialStack;

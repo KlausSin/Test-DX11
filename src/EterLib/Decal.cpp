@@ -227,7 +227,7 @@ void CDecal::Render()
 	D3DXMatrixIdentity(&matWorld);
 	STATEMANAGER.SetTransform(World, &matWorld);
 	
-	_mgr->SetShader(VF_PDT);
+	_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 
 	for (DWORD dwi = 0; dwi < m_TriangleFanStructVector.size(); ++dwi)
 		STATEMANAGER.DrawTriangleFan11(

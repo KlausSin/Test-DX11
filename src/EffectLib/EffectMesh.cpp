@@ -461,7 +461,6 @@ void CEffectMeshScript::ReserveMeshData(DWORD dwMeshCount)
 		rMeshData.byBlendingDestType = D3D11_BLEND_ONE;
 		rMeshData.bTextureAlphaEnable = FALSE;
 
-		rMeshData.byColorOperationType = TOP11_MODULATE;
 		rMeshData.ColorFactor = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
 
 		rMeshData.bTextureAnimationLoopEnable = true;
@@ -655,7 +654,6 @@ BOOL CEffectMeshScript::OnLoadScript(CTextFileLoader & rTextFileLoader)
 
 		if (!rTextFileLoader.GetTokenByte("coloroperationtype", &rMeshData.byColorOperationType))
 		{
-			rMeshData.byColorOperationType = TOP11_MODULATE;
 		}
 		if (!rTextFileLoader.GetTokenColor("colorfactor", &rMeshData.ColorFactor))
 		{

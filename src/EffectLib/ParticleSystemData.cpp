@@ -150,7 +150,6 @@ BOOL CParticleSystemData::OnLoadScript(CTextFileLoader & rTextFileLoader)
 	}
 	if (!rTextFileLoader.GetTokenByte("coloroperationtype", &m_ParticleProperty.m_byColorOperationType))
 	{
-		m_ParticleProperty.m_byColorOperationType = TOP11_MODULATE;
 	}
 
 	if (!rTextFileLoader.GetTokenByte("billboardtype", &m_ParticleProperty.m_byBillboardType))

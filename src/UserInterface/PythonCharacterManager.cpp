@@ -510,15 +510,8 @@ void CPythonCharacterManager::__RenderSortedDeadActorList()
 void CPythonCharacterManager::Render()
 {
 	STATEMANAGER.SetTexture(0, NULL);	
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2,	TA11_CURRENT);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP,	TOP11_MODULATE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP,	TOP11_SELECTARG1);
 
 	STATEMANAGER.SetTexture(1, NULL);
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP,	TOP11_DISABLE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP,	TOP11_DISABLE);
 
 
 	__RenderSortedAliveActorList();

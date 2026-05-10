@@ -40,6 +40,7 @@ cbuffer cbLighting : register(b2)
 	float4 matEmissive;
 	int lightingEnable; 
 	int pad0; int pad1; int pad2;
+	float4 specularColor; // rgb = culoare, a = power
 };
 
 cbuffer cbTexTransform : register(b3)

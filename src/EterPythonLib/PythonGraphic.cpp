@@ -375,18 +375,10 @@ void CPythonGraphic::RenderCoolTimeBox(float fxCenter, float fyCenter, float fRa
 
 	if (SetPDTStream(&vertices[0], vertices.size()))
 	{
-		STATEMANAGER.SaveTextureStageState(0, TSS11_COLORARG1,	TA11_DIFFUSE);
-		STATEMANAGER.SaveTextureStageState(0, TSS11_COLOROP,	TOP11_SELECTARG1);
-		STATEMANAGER.SaveTextureStageState(0, TSS11_ALPHAARG1,	TA11_DIFFUSE);
-		STATEMANAGER.SaveTextureStageState(0, TSS11_ALPHAOP,	TOP11_SELECTARG1);
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
-		_mgr->SetShader(VF_PDT);
+		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 		STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, iTriCount, 0);
-		STATEMANAGER.RestoreTextureStageState(0, TSS11_COLORARG1);
-		STATEMANAGER.RestoreTextureStageState(0, TSS11_COLOROP);
-		STATEMANAGER.RestoreTextureStageState(0, TSS11_ALPHAARG1);
-		STATEMANAGER.RestoreTextureStageState(0, TSS11_ALPHAOP);
 	}
 }
 

@@ -20,11 +20,6 @@ CD3D11Renderer::~CD3D11Renderer()
 	Destroy();
 }
 
-bool CD3D11Renderer::CreateConstantBuffers()
-{
-
-	return true;
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Initialize — compile shaders, create buffers, set defaults
@@ -33,11 +28,6 @@ bool CD3D11Renderer::Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCon
 {
 	m_pDevice = pDevice;
 	m_pContext = pContext;
-
-	if (!CreateConstantBuffers())
-	{
-		Tracenf("D3D11Renderer: Failed constant buffers"); return false;
-	}
 
 	// Create default sampler (linear wrap)
 	D3D11_SAMPLER_DESC sd = {};
@@ -53,10 +43,7 @@ bool CD3D11Renderer::Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCon
 		Tracenf("D3D11Renderer: Failed default sampler"); return false;
 	}
 
-	// Set default state
-	m_eCurrentFormat = VF_PDT;
-	SetVertexFormat(VF_PDT);
-
+	_mgr->SetShader(VF_PDT, BLEND_MODULATE);
 	m_pContext->PSSetSamplers(0, 1, m_pDefaultSampler.GetAddressOf());
 	m_pContext->PSSetSamplers(1, 1, m_pDefaultSampler.GetAddressOf());
 
@@ -84,19 +71,6 @@ bool CD3D11Renderer::Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCon
 	_mgr->GetCbMgr()->m_cbMaterial.textureFactor[0] = _mgr->GetCbMgr()->m_cbMaterial.textureFactor[1] = _mgr->GetCbMgr()->m_cbMaterial.textureFactor[2] = _mgr->GetCbMgr()->m_cbMaterial.textureFactor[3] = 1.0f;
 	_mgr->GetCbMgr()->m_cbMaterial.useTexture0 = 1;
 	_mgr->GetCbMgr()->m_cbMaterial.useTexture1 = 0;
-	_mgr->GetCbMgr()->m_cbMaterial.colorOp0 = 0;
-	_mgr->GetCbMgr()->m_cbMaterial.alphaOp0 = 1;
-	_mgr->GetCbMgr()->m_cbMaterial.colorOp1 = -1;
-	_mgr->GetCbMgr()->m_cbMaterial.alphaOp1 = -1;
-	_mgr->GetCbMgr()->m_cbMaterial.colorArg10 = TA11_TEXTURE;
-	_mgr->GetCbMgr()->m_cbMaterial.colorArg20 = TA11_DIFFUSE;
-	_mgr->GetCbMgr()->m_cbMaterial.alphaArg10 = TA11_TEXTURE;
-	_mgr->GetCbMgr()->m_cbMaterial.alphaArg20 = TA11_DIFFUSE;
-	_mgr->GetCbMgr()->m_cbMaterial.colorArg11 = TA11_TEXTURE;
-	_mgr->GetCbMgr()->m_cbMaterial.colorArg21 = TA11_CURRENT;
-	_mgr->GetCbMgr()->m_cbMaterial.alphaArg11 = TA11_TEXTURE;
-	_mgr->GetCbMgr()->m_cbMaterial.alphaArg21 = TA11_CURRENT;
-	_mgr->GetCbMgr()->m_cbMaterial.texCoordGen1 = 0;
 
 	// Default lighting
 	_mgr->GetCbMgr()->m_cbLighting.lightAmbient[0] = _mgr->GetCbMgr()->m_cbLighting.lightAmbient[1] = _mgr->GetCbMgr()->m_cbLighting.lightAmbient[2] = 0.0f;
@@ -112,36 +86,17 @@ bool CD3D11Renderer::Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCon
 	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbTexTransform.matTexTransform1);
 
 	// Flush everything
-	_mgr->GetCbMgr()->m_bTransformDirty = _mgr->GetCbMgr()->m_bMaterialDirty = _mgr->GetCbMgr()->m_bLightingDirty = _mgr->GetCbMgr()->m_bFogDirty = true;
+	_mgr->GetCbMgr()->m_bTransformDirty = _mgr->GetCbMgr()->m_bMaterialDirty =
+		_mgr->GetCbMgr()->m_bLightingDirty = _mgr->GetCbMgr()->m_bFogDirty = true;
 	m_bBlendDirty = m_bDepthDirty = m_bRasterDirty = true;
 
 	FlushAllState();
 
 	// Bind constant buffers to all shader stages
-	_mgr->SetConstantBuffer(_mgr->GetCbMgr()->m_pCBPerFrame, 0);
-	_mgr->SetConstantBuffer(_mgr->GetCbMgr()->m_pCBMaterial, 1);
-	_mgr->SetConstantBuffer(_mgr->GetCbMgr()->m_pCBLighting, 2);
-	_mgr->SetConstantBuffer(_mgr->GetCbMgr()->m_pCBTexTransform, 3);
-	_mgr->SetConstantBuffer(_mgr->GetCbMgr()->m_pCBFog, 4);
-	_mgr->SetConstantBuffer(_mgr->GetCbMgr()->m_pCBScreenSize, 5);
-	_mgr->SetConstantBuffer(_mgr->GetCbMgr()->m_pCBBonePalette, 6);
-	_mgr->SetConstantBuffer(_mgr->GetCbMgr()->m_pCBSpeedTree, 7);
+	_mgr->GetCbMgr()->SetAllBuffers();
 
 	Tracenf("D3D11Renderer: Initialization complete");
 	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// Vertex format selection
-///////////////////////////////////////////////////////////////////////////////
-void CD3D11Renderer::SetVertexFormat(ED3D11VertexFormat eFormat)
-{
-	if (eFormat >= VF_COUNT || !m_pContext)
-		return;
-
-	m_eCurrentFormat = eFormat;
-
-	_mgr->SetShader(eFormat);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -264,17 +219,7 @@ void CD3D11Renderer::FlushRasterState()
 ///////////////////////////////////////////////////////////////////////////////
 // Alpha test (shader-based in D3D11)
 ///////////////////////////////////////////////////////////////////////////////
-void CD3D11Renderer::SetAlphaTestEnable(BOOL bEnable)
-{
-	_mgr->GetCbMgr()->m_cbMaterial.alphaTestEnable = bEnable ? 1 : 0;
-	_mgr->GetCbMgr()->m_bMaterialDirty = true;
-}
 
-void CD3D11Renderer::SetAlphaRef(DWORD dwRef)
-{
-	_mgr->GetCbMgr()->m_cbMaterial.alphaRef = (int)(dwRef & 0xFF);
-	_mgr->GetCbMgr()->m_bMaterialDirty = true;
-}
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -348,23 +293,11 @@ void CD3D11Renderer::SetSamplerState(DWORD dwStage, D3D11_FILTER filter, D3D11_T
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Screen size (for XYZRHW conversion)
-///////////////////////////////////////////////////////////////////////////////
-void CD3D11Renderer::SetScreenSize(float width, float height)
-{
-	_mgr->GetCbMgr()->SetScreenSize(width, height);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // Flush all dirty state before a draw call
 ///////////////////////////////////////////////////////////////////////////////
 void CD3D11Renderer::FlushAllState()
 {
-	_mgr->GetCbMgr()->FlushTransforms();
-	_mgr->GetCbMgr()->FlushMaterial();
-	_mgr->GetCbMgr()->FlushLighting();
-	_mgr->GetCbMgr()->FlushFog();
-	_mgr->GetCbMgr()->FlushSpeedTree();
+	_mgr->GetCbMgr()->FlushAllState();
 	FlushBlendState();
 	FlushDepthState();
 	FlushRasterState();

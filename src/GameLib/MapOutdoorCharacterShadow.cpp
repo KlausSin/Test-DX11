@@ -138,10 +138,6 @@ bool CMapOutdoor::BeginRenderCharacterShadowToTexture()
 	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
 
 	STATEMANAGER.SaveRenderState(RS11_TEXTUREFACTOR, 0xFF808080);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_SELECTARG1);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TFACTOR);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, TOP11_DISABLE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP, TOP11_DISABLE);
 
 	// Save current render targets and viewport
 	ms_lpd3d11Context->OMGetRenderTargets(1, &m_lpBackupRTV, &m_lpBackupDSV);

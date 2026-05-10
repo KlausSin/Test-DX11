@@ -3,7 +3,7 @@
 #include "ConstantBuffer.h"
 #include "ConstantBufferManager.h"
 
-CBManager::CBManager(DxManager* manager)
+CBManager::CBManager(DxManager* manager) : m_manager(manager)
 {
 	manager->CreateConstantBuffer(m_pCBPerFrame, sizeof(CBPerFrame));
 	manager->CreateConstantBuffer(m_pCBMaterial, sizeof(CBMaterial));
@@ -49,6 +49,10 @@ void CBManager::SetTexTransform(DWORD dwStage, const D3DXMATRIX& mat)
 		m_cbTexTransform.matTexTransform0 = mat;
 	else if (dwStage == 1)
 		m_cbTexTransform.matTexTransform1 = mat;
+	else if (dwStage == 2)
+		m_cbTexTransform.matTexTransform2 = mat;
+	else if (dwStage == 3)
+		m_cbTexTransform.matTexTransform3 = mat;
 	else
 		return;
 
@@ -196,39 +200,16 @@ void CBManager::SetTextureFactor(DWORD dwFactor)
 	m_bMaterialDirty = true;
 }
 
-void CBManager::SetTextureStageOp(DWORD dwStage, int colorOp, int alphaOp)
+void CBManager::SetAlphaTestEnable(BOOL bEnable)
 {
-	if (dwStage == 0) { m_cbMaterial.colorOp0 = colorOp; m_cbMaterial.alphaOp0 = alphaOp; }
-	else if (dwStage == 1) { m_cbMaterial.colorOp1 = colorOp; m_cbMaterial.alphaOp1 = alphaOp; }
+	m_cbMaterial.alphaTestEnable = bEnable ? 1 : 0;
 	m_bMaterialDirty = true;
 }
 
-void CBManager::SetTextureStageArgs(DWORD dwStage, int colorArg1, int colorArg2, int alphaArg1, int alphaArg2)
+void CBManager::SetAlphaRef(DWORD dwRef)
 {
-	if (dwStage == 0)
-	{
-		m_cbMaterial.colorArg10 = colorArg1;
-		m_cbMaterial.colorArg20 = colorArg2;
-		m_cbMaterial.alphaArg10 = alphaArg1;
-		m_cbMaterial.alphaArg20 = alphaArg2;
-	}
-	else if (dwStage == 1)
-	{
-		m_cbMaterial.colorArg11 = colorArg1;
-		m_cbMaterial.colorArg21 = colorArg2;
-		m_cbMaterial.alphaArg11 = alphaArg1;
-		m_cbMaterial.alphaArg21 = alphaArg2;
-	}
+	m_cbMaterial.alphaRef = (int)(dwRef & 0xFF);
 	m_bMaterialDirty = true;
-}
-
-void CBManager::SetTexCoordGen(DWORD dwStage, int mode)
-{
-	if (dwStage == 1)
-	{
-		m_cbMaterial.texCoordGen1 = mode;
-		m_bMaterialDirty = true;
-	}
 }
 
 void CBManager::FlushMaterial()
@@ -265,6 +246,35 @@ bool CBManager::UploadBonePalette(const DirectX::XMFLOAT4X4* bones, unsigned int
 	return true;
 }
 
+void CBManager::SetSpecularPower(float power, const D3DXCOLOR& color)
+{
+	m_cbLighting.specularColor[0] = color.r;
+	m_cbLighting.specularColor[1] = color.g;
+	m_cbLighting.specularColor[2] = color.b;
+	m_cbLighting.specularColor[3] = power;
+	m_bLightingDirty = true;
+}
+
+void CBManager::FlushAllState()
+{
+	FlushTransforms();
+	FlushMaterial();
+	FlushLighting();
+	FlushFog();
+	FlushSpeedTree();
+}
+
+void CBManager::SetAllBuffers()
+{
+	m_manager->SetConstantBuffer(m_pCBPerFrame, 0);
+	m_manager->SetConstantBuffer(m_pCBMaterial, 1);
+	m_manager->SetConstantBuffer(m_pCBLighting, 2);
+	m_manager->SetConstantBuffer(m_pCBTexTransform, 3);
+	m_manager->SetConstantBuffer(m_pCBFog, 4);
+	m_manager->SetConstantBuffer(m_pCBScreenSize, 5);
+	m_manager->SetConstantBuffer(m_pCBBonePalette, 6);
+	m_manager->SetConstantBuffer(m_pCBSpeedTree, 7);
+}
 
 void CBManager::SetSpeedTreeCompoundMatrix(const D3DXMATRIX& mat)
 {

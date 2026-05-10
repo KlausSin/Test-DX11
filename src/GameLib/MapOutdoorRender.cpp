@@ -323,12 +323,10 @@ struct FRenderPCBlocker
 		{
 			if (pThingInstance->HaveBlendThing())
 			{
-				STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP,   TOP11_DISABLE);
 				pThingInstance->BlendRender();
 				return;
 			}
 		}
-		STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP, TOP11_SELECTARG1);
 
 		pInstance->RenderPCBlocker();
 	}
@@ -676,15 +674,10 @@ void CMapOutdoor::NEW_DrawWireFrame(CTerrainPatchProxy * pTerrainPatchProxy, WOR
 	
 	STATEMANAGER.SetTexture(0, NULL);
 	STATEMANAGER.SetTexture(1, NULL);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_DISABLE);
 	
 	STATEMANAGER.DrawIndexedPrimitive11(ePrimitiveType, 0, 0, wPrimitiveCount);
 	STATEMANAGER.SetRenderState(RS11_FILLMODE, dwFillMode);
 	STATEMANAGER.SetRenderState(RS11_FOGENABLE, dwFogEnable);
-	
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2, TA11_CURRENT);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP,   TOP11_MODULATE);	
 }
 
 void CMapOutdoor::DrawWireFrame(long patchnum, WORD wPrimitiveCount, D3D11_PRIMITIVE_TOPOLOGY ePrimitiveType)
@@ -711,16 +704,11 @@ void CMapOutdoor::DrawWireFrame(long patchnum, WORD wPrimitiveCount, D3D11_PRIMI
 	
 	STATEMANAGER.SetTexture(0, NULL);
 	STATEMANAGER.SetTexture(1, NULL);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_DISABLE);
 
 	STATEMANAGER.DrawIndexedPrimitive11(ePrimitiveType, 0, 0, wPrimitiveCount);
 
 	STATEMANAGER.SetRenderState(RS11_FILLMODE, dwFillMode);
 	STATEMANAGER.SetRenderState(RS11_FOGENABLE, dwFogEnable);
-
- 	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2, TA11_CURRENT);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP,   TOP11_MODULATE);	
 }
 
 // Attr

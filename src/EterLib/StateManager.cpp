@@ -154,11 +154,6 @@ void CStateManager::Restore()
 
 	for (i = 0; i < STATEMANAGER_MAX_STAGES; ++i)
 	{
-		for (j = 0; j < STATEMANAGER_MAX_TEXTURESTATES; ++j)
-		{
-			SetTextureStageState(i, ETextureStageState11(j), m_CurrentState.m_TextureStates[i][j]);
-		}
-
 		for (j = 0; j < SS11_MAX; ++j)
 		{
 			SetSamplerState(i, (ESamplerStateType11)j, m_CurrentState.m_SamplerStates[i][j]);
@@ -182,10 +177,6 @@ void CStateManager::SetDefaultState()
 		stack.clear();
 
 	for (auto& stageStacks : m_SamplerStateStack)
-		for (auto& stack : stageStacks)
-			stack.clear();
-
-	for (auto& stageStacks : m_TextureStageStateStack)
 		for (auto& stack : stageStacks)
 			stack.clear();
 
@@ -265,26 +256,9 @@ void CStateManager::SetDefaultState()
 	SetRenderState(RS11_ALPHATESTENABLE, FALSE);
 	SetRenderState(RS11_LIGHTING, FALSE);
 
-	SetTextureStageState(0, TSS11_COLOROP, TOP11_MODULATE);
-	SetTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
-	SetTextureStageState(0, TSS11_COLORARG2, TA11_CURRENT);
-	SetTextureStageState(0, TSS11_ALPHAARG1, TA11_TEXTURE);
-	SetTextureStageState(0, TSS11_ALPHAARG2, TA11_CURRENT);
-	SetTextureStageState(0, TSS11_ALPHAOP, TOP11_SELECTARG1);
-
-	for (DWORD i = 1; i < 8; ++i)
-	{
-		SetTextureStageState(i, TSS11_COLOROP, TOP11_DISABLE);
-		SetTextureStageState(i, TSS11_COLORARG1, TA11_TEXTURE);
-		SetTextureStageState(i, TSS11_COLORARG2, TA11_DIFFUSE);
-		SetTextureStageState(i, TSS11_ALPHAOP, TOP11_DISABLE);
-		SetTextureStageState(i, TSS11_ALPHAARG1, TA11_TEXTURE);
-		SetTextureStageState(i, TSS11_ALPHAARG2, TA11_DIFFUSE);
-	}
 
 	for (DWORD i = 0; i < 8; ++i)
 	{
-		SetTextureStageState(i, TSS11_TEXCOORDINDEX, i);
 
 		SetSamplerState(i, SS11_MINFILTER, TF11_LINEAR);
 		SetSamplerState(i, SS11_MAGFILTER, TF11_LINEAR);
@@ -292,10 +266,7 @@ void CStateManager::SetDefaultState()
 
 		SetSamplerState(i, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_WRAP);
 		SetSamplerState(i, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_WRAP);
-		SetTextureStageState(i, TSS11_TEXTURETRANSFORMFLAGS, 0);
 		SetTexture(i, NULL);
-
-
 	}
 
 	D3DXVECTOR4 av4Null[STATEMANAGER_MAX_VCONSTANTS];
@@ -394,8 +365,8 @@ void CStateManager::SetRenderState(ERenderState11 Type, DWORD Value)
 		case RS11_DESTBLEND:        m_pD3D11Renderer->SetDestBlend((D3D11_BLEND)Value); break;
 		case RS11_BLENDOP:          m_pD3D11Renderer->SetBlendOp((D3D11_BLEND_OP)Value); break;
 
-		case RS11_ALPHATESTENABLE:  m_pD3D11Renderer->SetAlphaTestEnable(Value); break;
-		case RS11_ALPHAREF:         m_pD3D11Renderer->SetAlphaRef(Value); break;
+		case RS11_ALPHATESTENABLE:  _mgr->GetCbMgr()->SetAlphaTestEnable(Value); break;
+		case RS11_ALPHAREF:         _mgr->GetCbMgr()->SetAlphaRef(Value); break;
 
 		case RS11_ZENABLE:          m_pD3D11Renderer->SetZEnable(Value); break;
 		case RS11_ZWRITEENABLE:     m_pD3D11Renderer->SetZWriteEnable(Value); break;
@@ -464,72 +435,6 @@ void CStateManager::SetTexture(DWORD dwStage, ID3D11ShaderResourceView* pSRV)
 void CStateManager::GetTexture(DWORD dwStage, ID3D11ShaderResourceView** ppSRV)
 {
 	*ppSRV = m_CurrentState.m_Textures[dwStage];
-}
-
-void CStateManager::SaveTextureStageState(DWORD dwStage, ETextureStageState11 Type, DWORD dwValue)
-{
-	m_TextureStageStateStack[dwStage][Type].push_back(m_CurrentState.m_TextureStates[dwStage][Type]);
-	SetTextureStageState(dwStage, Type, dwValue);
-}
-
-void CStateManager::RestoreTextureStageState(DWORD dwStage, ETextureStageState11 Type)
-{
-#ifdef _DEBUG
-	if (m_TextureStageStateStack[dwStage][Type].empty())
-	{
-		Tracef(" CStateManager::RestoreTextureStageState - This texture stage state was not saved [%d, %d]\n", dwStage, Type);
-		StateManager_Assert(!" This texture stage state was not saved!");
-		return;
-	}
-#endif
-	SetTextureStageState(dwStage, Type, m_TextureStageStateStack[dwStage][Type].back());
-	m_TextureStageStateStack[dwStage][Type].pop_back();
-}
-
-void CStateManager::SetTextureStageState(DWORD dwStage, ETextureStageState11 Type, DWORD dwValue)
-{
-	if (!m_bForce && m_CurrentState.m_TextureStates[dwStage][Type] == dwValue)
-		return;
-
-	m_CurrentState.m_TextureStates[dwStage][Type] = dwValue;
-
-	if (m_pD3D11Renderer && dwStage < 2)
-	{
-		if (Type == TSS11_COLOROP || Type == TSS11_ALPHAOP)
-		{
-			int colorOp = MapTextureOp(m_CurrentState.m_TextureStates[dwStage][TSS11_COLOROP]);
-			int alphaOp = MapTextureOp(m_CurrentState.m_TextureStates[dwStage][TSS11_ALPHAOP]);
-			m_pD3D11Renderer->GetCbMgr()->SetTextureStageOp(dwStage, colorOp, alphaOp);
-		}
-
-		if (Type == TSS11_COLORARG1 || Type == TSS11_COLORARG2 ||
-			Type == TSS11_ALPHAARG1 || Type == TSS11_ALPHAARG2)
-		{
-			int colorArg1 = (int)m_CurrentState.m_TextureStates[dwStage][TSS11_COLORARG1];
-			int colorArg2 = (int)m_CurrentState.m_TextureStates[dwStage][TSS11_COLORARG2];
-			int alphaArg1 = (int)m_CurrentState.m_TextureStates[dwStage][TSS11_ALPHAARG1];
-			int alphaArg2 = (int)m_CurrentState.m_TextureStates[dwStage][TSS11_ALPHAARG2];
-			m_pD3D11Renderer->GetCbMgr()->SetTextureStageArgs(dwStage, colorArg1, colorArg2, alphaArg1, alphaArg2);
-		}
-
-		if (Type == TSS11_TEXCOORDINDEX)
-		{
-			DWORD tciFlags = dwValue & 0xFFFF0000;
-			int mode = 0;
-			if (tciFlags == TSS11_TCI_CAMERASPACEPOSITION)
-				mode = 1;
-			else if (tciFlags == TSS11_TCI_CAMERASPACEREFLECTIONVECTOR)
-				mode = 2;
-			else if (tciFlags == TSS11_TCI_CAMERASPACENORMAL)
-				mode = 3;
-			m_pD3D11Renderer->GetCbMgr()->SetTexCoordGen(dwStage, mode);
-		}
-	}
-}
-
-void CStateManager::GetTextureStageState(DWORD dwStage, ETextureStageState11 Type, DWORD* pdwValue)
-{
-	*pdwValue = m_CurrentState.m_TextureStates[dwStage][Type];
 }
 
 // Sampler states
@@ -623,6 +528,10 @@ void CStateManager::SetTransform(ETransform Type, const D3DXMATRIX* pMatrix)
 			m_pD3D11Renderer->GetCbMgr()->SetTexTransform(0, *pMatrix);
 		else if (Type == Texture1)
 			m_pD3D11Renderer->GetCbMgr()->SetTexTransform(1, *pMatrix);
+		else if (Type == Texture2)
+			m_pD3D11Renderer->GetCbMgr()->SetTexTransform(2, *pMatrix);
+		else if (Type == Texture3)
+			m_pD3D11Renderer->GetCbMgr()->SetTexTransform(3, *pMatrix);
 	}
 }
 

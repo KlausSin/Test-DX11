@@ -20,7 +20,7 @@ void CGrannyModelInstance::Clear()
 
 void CGrannyModelInstance::SetMainModelPointer(CGrannyModel* pModel)
 {
-	SetLinkedModelPointer(pModel, NULL);
+	SetLinkedModelPointer(pModel, nullptr);
 }
 
 void CGrannyModelInstance::SetLinkedModelPointer(CGrannyModel* pkModel, CGrannyModelInstance** ppkSkeletonInst)
@@ -44,8 +44,8 @@ void CGrannyModelInstance::SetLinkedModelPointer(CGrannyModel* pkModel, CGrannyM
 	}
 	else
 	{
-		__CreateWorldPose(NULL);
-		__CreateMeshBindingVector(NULL);
+		__CreateWorldPose(nullptr);
+		__CreateMeshBindingVector(nullptr);
 	}
 
 	__CreateMeshMatrices();
@@ -63,8 +63,8 @@ granny_world_pose* CGrannyModelInstance::__GetWorldPosePtr() const
 	if (m_ppkSkeletonInst && *m_ppkSkeletonInst)
 		return (*m_ppkSkeletonInst)->m_pgrnWorldPoseReal;
 
-	assert(m_ppkSkeletonInst != NULL && "__GetWorldPosePtr - NO HAVE SKELETON");
-	return NULL;
+	assert(m_ppkSkeletonInst != nullptr && "__GetWorldPosePtr - NO HAVE SKELETON");
+	return nullptr;
 }
 
 int* CGrannyModelInstance::__GetMeshBoneIndices(unsigned int iMeshBinding) const
@@ -106,8 +106,8 @@ void CGrannyModelInstance::__DestroyMeshBindingVector()
 
 void CGrannyModelInstance::__CreateWorldPose(CGrannyModelInstance* pkSkeletonInst)
 {
-	assert(m_pgrnModelInstance != NULL);
-	assert(m_pgrnWorldPoseReal == NULL);
+	assert(m_pgrnModelInstance != nullptr);
+	assert(m_pgrnWorldPoseReal == nullptr);
 
 	if (pkSkeletonInst)
 		return;
@@ -122,13 +122,13 @@ void CGrannyModelInstance::__DestroyWorldPose()
 		return;
 
 	GrannyFreeWorldPose(m_pgrnWorldPoseReal);
-	m_pgrnWorldPoseReal = NULL;
+	m_pgrnWorldPoseReal = nullptr;
 }
 
 void CGrannyModelInstance::__CreateModelInstance()
 {
-	assert(m_pModel != NULL);
-	assert(m_pgrnModelInstance == NULL);
+	assert(m_pModel != nullptr);
+	assert(m_pgrnModelInstance == nullptr);
 
 	const granny_model* pgrnModel = m_pModel->GetGrannyModelPointer();
 	m_pgrnModelInstance = GrannyInstantiateModel(pgrnModel);
@@ -140,27 +140,24 @@ void CGrannyModelInstance::__DestroyModelInstance()
 		return;
 
 	GrannyFreeModelInstance(m_pgrnModelInstance);
-	m_pgrnModelInstance = NULL;
+	m_pgrnModelInstance = nullptr;
 }
 
 void CGrannyModelInstance::__CreateMeshMatrices()
 {
-	assert(m_pModel != NULL);
+	assert(m_pModel != nullptr);
 
 	if (m_pModel->GetMeshCount() <= 0)
 		return;
 
 	int meshCount = m_pModel->GetMeshCount();
-	m_meshMatrices = new D3DXMATRIX[meshCount];
+	m_meshMatrices.resize(static_cast<size_t>(meshCount));
 }
 
 void CGrannyModelInstance::__DestroyMeshMatrices()
 {
-	if (!m_meshMatrices)
-		return;
-
-	delete[] m_meshMatrices;
-	m_meshMatrices = NULL;
+	m_meshMatrices.clear();
+	m_meshMatrices.shrink_to_fit();
 }
 
 DWORD CGrannyModelInstance::GetDeformableVertexCount()
@@ -181,7 +178,7 @@ DWORD CGrannyModelInstance::GetVertexCount()
 
 bool CGrannyModelInstance::GetBoneIndexByName(const char* c_szBoneName, int* pBoneIndex) const
 {
-	assert(m_pgrnModelInstance != NULL);
+	assert(m_pgrnModelInstance != nullptr);
 
 	granny_skeleton* pgrnSkeleton = GrannyGetSourceSkeleton(m_pgrnModelInstance);
 
@@ -197,7 +194,7 @@ const float* CGrannyModelInstance::GetBoneMatrixPointer(int iBone) const
 	if (!bones)
 	{
 		granny_model* pModel = m_pModel->GetGrannyModelPointer();
-		return NULL;
+		return nullptr;
 	}
 	return bones;
 }

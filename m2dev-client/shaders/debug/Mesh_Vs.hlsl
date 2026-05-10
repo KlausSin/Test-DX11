@@ -14,25 +14,14 @@ struct VS_INPUT
 #endif
 };
 
-#ifdef HAS_TEX2
-struct VS_OUTPUT
-{
-    float4 pos       : SV_POSITION;
-    float4 color     : COLOR0;
-    float2 tex0      : TEXCOORD0;
-    float2 tex1      : TEXCOORD1;
-    float  viewDepth : TEXCOORD2;
-};
-#else
 struct VS_OUTPUT
 {
     float4 pos : SV_POSITION;
     float4 color : COLOR0;
     float2 tex0 : TEXCOORD0;
-    float viewDepth : TEXCOORD1;
     float2 tex1 : TEXCOORD2;
+    float viewDepth : TEXCOORD1;
 };
-#endif
 
 #ifdef IS_SKINNED
 static void SkinVertex(VS_INPUT input, out float4 skinnedPos, out float3 skinnedNormal)
@@ -70,6 +59,7 @@ VS_OUTPUT main(VS_INPUT input)
 
     float4 worldPos = mul(localPos, matWorld);
     float4 viewPos = mul(worldPos, matView);
+
     output.pos = mul(viewPos, matProj);
     output.viewDepth = length(viewPos.xyz);
     output.tex0 = input.tex0;
@@ -80,13 +70,13 @@ VS_OUTPUT main(VS_INPUT input)
     {
 #ifdef HAS_TEX2
         float NdotL = max(dot(worldNormal, -lightDir.xyz), 0.0f);
-        output.color = saturate(matDiffuse * lightDiffuse * NdotL + matAmbient * lightAmbient + matEmissive);
+        output.color   = saturate(matDiffuse * lightDiffuse * NdotL + matAmbient * lightAmbient + matEmissive);
         output.color.a = matDiffuse.a;
 #else
         float3 L = normalize(-lightDir.xyz);
         float NdotL = max(dot(worldNormal, L), 0.0f);
-
         float3 ambient = matAmbient.rgb * lightAmbient.rgb;
+
         if (length(ambient) < 0.001f)
             ambient = float3(0.5f, 0.5f, 0.5f);
 
@@ -100,48 +90,22 @@ VS_OUTPUT main(VS_INPUT input)
         output.color = float4(1, 1, 1, 1);
     }
 
-#ifdef HAS_TEX2
-    if (texCoordGen1 == 2)
-    {
-        float3 viewNormal = normalize(mul(worldNormal, (float3x3)matView));
-        float3 viewDir    = normalize(viewPos.xyz);
-        float3 reflVec    = reflect(viewDir, viewNormal);
-        float4 tc         = mul(float4(reflVec, 1.0f), matTexTransform1);
-        output.tex1 = tc.xy;
-    }
-    else if (texCoordGen1 == 1)
-    {
-        float4 tc   = mul(float4(viewPos.xyz, 1.0f), matTexTransform1);
-        output.tex1 = tc.xy;
-    }
-    else if (texCoordGen1 == 3)
-    {
-        float3 viewNormal = normalize(mul(worldNormal, (float3x3)matView));
-        float4 tc         = mul(float4(viewNormal, 1.0f), matTexTransform1);
-        output.tex1 = tc.xy;
-    }
-    else
-    {
-        output.tex1 = input.tex1;
-    }
+#ifdef MESH_SPECULAR
+    float3 viewNormal = normalize(mul(worldNormal, (float3x3)matView));
+    float3 viewDir    = normalize(viewPos.xyz);
+    float3 reflVec    = reflect(viewDir, viewNormal);
+
+    float2 uv = reflVec.xy;
+
+    float2 ofsA = float2(matTexTransform1._41, matTexTransform1._42);
+    float2 ofsB = float2(matTexTransform1._14, matTexTransform1._24);
+
+    output.tex1 = uv + ofsA + ofsB;
+
+#elif defined(HAS_TEX2)
+    output.tex1 = input.tex1;
 #else
-    if (texCoordGen1 == 2)
-    {
-        float3 viewNormal = normalize(mul(worldNormal, (float3x3) matView));
-        float3 viewDir = normalize(viewPos.xyz);
-        float3 reflVec = reflect(viewDir, viewNormal);
-        float4 tc = mul(float4(reflVec, 1.0f), matTexTransform1);
-        output.tex1 = tc.xy;
-    }
-    else if (texCoordGen1 == 1)
-    {
-        float4 tc = mul(float4(viewPos.xyz, 1.0f), matTexTransform1);
-        output.tex1 = tc.xy;
-    }
-    else
-    {
-        output.tex1 = float2(0, 0);
-    }
+    output.tex1 = float2(0, 0);
 #endif
 
     return output;

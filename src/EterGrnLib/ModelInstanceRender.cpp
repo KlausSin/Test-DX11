@@ -148,8 +148,8 @@ void CGrannyModelInstance::RenderWithoutTexture()
 	if (IsEmpty())
 		return;
 
-	STATEMANAGER.SetTexture(0, NULL);
-	STATEMANAGER.SetTexture(1, NULL);
+	STATEMANAGER.SetTexture(0, nullptr);
+	STATEMANAGER.SetTexture(1, nullptr);
 
 	auto skinnedVB = m_pModel->GetSkinnedVertexBuffer();
 	auto rigidVB = m_pModel->GetVertexBuffer();
@@ -200,126 +200,88 @@ bool CGrannyModelInstance::UploadMeshBonePaletteToShader(int iMesh)
 	return _mgr->GetCbMgr()->UploadBonePalette(palette, count);
 }
 
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //// Render Mesh List
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-// With One Texture
+namespace
+{
+    void ApplySpecularOverrideIfNeeded(CGrannyMaterial& material, const SMaterialData& data)
+    {
+        if (data.pImage)
+            return;
+
+        if (std::fabs(material.GetSpecularPower() - data.fSpecularPower) >= std::numeric_limits<float>::epsilon())
+            material.SetSpecularInfo(data.isSpecularEnable, data.fSpecularPower, data.bSphereMapIndex);
+    }
+}
+
+void CGrannyModelInstance::RenderMeshNodeList(TextureMode textureMode, CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType)
+{
+    assert(m_pModel != nullptr);
+
+    const auto indexBuffer = m_pModel->GetIndexBuffer();
+    assert(indexBuffer != nullptr);
+
+    const CGrannyModel::TMeshNode* meshNode = m_pModel->GetMeshNodeList(eMeshType, eMtrlType);
+    _mgr->SetIndexBuffer(indexBuffer);
+
+    while (meshNode)
+    {
+        const CGrannyMesh* mesh = meshNode->pMesh;
+        const int vertexBase = mesh->GetVertexBasePosition();
+
+        STATEMANAGER.SetTransform(World, &m_meshMatrices[meshNode->iMesh]);
+        if (eMeshType == CGrannyMesh::TYPE_DEFORM)
+            UploadMeshBonePaletteToShader(meshNode->iMesh);
+
+        const CGrannyMesh::TTriGroupNode* triGroup = mesh->GetTriGroupNodeList(eMtrlType);
+        while (triGroup)
+        {
+            ms_faceCount += triGroup->triCount;
+
+            if (textureMode == TextureMode::One)
+            {
+                CGrannyMaterial& material = m_kMtrlPal.GetMaterialRef(triGroup->mtrlIndex);
+                ApplySpecularOverrideIfNeeded(material, material_data_);
+				material.SetSkinned(eMeshType == CGrannyMesh::TYPE_DEFORM);
+                material.ApplyRenderState();
+                STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, vertexBase, triGroup->idxPos, triGroup->triCount);
+                material.RestoreRenderState();
+            }
+            else if (textureMode == TextureMode::Two)
+            {
+                const CGrannyMaterial& material = m_kMtrlPal.GetMaterialRef(triGroup->mtrlIndex);
+                STATEMANAGER.SetTexture(0, material.GetSRV(0));
+                STATEMANAGER.SetTexture(1, material.GetSRV(1));
+                STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, vertexBase, triGroup->idxPos, triGroup->triCount);
+            }
+            else
+            {
+                STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, vertexBase, triGroup->idxPos, triGroup->triCount);
+            }
+
+            triGroup = triGroup->pNextTriGroupNode;
+        }
+
+        meshNode = meshNode->pNextMeshNode;
+    }
+}
+
 void CGrannyModelInstance::RenderMeshNodeListWithOneTexture(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType)
 {
-	assert(m_pModel != NULL);
-
-	auto lpd3dIdxBuf = m_pModel->GetIndexBuffer();
-	assert(lpd3dIdxBuf != NULL);
-
-	const CGrannyModel::TMeshNode * pMeshNode = m_pModel->GetMeshNodeList(eMeshType, eMtrlType);
-
-	while (pMeshNode)
-	{
-		const CGrannyMesh * pMesh = pMeshNode->pMesh;
-		int vtxMeshBasePos = pMesh->GetVertexBasePosition();
-
-		_mgr->SetIndexBuffer(lpd3dIdxBuf);
-		STATEMANAGER.SetTransform(World, &m_meshMatrices[pMeshNode->iMesh]);
-		if (eMeshType == CGrannyMesh::TYPE_DEFORM)
-			UploadMeshBonePaletteToShader(pMeshNode->iMesh);
-
-		const CGrannyMesh::TTriGroupNode* pTriGroupNode = pMesh->GetTriGroupNodeList(eMtrlType);
-		int vtxCount = pMesh->GetVertexCount();
-
-		while (pTriGroupNode)
-		{
-			ms_faceCount += pTriGroupNode->triCount;
-
-			CGrannyMaterial& rkMtrl = m_kMtrlPal.GetMaterialRef(pTriGroupNode->mtrlIndex);
-
-			if (!material_data_.pImage)
-			{
-				if (std::fabs(rkMtrl.GetSpecularPower() - material_data_.fSpecularPower) >= std::numeric_limits<float>::epsilon())
-					rkMtrl.SetSpecularInfo(material_data_.isSpecularEnable, material_data_.fSpecularPower, material_data_.bSphereMapIndex);
-			}
-
-			rkMtrl.ApplyRenderState();
-			STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, vtxMeshBasePos, pTriGroupNode->idxPos, pTriGroupNode->triCount);
-			rkMtrl.RestoreRenderState();
-			
-			pTriGroupNode = pTriGroupNode->pNextTriGroupNode;
-		}
-
-		pMeshNode = pMeshNode->pNextMeshNode;
-	}
+    RenderMeshNodeList(TextureMode::One, eMeshType, eMtrlType);
 }
 
-// With Two Texture
 void CGrannyModelInstance::RenderMeshNodeListWithTwoTexture(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType)
 {
-	assert(m_pModel != NULL);
-
-	auto lpd3dIdxBuf = m_pModel->GetIndexBuffer();
-	assert(lpd3dIdxBuf != NULL);
-
-	const CGrannyModel::TMeshNode * pMeshNode = m_pModel->GetMeshNodeList(eMeshType, eMtrlType);
-
-	while (pMeshNode)
-	{
-		const CGrannyMesh * pMesh = pMeshNode->pMesh;
-		int vtxMeshBasePos = pMesh->GetVertexBasePosition();
-
-		_mgr->SetIndexBuffer(lpd3dIdxBuf);
-		STATEMANAGER.SetTransform(World, &m_meshMatrices[pMeshNode->iMesh]);
-		if (eMeshType == CGrannyMesh::TYPE_DEFORM)
-			UploadMeshBonePaletteToShader(pMeshNode->iMesh);
-
-		const CGrannyMesh::TTriGroupNode* pTriGroupNode = pMesh->GetTriGroupNodeList(eMtrlType);
-		int vtxCount = pMesh->GetVertexCount();
-		while (pTriGroupNode)
-		{
-			ms_faceCount += pTriGroupNode->triCount;
-
-			const CGrannyMaterial& rkMtrl=m_kMtrlPal.GetMaterialRef(pTriGroupNode->mtrlIndex);
-			STATEMANAGER.SetTexture(0, rkMtrl.GetSRV(0));
-			STATEMANAGER.SetTexture(1, rkMtrl.GetSRV(1));
-			STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, vtxMeshBasePos, pTriGroupNode->idxPos, pTriGroupNode->triCount);
-			pTriGroupNode = pTriGroupNode->pNextTriGroupNode;
-		}
-
-		pMeshNode = pMeshNode->pNextMeshNode;
-	}
+    RenderMeshNodeList(TextureMode::Two, eMeshType, eMtrlType);
 }
 
-// Without Texture
 void CGrannyModelInstance::RenderMeshNodeListWithoutTexture(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType)
 {
-	assert(m_pModel != NULL);
-
-	auto lpd3dIdxBuf = m_pModel->GetIndexBuffer();
-	assert(lpd3dIdxBuf != NULL);
-
-	const CGrannyModel::TMeshNode * pMeshNode = m_pModel->GetMeshNodeList(eMeshType, eMtrlType);
-
-	while (pMeshNode)
-	{
-		const CGrannyMesh * pMesh = pMeshNode->pMesh;
-		int vtxMeshBasePos = pMesh->GetVertexBasePosition();
-
-		_mgr->SetIndexBuffer(lpd3dIdxBuf);
-		STATEMANAGER.SetTransform(World, &m_meshMatrices[pMeshNode->iMesh]);
-		if (eMeshType == CGrannyMesh::TYPE_DEFORM)
-			UploadMeshBonePaletteToShader(pMeshNode->iMesh);
-
-		const CGrannyMesh::TTriGroupNode* pTriGroupNode = pMesh->GetTriGroupNodeList(eMtrlType);
-		int vtxCount = pMesh->GetVertexCount();
-
-		while (pTriGroupNode)
-		{
-			ms_faceCount += pTriGroupNode->triCount;
-			STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, vtxMeshBasePos, pTriGroupNode->idxPos, pTriGroupNode->triCount);
-			pTriGroupNode = pTriGroupNode->pNextTriGroupNode;
-		}
-
-		pMeshNode = pMeshNode->pNextMeshNode;
-	}
+    RenderMeshNodeList(TextureMode::None, eMeshType, eMtrlType);
 }
-

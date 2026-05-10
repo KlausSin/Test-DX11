@@ -30,7 +30,7 @@ void CGrannyModelInstance::CopyMotion(CGrannyModelInstance* pModelInstance, bool
 	if (bIsFreeSourceControl)
 	{
 		GrannyFreeControl(pModelInstance->m_pgrnCtrl);
-		pModelInstance->m_pgrnCtrl = NULL;
+		pModelInstance->m_pgrnCtrl = nullptr;
 	}
 }
 

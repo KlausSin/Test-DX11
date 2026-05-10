@@ -3,405 +3,316 @@
 #include "Mesh.h"
 #include "qMin32Lib/All.h"
 
-const CGrannyMaterialPalette& CGrannyModel::GetMaterialPalette() const
+#include <algorithm>
+#include <cassert>
+#include <cstring>
+#include <vector>
+
+namespace
 {
-	return m_kMtrlPal;
+    UINT GetMeshVertexStride(const granny_mesh* mesh)
+    {
+        if (!mesh || !mesh->PrimaryVertexData || !mesh->PrimaryVertexData->VertexType)
+            return 0;
+
+        UINT stride = 0;
+        const granny_data_type_definition* type = mesh->PrimaryVertexData->VertexType;
+
+        for (int i = 0; type[i].Type != GrannyEndMember; ++i)
+        {
+            const char* name = type[i].Name;
+            if (!name || !name[0])
+                continue;
+
+            if (std::strcmp(name, GrannyVertexPositionName) == 0)
+                stride += sizeof(float) * 3;
+            else if (std::strcmp(name, GrannyVertexNormalName) == 0)
+                stride += sizeof(float) * 3;
+            else if (std::strcmp(name, GrannyVertexTextureCoordinatesName "0") == 0)
+                stride += sizeof(float) * 2;
+            else if (std::strcmp(name, GrannyVertexTextureCoordinatesName "1") == 0)
+                stride += sizeof(float) * 2;
+        }
+
+        return stride;
+    }
 }
 
-const CGrannyModel::TMeshNode* CGrannyModel::GetMeshNodeList(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType) const
+CGrannyModel::CGrannyModel()
 {
-	return m_meshNodeLists[eMeshType][eMtrlType];
+    Initialize();
 }
 
-CGrannyMesh * CGrannyModel::GetMeshPointer(int iMesh)
+CGrannyModel::~CGrannyModel()
 {
-	assert(CheckMeshIndex(iMesh));
-	assert(m_meshs != NULL);
-
-	return m_meshs + iMesh;
+    Destroy();
 }
 
-const CGrannyMesh* CGrannyModel::GetMeshPointer(int iMesh) const
+void CGrannyModel::Initialize() noexcept
 {
-	assert(CheckMeshIndex(iMesh));
-	assert(m_meshs != NULL);
+    for (auto& row : m_meshNodeLists)
+        row.fill(nullptr);
 
-	return m_meshs + iMesh;
+    m_pgrnModel = nullptr;
+    m_meshes.clear();
+    m_meshNodes.clear();
+    m_pntVtxBuf = nullptr;
+    m_skinnedVtxBuf = nullptr;
+    m_idxBuf = nullptr;
+
+    m_meshNodeSize = 0;
+    m_meshNodeCapacity = 0;
+    m_rigidVtxCount = 0;
+    m_deformVtxCount = 0;
+    m_vtxCount = 0;
+    m_idxCount = 0;
+    m_hasSkinnedVertices = false;
+    m_stride = 0;
+    m_skinnedStride = 0;
+    m_bHaveBlendThing = false;
+    m_hasPNT2 = false;
 }
 
-bool CGrannyModel::HasSkinnedMesh() const
+void CGrannyModel::Destroy()
 {
-	return m_deformVtxCount > 0 && m_skinnedVtxBuf != nullptr;
+    m_kMtrlPal.Clear();
+    m_meshNodes.clear();
+    m_meshes.clear();
+    Initialize();
 }
 
-int CGrannyModel::GetRigidVertexCount() const
+bool CGrannyModel::IsEmpty() const noexcept
 {
-	return m_rigidVtxCount;
-}
-
-int CGrannyModel::GetDeformVertexCount() const
-{
-	return m_deformVtxCount;
-}
-
-int CGrannyModel::GetVertexCount() const
-{
-	return m_vtxCount;
-}
-
-int CGrannyModel::GetMeshCount() const
-{
-	return m_pgrnModel ? m_pgrnModel->MeshBindingCount : 0;
-}
-
-granny_model* CGrannyModel::GetGrannyModelPointer()
-{
-	return m_pgrnModel;
-}
-
-IBufferPtr CGrannyModel::GetIndexBuffer() const
-{
-	return m_idxBuf;
-}
-
-VBufferPtr CGrannyModel::GetVertexBuffer() const
-{
-	return m_pntVtxBuf;
-}
-
-VBufferPtr CGrannyModel::GetSkinnedVertexBuffer() const
-{
-	return m_skinnedVtxBuf;
-}
-
-UINT CGrannyModel::GetSkinnedVertexStride() const
-{
-	return m_skinnedStride;
-}
-
-bool CGrannyModel::LoadVertices()
-{
-	if (m_rigidVtxCount <= 0)
-		return true;
-
-	assert(m_meshs != NULL);
-
-	bool hasPNT2 = false;
-
-	for (int i = 0; i < m_pgrnModel->MeshBindingCount; ++i)
-	{
-		if (m_meshs[i].IsPNT2())
-		{
-			hasPNT2 = true;
-			break;
-		}
-	}
-
-	if (hasPNT2)
-	{
-		m_stride = sizeof(TPNT2Vertex);
-		std::vector<TPNT2Vertex> vertices(m_rigidVtxCount);
-
-		for (int i = 0; i < m_pgrnModel->MeshBindingCount; ++i)
-			m_meshs[i].LoadVertices(vertices.data());
-
-		_mgr->CreateVertexBuffer(m_pntVtxBuf, vertices.data(), m_rigidVtxCount, m_stride);
-	}
-	else
-	{
-		m_stride = sizeof(TPNTVertex);
-		std::vector<TPNTVertex> vertices(m_rigidVtxCount);
-
-		for (int i = 0; i < m_pgrnModel->MeshBindingCount; ++i)
-			m_meshs[i].LoadVertices(vertices.data());
-
-		_mgr->CreateVertexBuffer(m_pntVtxBuf, vertices.data(), m_rigidVtxCount, m_stride);
-	}
-
-	return true;
-}
-
-
-bool CGrannyModel::LoadSkinnedVertices()
-{
-	if (m_deformVtxCount <= 0)
-		return true;
-
-	assert(m_meshs != NULL);
-
-	bool hasPNT2 = false;
-	for (int i = 0; i < m_pgrnModel->MeshBindingCount; ++i)
-	{
-		if (!GrannyMeshIsRigid(m_pgrnModel->MeshBindings[i].Mesh) && m_meshs[i].IsPNT2())
-		{
-			hasPNT2 = true;
-			break;
-		}
-	}
-
-	if (hasPNT2)
-	{
-		m_skinnedStride = sizeof(TGrannySkinnedPNT2Vertex);
-		std::vector<TGrannySkinnedPNT2Vertex> vertices(m_deformVtxCount);
-		for (int i = 0; i < m_pgrnModel->MeshBindingCount; ++i)
-			m_meshs[i].LoadSkinnedVertices(vertices.data(), true);
-		_mgr->CreateVertexBuffer(m_skinnedVtxBuf, vertices.data(), m_deformVtxCount, m_skinnedStride);
-	}
-	else
-	{
-		m_skinnedStride = sizeof(TGrannySkinnedPNTVertex);
-		std::vector<TGrannySkinnedPNTVertex> vertices(m_deformVtxCount);
-		for (int i = 0; i < m_pgrnModel->MeshBindingCount; ++i)
-			m_meshs[i].LoadSkinnedVertices(vertices.data(), false);
-		_mgr->CreateVertexBuffer(m_skinnedVtxBuf, vertices.data(), m_deformVtxCount, m_skinnedStride);
-	}
-
-	return true;
-}
-
-bool CGrannyModel::LoadIndices()
-{
-	//assert(m_idxCount > 0);
-	if (m_idxCount <= 0)
-		return true;
-
-	std::vector<WORD> m_ownIndices(m_idxCount);
-
-	for (int m = 0; m < m_pgrnModel->MeshBindingCount; ++m)
-	{
-		CGrannyMesh& rMesh = m_meshs[m];
-		rMesh.LoadIndices(m_ownIndices.data());
-	}
-	_mgr->CreateIndexBuffer(m_idxBuf, m_ownIndices.data(), m_idxCount);
-	return true;
-}
-
-bool CGrannyModel::LoadMeshs()
-{
-	assert(m_meshs == NULL);
-	assert(m_pgrnModel != NULL);
-
-	if (m_pgrnModel->MeshBindingCount <= 0)
-		return true;
-
-	granny_skeleton* pgrnSkeleton = m_pgrnModel->Skeleton;
-
-	int vtxRigidPos = 0;
-	int vtxDeformPos = 0;
-	int vtxPos = 0;
-	int idxPos = 0;
-
-	int diffusePNTMeshNodeCount = 0;
-	int blendPNTMeshNodeCount = 0;
-	int blendPNT2MeshNodeCount = 0;
-
-	int meshCount = GetMeshCount();
-	m_meshs = new CGrannyMesh[meshCount];
-	m_stride = 0;
-
-	for (int m = 0; m < meshCount; ++m)
-	{
-		CGrannyMesh& rMesh = m_meshs[m];
-		granny_mesh* pgrnMesh = m_pgrnModel->MeshBindings[m].Mesh;
-
-		if (GrannyMeshIsRigid(pgrnMesh))
-		{
-			if (!rMesh.CreateFromGrannyMeshPointer(pgrnSkeleton, pgrnMesh, vtxRigidPos, idxPos, m_kMtrlPal))
-				return false;
-
-			vtxRigidPos += GrannyGetMeshVertexCount(pgrnMesh);
-		}
-		else
-		{
-			if (!rMesh.CreateFromGrannyMeshPointer(pgrnSkeleton, pgrnMesh, vtxDeformPos, idxPos, m_kMtrlPal))
-				return false;
-
-			vtxDeformPos += GrannyGetMeshVertexCount(pgrnMesh);
-			m_hasSkinnedVertices |= rMesh.HasSkinnedVertices();
-		}
-		m_bHaveBlendThing |= rMesh.HaveBlendThing();
-
-		const granny_data_type_definition* type = pgrnMesh->PrimaryVertexData->VertexType;
-		if (!type)
-			continue;
-
-		for (int i = 0; type[i].Type != GrannyEndMember; ++i)
-		{
-			const char* name = type[i].Name;
-			if (!name || !name[0])
-				continue;
-
-			if (strcmp(name, GrannyVertexPositionName) == 0)
-				m_stride += sizeof(float) * 3;
-			else if (strcmp(name, GrannyVertexNormalName) == 0)
-				m_stride += sizeof(float) * 3;
-			else if (strcmp(name, GrannyVertexTextureCoordinatesName "0") == 0)
-				m_stride += sizeof(float) * 2;
-			else if (strcmp(name, GrannyVertexTextureCoordinatesName "1") == 0)
-				m_stride += sizeof(float) * 2;
-		}
-
-		vtxPos += GrannyGetMeshVertexCount(pgrnMesh);
-		idxPos += GrannyGetMeshIndexCount(pgrnMesh);
-
-		if (rMesh.GetTriGroupNodeList(CGrannyMaterial::TYPE_DIFFUSE_PNT))
-			++diffusePNTMeshNodeCount;
-
-		if (rMesh.GetTriGroupNodeList(CGrannyMaterial::TYPE_BLEND_PNT))
-			++blendPNTMeshNodeCount;
-	}
-
-	m_meshNodeCapacity = diffusePNTMeshNodeCount + blendPNTMeshNodeCount + blendPNT2MeshNodeCount;
-	m_meshNodes = new TMeshNode[m_meshNodeCapacity];
-
-	for (int n = 0; n < meshCount; ++n)
-	{
-		CGrannyMesh& rMesh = m_meshs[n];
-		granny_mesh* pgrnMesh = m_pgrnModel->MeshBindings[n].Mesh;
-
-		CGrannyMesh::EType eMeshType = GrannyMeshIsRigid(pgrnMesh) ? CGrannyMesh::TYPE_RIGID : CGrannyMesh::TYPE_DEFORM;
-
-		if (rMesh.GetTriGroupNodeList(CGrannyMaterial::TYPE_DIFFUSE_PNT))
-			AppendMeshNode(eMeshType, CGrannyMaterial::TYPE_DIFFUSE_PNT, n);
-
-		if (rMesh.GetTriGroupNodeList(CGrannyMaterial::TYPE_BLEND_PNT))
-			AppendMeshNode(eMeshType, CGrannyMaterial::TYPE_BLEND_PNT, n);
-	}
-
-	if (sizeof(TPNT2Vertex) == m_stride)
-	{
-		for (int n = 0; n < meshCount; ++n)
-		{
-			CGrannyMesh& rMesh = m_meshs[n];
-			rMesh.SetPNT2Mesh();
-		}
-	}
-
-	m_rigidVtxCount = vtxRigidPos;
-	m_deformVtxCount = vtxDeformPos;
-	m_vtxCount = vtxPos;
-	m_idxCount = idxPos;
-	return true;
-}
-
-BOOL CGrannyModel::CheckMeshIndex(int iIndex) const
-{
-	if (iIndex < 0)
-		return FALSE;
-	if (iIndex >= GetMeshCount())
-		return FALSE;
-
-	return TRUE;
-}
-
-void CGrannyModel::AppendMeshNode(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType, int iMesh)
-{
-	assert(m_meshNodeSize < m_meshNodeCapacity);
-
-	TMeshNode& rMeshNode = m_meshNodes[m_meshNodeSize++];
-
-	rMeshNode.iMesh = iMesh;
-	rMeshNode.pMesh = m_meshs + iMesh;
-	rMeshNode.pNextMeshNode = m_meshNodeLists[eMeshType][eMtrlType];
-	m_meshNodeLists[eMeshType][eMtrlType] = &rMeshNode;
+    return m_pgrnModel == nullptr;
 }
 
 bool CGrannyModel::CreateFromGrannyModelPointer(granny_model* pgrnModel)
 {
-	assert(IsEmpty());
+    assert(IsEmpty());
 
-	m_pgrnModel = pgrnModel;
+    if (!pgrnModel)
+        return false;
 
-	if (!LoadMeshs())
-		return false;
+    m_pgrnModel = pgrnModel;
 
-	if (!LoadVertices())
-		return false;
+    if (!LoadMeshes() || !LoadVertices() || !LoadSkinnedVertices() || !LoadIndices())
+        return false;
 
-	if (!LoadSkinnedVertices())
-		return false;
-
-	if (!LoadIndices())
-		return false;
-
-	AddReference();
-
-	return true;
+    AddReference();
+    return true;
 }
 
-int CGrannyModel::GetIdxCount()
+bool CGrannyModel::LoadMeshes()
 {
-	return m_idxCount;
+    assert(m_pgrnModel != nullptr);
+
+    const int meshCount = GetMeshCount();
+    if (meshCount <= 0)
+        return true;
+
+    granny_skeleton* skeleton = m_pgrnModel->Skeleton;
+    m_meshes.resize(meshCount);
+    m_stride = 0;
+
+    int rigidVertexBase = 0;
+    int deformVertexBase = 0;
+    int vertexBase = 0;
+    int indexBase = 0;
+    int diffuseNodeCount = 0;
+    int blendNodeCount = 0;
+
+    for (int i = 0; i < meshCount; ++i)
+    {
+        CGrannyMesh& mesh = m_meshes[i];
+        granny_mesh* grannyMesh = m_pgrnModel->MeshBindings[i].Mesh;
+        const int vertexCount = GrannyGetMeshVertexCount(grannyMesh);
+        const int indexCount = GrannyGetMeshIndexCount(grannyMesh);
+
+        if (GrannyMeshIsRigid(grannyMesh))
+        {
+            if (!mesh.CreateFromGrannyMeshPointer(skeleton, grannyMesh, rigidVertexBase, indexBase, m_kMtrlPal))
+                return false;
+            rigidVertexBase += vertexCount;
+        }
+        else
+        {
+            if (!mesh.CreateFromGrannyMeshPointer(skeleton, grannyMesh, deformVertexBase, indexBase, m_kMtrlPal))
+                return false;
+            deformVertexBase += vertexCount;
+            m_hasSkinnedVertices |= mesh.HasSkinnedVertices();
+        }
+
+        m_bHaveBlendThing |= mesh.HaveBlendThing();
+        m_stride += GetMeshVertexStride(grannyMesh);
+
+        vertexBase += vertexCount;
+        indexBase += indexCount;
+
+        diffuseNodeCount += mesh.GetTriGroupNodeList(CGrannyMaterial::TYPE_DIFFUSE_PNT) ? 1 : 0;
+        blendNodeCount += mesh.GetTriGroupNodeList(CGrannyMaterial::TYPE_BLEND_PNT) ? 1 : 0;
+    }
+
+    m_meshNodeCapacity = diffuseNodeCount + blendNodeCount;
+    m_meshNodes.resize(m_meshNodeCapacity);
+
+    for (int i = 0; i < meshCount; ++i)
+    {
+        CGrannyMesh& mesh = m_meshes[i];
+        granny_mesh* grannyMesh = m_pgrnModel->MeshBindings[i].Mesh;
+        const auto meshType = GrannyMeshIsRigid(grannyMesh) ? CGrannyMesh::TYPE_RIGID : CGrannyMesh::TYPE_DEFORM;
+
+        if (mesh.GetTriGroupNodeList(CGrannyMaterial::TYPE_DIFFUSE_PNT))
+            AppendMeshNode(meshType, CGrannyMaterial::TYPE_DIFFUSE_PNT, i);
+
+        if (mesh.GetTriGroupNodeList(CGrannyMaterial::TYPE_BLEND_PNT))
+            AppendMeshNode(meshType, CGrannyMaterial::TYPE_BLEND_PNT, i);
+    }
+
+    if (sizeof(TPNT2Vertex) == m_stride)
+    {
+        for (auto& mesh : m_meshes)
+            mesh.SetPNT2Mesh();
+    }
+
+    m_rigidVtxCount = rigidVertexBase;
+    m_deformVtxCount = deformVertexBase;
+    m_vtxCount = vertexBase;
+    m_idxCount = indexBase;
+    return true;
+}
+
+bool CGrannyModel::LoadVertices()
+{
+    if (m_rigidVtxCount <= 0)
+        return true;
+
+    const bool hasPNT2 = std::any_of(m_meshes.begin(), m_meshes.end(), [](const CGrannyMesh& mesh) { return mesh.IsPNT2(); });
+
+    if (hasPNT2)
+    {
+        m_stride = sizeof(TPNT2Vertex);
+        std::vector<TPNT2Vertex> vertices(m_rigidVtxCount);
+        for (const auto& mesh : m_meshes)
+            mesh.LoadVertices(vertices.data());
+        _mgr->CreateVertexBuffer(m_pntVtxBuf, vertices.data(), m_rigidVtxCount, m_stride);
+        return true;
+    }
+
+    m_stride = sizeof(TPNTVertex);
+    std::vector<TPNTVertex> vertices(m_rigidVtxCount);
+    for (const auto& mesh : m_meshes)
+        mesh.LoadVertices(vertices.data());
+    _mgr->CreateVertexBuffer(m_pntVtxBuf, vertices.data(), m_rigidVtxCount, m_stride);
+    return true;
+}
+
+bool CGrannyModel::LoadSkinnedVertices()
+{
+    if (m_deformVtxCount <= 0)
+        return true;
+
+    bool hasPNT2 = false;
+    for (int i = 0; i < GetMeshCount(); ++i)
+    {
+        if (!GrannyMeshIsRigid(m_pgrnModel->MeshBindings[i].Mesh) && m_meshes[i].IsPNT2())
+        {
+            hasPNT2 = true;
+            break;
+        }
+    }
+
+    if (hasPNT2)
+    {
+        m_skinnedStride = sizeof(TGrannySkinnedPNT2Vertex);
+        std::vector<TGrannySkinnedPNT2Vertex> vertices(m_deformVtxCount);
+        for (const auto& mesh : m_meshes)
+            mesh.LoadSkinnedVertices(vertices.data(), true);
+        _mgr->CreateVertexBuffer(m_skinnedVtxBuf, vertices.data(), m_deformVtxCount, m_skinnedStride);
+        return true;
+    }
+
+    m_skinnedStride = sizeof(TGrannySkinnedPNTVertex);
+    std::vector<TGrannySkinnedPNTVertex> vertices(m_deformVtxCount);
+    for (const auto& mesh : m_meshes)
+        mesh.LoadSkinnedVertices(vertices.data(), false);
+    _mgr->CreateVertexBuffer(m_skinnedVtxBuf, vertices.data(), m_deformVtxCount, m_skinnedStride);
+    return true;
+}
+
+bool CGrannyModel::LoadIndices()
+{
+    if (m_idxCount <= 0)
+        return true;
+
+    std::vector<WORD> indices(m_idxCount);
+    for (const auto& mesh : m_meshes)
+        mesh.LoadIndices(indices.data());
+
+    _mgr->CreateIndexBuffer(m_idxBuf, indices.data(), m_idxCount);
+    return true;
+}
+
+void CGrannyModel::AppendMeshNode(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType, int iMesh)
+{
+    assert(m_meshNodeSize < m_meshNodeCapacity);
+
+    auto& node = m_meshNodes[m_meshNodeSize++];
+    node.iMesh = iMesh;
+    node.pMesh = &m_meshes[iMesh];
+    node.pNextMeshNode = m_meshNodeLists[eMeshType][eMtrlType];
+    m_meshNodeLists[eMeshType][eMtrlType] = &node;
 }
 
 bool CGrannyModel::CreateDeviceObjects()
 {
-	int meshCount = GetMeshCount();
-
-	for (int i = 0; i < meshCount; ++i)
-	{
-		CGrannyMesh& rMesh = m_meshs[i];
-		rMesh.RebuildTriGroupNodeList();
-	}
-			
-	return true;
+    for (auto& mesh : m_meshes)
+        mesh.RebuildTriGroupNodeList();
+    return true;
 }
 
 void CGrannyModel::DestroyDeviceObjects()
 {
 }
 
-bool CGrannyModel::IsEmpty() const
+BOOL CGrannyModel::CheckMeshIndex(int iIndex) const noexcept
 {
-	if (m_pgrnModel)
-		return false;
-
-	return true;
+    return iIndex >= 0 && iIndex < GetMeshCount();
 }
 
-void CGrannyModel::Destroy()
-{	
-	m_kMtrlPal.Clear();
-	
-	if (m_meshNodes)
-		delete [] m_meshNodes;
-
-	if (m_meshs)
-		delete [] m_meshs;
-
-	Initialize();
-}
-
-void CGrannyModel::Initialize()
+const CGrannyMaterialPalette& CGrannyModel::GetMaterialPalette() const noexcept
 {
-	memset(m_meshNodeLists, 0, sizeof(m_meshNodeLists));
-	
-	m_pgrnModel = NULL;
-	m_meshs = NULL;
-	m_meshNodes = NULL;
-	m_skinnedVtxBuf = nullptr;
-
-	m_meshNodeSize = 0;
-	m_meshNodeCapacity = 0;
-
-	m_rigidVtxCount = 0;
-	m_deformVtxCount = 0;
-	m_vtxCount = 0;
-	m_idxCount = 0;
-
-	m_hasSkinnedVertices = false;
-
-	m_stride = 0;
-	m_skinnedStride = 0;
-	m_bHaveBlendThing = false;
+    return m_kMtrlPal;
 }
 
-CGrannyModel::CGrannyModel()
+const CGrannyModel::TMeshNode* CGrannyModel::GetMeshNodeList(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType) const noexcept
 {
-	Initialize();
+    return m_meshNodeLists[eMeshType][eMtrlType];
 }
 
-CGrannyModel::~CGrannyModel()
+CGrannyMesh* CGrannyModel::GetMeshPointer(int iMesh)
 {
-	Destroy();
+    assert(CheckMeshIndex(iMesh));
+    return &m_meshes[iMesh];
 }
+
+const CGrannyMesh* CGrannyModel::GetMeshPointer(int iMesh) const
+{
+    assert(CheckMeshIndex(iMesh));
+    return &m_meshes[iMesh];
+}
+
+bool CGrannyModel::HasSkinnedMesh() const noexcept
+{
+    return m_deformVtxCount > 0 && m_skinnedVtxBuf != nullptr;
+}
+
+int CGrannyModel::GetRigidVertexCount() const noexcept { return m_rigidVtxCount; }
+int CGrannyModel::GetDeformVertexCount() const noexcept { return m_deformVtxCount; }
+int CGrannyModel::GetVertexCount() const noexcept { return m_vtxCount; }
+int CGrannyModel::GetIdxCount() const noexcept { return m_idxCount; }
+int CGrannyModel::GetMeshCount() const noexcept { return m_pgrnModel ? m_pgrnModel->MeshBindingCount : 0; }
+granny_model* CGrannyModel::GetGrannyModelPointer() noexcept { return m_pgrnModel; }
+IBufferPtr CGrannyModel::GetIndexBuffer() const noexcept { return m_idxBuf; }
+VBufferPtr CGrannyModel::GetVertexBuffer() const noexcept { return m_pntVtxBuf; }
+VBufferPtr CGrannyModel::GetSkinnedVertexBuffer() const noexcept { return m_skinnedVtxBuf; }
+UINT CGrannyModel::GetSkinnedVertexStride() const noexcept { return m_skinnedStride; }

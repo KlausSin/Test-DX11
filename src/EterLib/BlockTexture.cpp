@@ -58,8 +58,7 @@ void CBlockTexture::Render(int ix, int iy)
 		STATEMANAGER.SetTexture(0, m_lpSRV);
 		STATEMANAGER.SetTexture(1, NULL);
 
-		// Important: Use the layout that matches working port (XYZ + COLOR + TEXCOORD)
-		_mgr->SetShader(VF_PDT);
+		_mgr->SetShader(VF_PDT, BLEND_UI_TEX);
 
 		STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
 		STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_SRC_ALPHA);

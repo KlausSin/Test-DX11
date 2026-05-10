@@ -29,9 +29,6 @@ class CDungeonModelInstance : public CGrannyModelInstance
 				return;
 
 			STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, 0xffffffff);
-			STATEMANAGER.SaveTextureStageState(0, TSS11_COLORARG1, TA11_TFACTOR);
-			STATEMANAGER.SaveTextureStageState(0, TSS11_COLOROP,   TOP11_SELECTARG1);
-			STATEMANAGER.SaveTextureStageState(0, TSS11_ALPHAOP,   TOP11_DISABLE);
 			STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
 			STATEMANAGER.SaveRenderState(RS11_SRCBLEND, D3D11_BLEND_ZERO);
 			STATEMANAGER.SaveRenderState(RS11_DESTBLEND, D3D11_BLEND_SRC_COLOR);
@@ -44,9 +41,6 @@ class CDungeonModelInstance : public CGrannyModelInstance
 				RenderMeshNodeListWithoutTexture(CGrannyMesh::TYPE_RIGID, CGrannyMaterial::TYPE_BLEND_PNT);
 			}
 
-			STATEMANAGER.RestoreTextureStageState(0, TSS11_COLORARG1);
-			STATEMANAGER.RestoreTextureStageState(0, TSS11_COLOROP);
-			STATEMANAGER.RestoreTextureStageState(0, TSS11_ALPHAOP);
 			STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
 			STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
 			STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);

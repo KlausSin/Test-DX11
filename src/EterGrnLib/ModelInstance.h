@@ -7,6 +7,7 @@
 #include "Model.h"
 #include "Motion.h"
 #include "qMin32Lib/Core.h"
+#include <vector>
 
 class CGrannyModelInstance : public CGraphicCollisionObject
 {
@@ -144,6 +145,9 @@ protected:
 	void	UpdateWorldPose();
 	void	UpdateWorldMatrices(const D3DXMATRIX* c_pWorldMatrix);
 
+
+	enum class TextureMode { None, One, Two };
+	void	RenderMeshNodeList(TextureMode textureMode, CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType);
 	void	RenderMeshNodeListWithOneTexture(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType);
 	void	RenderMeshNodeListWithTwoTexture(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType);
 	void	RenderMeshNodeListWithoutTexture(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType);
@@ -158,7 +162,7 @@ protected:
 	granny_control* m_pgrnCtrl;
 	granny_animation* m_pgrnAni;
 
-	D3DXMATRIX* m_meshMatrices;
+	std::vector<D3DXMATRIX> m_meshMatrices;
 
 
 	const CGrannyModelInstance* mc_pParentInstance;

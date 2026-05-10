@@ -1,5 +1,9 @@
 #pragma once
 
+#include <array>
+#include <cstdint>
+#include <vector>
+
 #include "Material.h"
 
 extern granny_data_type_definition GrannyPNT3322VertexType[5];
@@ -8,111 +12,103 @@ extern granny_data_type_definition GrannySkinnedPNT2VertexType[7];
 
 struct granny_pnt3322_vertex
 {
-    granny_real32 Position[3];
-    granny_real32 Normal[3];
-    granny_real32 UV0[2];
-    granny_real32 UV1[2];
+    granny_real32 Position[3]{};
+    granny_real32 Normal[3]{};
+    granny_real32 UV0[2]{};
+    granny_real32 UV1[2]{};
 };
 
 struct TGrannySkinnedPNTVertex
 {
-    granny_real32 Position[3];
-    granny_real32 Normal[3];
-    granny_real32 BoneWeights[4];
-    granny_uint32 BoneIndices[4];
-    granny_real32 UV0[2];
+    granny_real32 Position[3]{};
+    granny_real32 Normal[3]{};
+    granny_real32 BoneWeights[4]{};
+    granny_uint32 BoneIndices[4]{};
+    granny_real32 UV0[2]{};
 };
 
 struct TGrannySkinnedPNT2Vertex
 {
-    granny_real32 Position[3];
-    granny_real32 Normal[3];
-    granny_real32 BoneWeights[4];
-    granny_uint32 BoneIndices[4];
-    granny_real32 UV0[2];
-    granny_real32 UV1[2];
+    granny_real32 Position[3]{};
+    granny_real32 Normal[3]{};
+    granny_real32 BoneWeights[4]{};
+    granny_uint32 BoneIndices[4]{};
+    granny_real32 UV0[2]{};
+    granny_real32 UV1[2]{};
 };
 
 class CGrannyMesh
 {
-	public:
-		enum EType
-		{
-			TYPE_RIGID,
-			TYPE_DEFORM,
-			TYPE_MAX_NUM
-		};
+public:
+    enum EType : uint8_t
+    {
+        TYPE_RIGID,
+        TYPE_DEFORM,
+        TYPE_MAX_NUM
+    };
 
-		typedef struct STriGroupNode
-		{
-			STriGroupNode *		pNextTriGroupNode;
-			int					idxPos;
-			int					triCount;
-			DWORD				mtrlIndex;						
-		} TTriGroupNode;
+    struct TTriGroupNode
+    {
+        TTriGroupNode* pNextTriGroupNode{};
+        int idxPos{};
+        int triCount{};
+        uint32_t mtrlIndex{};
+    };
 
-	public:
-		CGrannyMesh();
-		virtual ~CGrannyMesh();
+public:
+    CGrannyMesh();
+    ~CGrannyMesh();
 
-		bool					IsEmpty() const;
-		bool					CreateFromGrannyMeshPointer(granny_skeleton* pgrnSkeleton, granny_mesh* pgrnMesh, int vtxBasePos, int idxBasePos, CGrannyMaterialPalette& rkMtrlPal);			
-		void					LoadIndices(void* dstBaseIndices);
-		void					LoadVertices(void* dstBaseVertices);
-		void					LoadSkinnedVertices(void* dstBaseVertices, bool pnt2);
-		bool					IsPNT2() const;
-		void					Destroy();
+    CGrannyMesh(const CGrannyMesh&) = delete;
+    CGrannyMesh& operator=(const CGrannyMesh&) = delete;
+    CGrannyMesh(CGrannyMesh&& other) noexcept;
+    CGrannyMesh& operator=(CGrannyMesh&& other) noexcept;
 
-		void					SetPNT2Mesh();
-		bool					HasSkinnedVertices() const;
+    [[nodiscard]] bool IsEmpty() const noexcept;
+    bool CreateFromGrannyMeshPointer(granny_skeleton* pgrnSkeleton, granny_mesh* pgrnMesh, int vtxBasePos, int idxBasePos, CGrannyMaterialPalette& rkMtrlPal);
 
-		bool					IsTwoSide() const;
+    void LoadIndices(void* dstBaseIndices) const;
+    void LoadVertices(void* dstBaseVertices) const;
+    void LoadSkinnedVertices(void* dstBaseVertices, bool pnt2) const;
+    void Destroy();
 
-		int						GetVertexCount() const;
-		
-		// WORK
-		int *					GetDefaultBoneIndices() const;
-		// END_OF_WORK
+    void SetPNT2Mesh() noexcept;
 
-		int						GetVertexBasePosition() const; 
-		int						GetIndexBasePosition() const;
+    [[nodiscard]] bool IsPNT2() const noexcept;
+    [[nodiscard]] bool HasSkinnedVertices() const noexcept;
+    [[nodiscard]] bool IsTwoSide() const noexcept;
+    [[nodiscard]] bool HaveBlendThing() const noexcept { return m_bHaveBlendThing; }
 
-		const granny_mesh *					GetGrannyMeshPointer() const;
-		const CGrannyMesh::TTriGroupNode *	GetTriGroupNodeList(CGrannyMaterial::EType eMtrlType) const;
+    [[nodiscard]] int GetVertexCount() const;
+    [[nodiscard]] int GetVertexBasePosition() const noexcept;
+    [[nodiscard]] int GetIndexBasePosition() const noexcept;
+    [[nodiscard]] int* GetDefaultBoneIndices() const;
 
-		void					RebuildTriGroupNodeList();
-		void					ReloadMaterials();
+    [[nodiscard]] const granny_mesh* GetGrannyMeshPointer() const noexcept;
+    [[nodiscard]] const TTriGroupNode* GetTriGroupNodeList(CGrannyMaterial::EType eMtrlType) const noexcept;
 
-	protected:
-		void					Initialize();
+    void RebuildTriGroupNodeList();
+    void ReloadMaterials();
 
-		bool					LoadMaterials(CGrannyMaterialPalette& rkMtrlPal);
-		bool					LoadTriGroupNodeList(CGrannyMaterialPalette& rkMtrlPal);
+protected:
+    void Initialize() noexcept;
+    bool LoadMaterials(CGrannyMaterialPalette& rkMtrlPal);
+    bool LoadTriGroupNodeList(CGrannyMaterialPalette& rkMtrlPal);
 
-	protected:
-		// Granny Mesh Data
-		granny_data_type_definition *	m_pgrnMeshType;
-		granny_mesh *			m_pgrnMesh;
-		
-		// WORK
-		granny_mesh_binding *	m_pgrnMeshBindingTemp;
-		// END_OF_WORK
+private:
+    using TriGroupListArray = std::array<TTriGroupNode*, CGrannyMaterial::TYPE_MAX_NUM>;
 
+    granny_data_type_definition* m_pgrnMeshType{};
+    granny_mesh* m_pgrnMesh{};
+    granny_mesh_binding* m_pgrnMeshBindingTemp{};
 
-		// Granny Material Data
-		std::vector<DWORD>		m_mtrlIndexVector;
-		
-		// TriGroups Data
-		TTriGroupNode *			m_triGroupNodes;
-		TTriGroupNode *			m_triGroupNodeLists[CGrannyMaterial::TYPE_MAX_NUM];
+    std::vector<uint32_t> m_mtrlIndexVector;
+    std::vector<TTriGroupNode> m_triGroupNodes;
+    TriGroupListArray m_triGroupNodeLists{};
 
-		int						m_vtxBasePos;
-		int						m_idxBasePos;
-
-		bool					m_hasSkinnedVertex;
-		bool					m_isTwoSide;
-	private:
-		bool						m_bHaveBlendThing;
-	public:
-		bool						HaveBlendThing() { return m_bHaveBlendThing; }
+    int m_vtxBasePos{};
+    int m_idxBasePos{};
+    bool m_hasSkinnedVertex{};
+    bool m_isTwoSide{};
+    bool m_bHaveBlendThing{};
 };

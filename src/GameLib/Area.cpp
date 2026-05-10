@@ -262,11 +262,6 @@ void CArea::RenderCollision()
 	STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
 	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
 	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, 0xff000000);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP,	TOP11_SELECTARG1);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, TOP11_DISABLE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP, TOP11_DISABLE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP, TOP11_DISABLE);
 
 	for(i=0;i<GetObjectInstanceCount();i++)
 	{
@@ -308,41 +303,21 @@ void CArea::RenderCollision()
 void CArea::RenderAmbience()
 {
 	DWORD dwColorArg1, dwColorOp;
-	STATEMANAGER.GetTextureStageState(0, TSS11_COLORARG1, &dwColorArg1);
-	STATEMANAGER.GetTextureStageState(0, TSS11_COLOROP, &dwColorOp);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TFACTOR);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_SELECTARG1);
 	TAmbienceInstanceVector::iterator itor = m_AmbienceCloneInstanceVector.begin();
 	for (; itor != m_AmbienceCloneInstanceVector.end(); ++itor)
 	{
 		TAmbienceInstance * pInstance = *itor;
 		pInstance->Render();
 	}
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, dwColorArg1);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, dwColorOp);
 }
 
 void CArea::RenderDungeon()
 {
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP,	TOP11_SELECTARG1);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP,	TOP11_SELECTARG1);
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLORARG1,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLORARG2,	TA11_CURRENT);
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP,	TOP11_MODULATE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAARG1,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAARG2,	TA11_CURRENT);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP,	TOP11_MODULATE);
-
 	TDungeonBlockInstanceVector::iterator itor = m_DungeonBlockCloneInstanceVector.begin();
 	for (; itor != m_DungeonBlockCloneInstanceVector.end(); ++itor)
 	{
 		(*itor)->Render();
 	}
-
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP,	TOP11_DISABLE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP,	TOP11_DISABLE);
 }
 
 void CArea::Refresh()

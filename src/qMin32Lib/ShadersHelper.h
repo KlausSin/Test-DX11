@@ -10,21 +10,31 @@ enum ShaderFlags : uint32_t
 {
 	SHADER_NONE = 0,
 
-	//mesh
 	HAS_TEX2 = 1 << 0,
 	IS_SKINNED = 1 << 1,
 
-	//skybox
 	SKY_USE_TEXTURE = 1 << 2,
 	SKY_USE_DIFFUSE = 1 << 3,
 	SKY_CLOUD = 1 << 4,
 
-	//terrain
 	TERRAIN_SPLAT = 1 << 5,
 	TERRAIN_SHADOW = 1 << 6,
 	TERRAIN_SHADOW_CHR = 1 << 7,
 	TERRAIN_MARKED = 1 << 8,
 
+	//pdt
+	BLEND_MODULATE = 1 << 9,
+	BLEND_UI_TEX = 1 << 10,
+	BLEND_UI_DIFFUSE = 1 << 11,
+	BLEND_ADD = 1 << 12,
+	BLEND_MODULATE2X = 1 << 13,
+	BLEND_SELECTARG2 = 1 << 14,
+	BLEND_STAGE1_MODULATE = 1 << 15,
+	BLEND_TEXFACTOR = 1 << 16,
+
+	//mesh 
+	MESH_SPECULAR = 1 << 17,
+	TERRAIN_BASE = 1 << 18,
 };
 
 static std::string BuildShaderPath(const std::string& basePath)
@@ -45,31 +55,62 @@ static std::vector<D3D_SHADER_MACRO> BuildDefinesFromFlags(uint32_t flags)
 {
 	std::vector<D3D_SHADER_MACRO> out;
 
-	//mesh
-	if (flags & HAS_TEX2)         
+	// mesh
+	if (flags & HAS_TEX2)
 		out.push_back({ "HAS_TEX2", "1" });
+
 	if (flags & IS_SKINNED)
 		out.push_back({ "IS_SKINNED", "1" });
 
-	//skybox
+	// skybox
 	if (flags & SKY_USE_TEXTURE)
 		out.push_back({ "SKY_USE_TEXTURE", "1" });
+
 	if (flags & SKY_USE_DIFFUSE)
 		out.push_back({ "SKY_USE_DIFFUSE", "1" });
+
 	if (flags & SKY_CLOUD)
 		out.push_back({ "SKY_CLOUD", "1" });
 
-	//terrain
+	// terrain
 	if (flags & TERRAIN_SPLAT)
 		out.push_back({ "TERRAIN_SPLAT", "1" });
+
 	if (flags & TERRAIN_SHADOW)
 		out.push_back({ "TERRAIN_SHADOW", "1" });
+
 	if (flags & TERRAIN_SHADOW_CHR)
 		out.push_back({ "TERRAIN_SHADOW_CHR", "1" });
+
 	if (flags & TERRAIN_MARKED)
 		out.push_back({ "TERRAIN_MARKED", "1" });
 
+
+	if (flags & BLEND_MODULATE)
+		out.push_back({ "BLEND_MODULATE", "1" });
+	if (flags & BLEND_UI_TEX)
+		out.push_back({ "BLEND_UI_TEX", "1" });
+	if (flags & BLEND_UI_DIFFUSE)
+		out.push_back({ "BLEND_UI_DIFFUSE", "1" });
+	if (flags & BLEND_ADD)
+		out.push_back({ "BLEND_ADD", "1" });
+	if (flags & BLEND_MODULATE2X)
+		out.push_back({ "BLEND_MODULATE2X", "1" });
+	if (flags & BLEND_SELECTARG2)
+		out.push_back({ "BLEND_SELECTARG2", "1" });
+	if (flags & BLEND_STAGE1_MODULATE)
+		out.push_back({ "BLEND_STAGE1_MODULATE", "1" });
+	if (flags & BLEND_TEXFACTOR)
+		out.push_back({ "BLEND_TEXFACTOR", "1" });
+
+	if (flags & MESH_SPECULAR)
+		out.push_back({ "MESH_SPECULAR", "1" });
+
+	if (flags & TERRAIN_BASE)
+		out.push_back({ "TERRAIN_BASE", "1" });
+
 	out.push_back({ nullptr, nullptr });
+
 	return out;
 }
 

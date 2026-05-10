@@ -66,7 +66,9 @@ class CGrannyMaterial : public CReferenceObject
 		// MR-12: -- END OF -- Fix specular isolation issue
 
 		bool					IsTwoSided() const		{ return m_bTwoSideRender; }
+		bool m_bIsSkinned = false;
 
+		void SetSkinned(bool bSkinned) { m_bIsSkinned = bSkinned; }
 		
 	protected:
 		CGraphicImage *			__GetImagePointer(const char * c_szFileName);

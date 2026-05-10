@@ -1,91 +1,91 @@
 #pragma once
 
-#include "qMin32Lib/Core.h"
+#include <array>
+#include <cstdint>
+#include <vector>
 
+#include "qMin32Lib/Core.h"
 #include "Mesh.h"
 
 class CGrannyModel : public CReferenceObject
 {
-	public:
-		typedef struct SMeshNode
-		{
-			int					iMesh;
-			const CGrannyMesh * pMesh;
-			SMeshNode *			pNextMeshNode;
-		} TMeshNode;
+public:
+    struct TMeshNode
+    {
+        int iMesh{};
+        const CGrannyMesh* pMesh{};
+        TMeshNode* pNextMeshNode{};
+    };
 
-	public:
-		CGrannyModel();
-		virtual ~CGrannyModel();
+public:
+    CGrannyModel();
+    ~CGrannyModel();
 
-		bool IsEmpty() const;
-		bool CreateFromGrannyModelPointer(granny_model* pgrnModel);
-		bool CreateDeviceObjects();
-		void DestroyDeviceObjects();
-		void Destroy();
+    CGrannyModel(const CGrannyModel&) = delete;
+    CGrannyModel& operator=(const CGrannyModel&) = delete;
 
-		int GetRigidVertexCount() const;
-		int GetDeformVertexCount() const;
-		int GetVertexCount() const;
+    [[nodiscard]] bool IsEmpty() const noexcept;
+    bool CreateFromGrannyModelPointer(granny_model* pgrnModel);
+    bool CreateDeviceObjects();
+    void DestroyDeviceObjects();
+    void Destroy();
 
-		bool HasSkinnedMesh() const;
+    [[nodiscard]] int GetRigidVertexCount() const noexcept;
+    [[nodiscard]] int GetDeformVertexCount() const noexcept;
+    [[nodiscard]] int GetVertexCount() const noexcept;
+    [[nodiscard]] bool HasSkinnedMesh() const noexcept;
+    [[nodiscard]] int GetIdxCount() const noexcept;
+    [[nodiscard]] int GetMeshCount() const noexcept;
 
-		int GetIdxCount();
-		int GetMeshCount() const;
-		CGrannyMesh * GetMeshPointer(int iMesh);
-		granny_model * GetGrannyModelPointer();
-		const CGrannyMesh* GetMeshPointer(int iMesh) const;
+    [[nodiscard]] CGrannyMesh* GetMeshPointer(int iMesh);
+    [[nodiscard]] const CGrannyMesh* GetMeshPointer(int iMesh) const;
+    [[nodiscard]] granny_model* GetGrannyModelPointer() noexcept;
 
-		VBufferPtr GetVertexBuffer() const;
-		VBufferPtr GetSkinnedVertexBuffer() const;
-		UINT GetSkinnedVertexStride() const;
-		IBufferPtr GetIndexBuffer() const;
+    [[nodiscard]] VBufferPtr GetVertexBuffer() const noexcept;
+    [[nodiscard]] VBufferPtr GetSkinnedVertexBuffer() const noexcept;
+    [[nodiscard]] UINT GetSkinnedVertexStride() const noexcept;
+    [[nodiscard]] IBufferPtr GetIndexBuffer() const noexcept;
 
-		const CGrannyModel::TMeshNode*  GetMeshNodeList(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType) const;
+    [[nodiscard]] const TMeshNode* GetMeshNodeList(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType) const noexcept;
+    [[nodiscard]] const CGrannyMaterialPalette& GetMaterialPalette() const noexcept;
+    [[nodiscard]] bool HaveBlendThing() const noexcept { return m_bHaveBlendThing; }
 
-		const CGrannyMaterialPalette& GetMaterialPalette() const;
+protected:
+    bool LoadMeshes();
+    bool LoadVertices();
+    bool LoadSkinnedVertices();
+    bool LoadIndices();
+    void Initialize() noexcept;
 
-	protected:
-		bool LoadMeshs();		
-		bool LoadVertices();
-		bool LoadSkinnedVertices();
-		bool LoadIndices();
-		void Initialize();
+    [[nodiscard]] BOOL CheckMeshIndex(int iIndex) const noexcept;
+    void AppendMeshNode(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType, int iMesh);
 
-		BOOL CheckMeshIndex(int iIndex) const;
-		void AppendMeshNode(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType, int iMesh);
+private:
+    using MeshNodeListArray = std::array<std::array<TMeshNode*, CGrannyMaterial::TYPE_MAX_NUM>, CGrannyMesh::TYPE_MAX_NUM>;
 
-	protected:
-		// Granny Data
-		granny_model *			m_pgrnModel;
-		bool					m_hasPNT2;
-		// Static Data
-		CGrannyMesh *			m_meshs;
+    granny_model* m_pgrnModel{};
+    bool m_hasPNT2{};
 
-		VBufferPtr				m_pntVtxBuf;	// for rigid mesh
-		VBufferPtr				m_skinnedVtxBuf;
-		IBufferPtr				m_idxBuf;
+    std::vector<CGrannyMesh> m_meshes;
 
-		TMeshNode *				m_meshNodes;
-		TMeshNode *				m_meshNodeLists[CGrannyMesh::TYPE_MAX_NUM][CGrannyMaterial::TYPE_MAX_NUM];
+    VBufferPtr m_pntVtxBuf;
+    VBufferPtr m_skinnedVtxBuf;
+    IBufferPtr m_idxBuf;
 
-		int						m_deformVtxCount;
-		int						m_rigidVtxCount;
-		int						m_vtxCount;
-		int						m_idxCount;
+    std::vector<TMeshNode> m_meshNodes;
+    MeshNodeListArray m_meshNodeLists{};
 
-		int						m_meshNodeSize;
-		int						m_meshNodeCapacity;
+    int m_deformVtxCount{};
+    int m_rigidVtxCount{};
+    int m_vtxCount{};
+    int m_idxCount{};
+    int m_meshNodeSize{};
+    int m_meshNodeCapacity{};
 
-		bool					m_hasSkinnedVertices;
+    bool m_hasSkinnedVertices{};
+    bool m_bHaveBlendThing{};
 
-		CGrannyMaterialPalette	m_kMtrlPal;
-	private:
-		bool					m_bHaveBlendThing;
-	public:
-		bool					HaveBlendThing() { return m_bHaveBlendThing; }
-	
-	protected:
-		UINT m_stride;
-		UINT m_skinnedStride;
+    CGrannyMaterialPalette m_kMtrlPal;
+    UINT m_stride{};
+    UINT m_skinnedStride{};
 };

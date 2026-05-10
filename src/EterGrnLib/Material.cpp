@@ -5,6 +5,7 @@
 #include "Eterlib/ResourceManager.h"
 #include "Eterlib/StateManager.h"
 #include "Eterlib/GrpScreen.h"
+#include <memory>
 
 CGraphicImageInstance CGrannyMaterial::ms_akSphereMapInstance[SPHEREMAP_NUM];
 
@@ -39,13 +40,13 @@ void CGrannyMaterial::TranslateSpecularMatrix(float fAddX, float fAddY, float fA
 
 void CGrannyMaterial::ApplyRenderState()
 {
-	assert(m_pfnApplyRenderState!=NULL && "CGrannyMaterial::SaveRenderState");
+	assert(m_pfnApplyRenderState!=nullptr && "CGrannyMaterial::SaveRenderState");
 	(this->*m_pfnApplyRenderState)();
 }
 
 void CGrannyMaterial::RestoreRenderState()
 {
-	assert(m_pfnRestoreRenderState!=NULL && "CGrannyMaterial::RestoreRenderState");
+	assert(m_pfnRestoreRenderState!=nullptr && "CGrannyMaterial::RestoreRenderState");
 	(this->*m_pfnRestoreRenderState)();
 }
 
@@ -144,7 +145,7 @@ ID3D11ShaderResourceView* CGrannyMaterial::GetSRV(int iStage) const
 	const CGraphicImage::TRef & ratImage = m_roImage[iStage];
 
 	if (ratImage.IsNull())
-		return NULL;
+		return nullptr;
 
 	CGraphicImage * pImage = ratImage.GetPointer();
 	const CGraphicTexture * pTexture = pImage->GetTexturePointer();
@@ -157,7 +158,7 @@ CGraphicImage * CGrannyMaterial::GetImagePointer(int iStage) const
 	const CGraphicImage::TRef & ratImage = m_roImage[iStage];
 
 	if (ratImage.IsNull())
-		return NULL;
+		return nullptr;
 
 	CGraphicImage * pImage = ratImage.GetPointer();
 	return pImage;
@@ -166,7 +167,7 @@ CGraphicImage * CGrannyMaterial::GetImagePointer(int iStage) const
 const CGraphicTexture* CGrannyMaterial::GetDiffuseTexture() const
 {
 	if (m_roImage[0].IsNull())
-		return NULL;
+		return nullptr;
 
 	return m_roImage[0].GetPointer()->GetTexturePointer();
 }
@@ -174,7 +175,7 @@ const CGraphicTexture* CGrannyMaterial::GetDiffuseTexture() const
 const CGraphicTexture* CGrannyMaterial::GetOpacityTexture() const
 {
 	if (m_roImage[1].IsNull())
-		return NULL;
+		return nullptr;
 
 	return m_roImage[1].GetPointer()->GetTexturePointer();
 }
@@ -225,8 +226,8 @@ bool CGrannyMaterial::CreateFromGrannyMaterialPointer(granny_material * pgrnMate
 {
 	m_pgrnMaterial = pgrnMaterial;
 
-	granny_texture * pgrnDiffuseTexture = NULL;
-	granny_texture * pgrnOpacityTexture = NULL;
+	granny_texture * pgrnDiffuseTexture = nullptr;
+	granny_texture * pgrnOpacityTexture = nullptr;
 
 	if (pgrnMaterial)
 	{
@@ -252,8 +253,8 @@ bool CGrannyMaterial::CreateFromGrannyMaterialPointer(granny_material * pgrnMate
 
 			granny_variant twoSideResult;
 
-			if (GrannyFindMatchingMember(pgrnMaterial->ExtendedData.Type, pgrnMaterial->ExtendedData.Object, "Two-sided", &twoSideResult)  && NULL != twoSideResult.Type)
-				GrannyConvertSingleObject(twoSideResult.Type, twoSideResult.Object, TwoSidedFieldType, &twoSided, NULL);
+			if (GrannyFindMatchingMember(pgrnMaterial->ExtendedData.Type, pgrnMaterial->ExtendedData.Object, "Two-sided", &twoSideResult)  && nullptr != twoSideResult.Type)
+				GrannyConvertSingleObject(twoSideResult.Type, twoSideResult.Object, TwoSidedFieldType, &twoSided, nullptr);
 
 			m_bTwoSideRender = 1 == twoSided;
 		}
@@ -276,8 +277,9 @@ bool CGrannyMaterial::CreateFromGrannyMaterialPointer(granny_material * pgrnMate
 
 void CGrannyMaterial::Initialize()
 {
-	m_roImage[0] = NULL;
-	m_roImage[1] = NULL;
+	m_roImage[0] = nullptr;
+	m_roImage[1] = nullptr;
+	m_bIsSkinned = false;
 
 	SetSpecularInfo(FALSE, 0.0f, 0);
 }
@@ -310,36 +312,18 @@ void CGrannyMaterial::__ApplySpecularRenderState()
 		return;
 	}
 
-	CGraphicTexture* pkTexture=ms_akSphereMapInstance[m_bSphereMapIndex].GetTexturePointer();
+	CGraphicTexture* pkTexture = ms_akSphereMapInstance[m_bSphereMapIndex].GetTexturePointer();
 
 	STATEMANAGER.SetTexture(0, GetSRV(0));
+	STATEMANAGER.SetTexture(1, pkTexture ? pkTexture->GetSRV() : nullptr);
 
-	if (pkTexture)
-		STATEMANAGER.SetTexture(1, pkTexture->GetSRV());
-	else
-		STATEMANAGER.SetTexture(1, NULL);
+	_mgr->GetCbMgr()->SetSpecularPower(GetSpecularPower(), g_fSpecularColor);
 
-	// MR-12: Fix specular isolation issue
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, D3DXCOLOR(g_fSpecularColor.r, g_fSpecularColor.g, g_fSpecularColor.b, GetSpecularPower()));
-	// MR-12: -- END OF -- Fix specular isolation issue
-	STATEMANAGER.SaveTextureStageState(1, TSS11_TEXCOORDINDEX, TSS11_TCI_CAMERASPACEREFLECTIONVECTOR);
-	STATEMANAGER.SaveTextureStageState(0, TSS11_COLORARG1,	TA11_TEXTURE);
-	STATEMANAGER.SaveTextureStageState(0, TSS11_COLORARG2,	TA11_DIFFUSE);
-	STATEMANAGER.SaveTextureStageState(0, TSS11_COLOROP,	TOP11_MODULATE);
-	STATEMANAGER.SaveTextureStageState(0, TSS11_ALPHAARG1,	TA11_TEXTURE);
-	STATEMANAGER.SaveTextureStageState(0, TSS11_ALPHAARG2,	TA11_TFACTOR);
-	STATEMANAGER.SaveTextureStageState(0, TSS11_ALPHAOP,	TOP11_MODULATE);
+	uint32_t flags = MESH_SPECULAR;
+	if (m_bIsSkinned)
+		flags |= IS_SKINNED;
 
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLORARG1,	TA11_CURRENT);
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLORARG2,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP,	TOP11_MODULATEALPHA_ADDCOLOR);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAARG1,	TA11_CURRENT);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP,	TOP11_SELECTARG1);
-
-	STATEMANAGER.SetTransform(Texture1, &ms_matSpecular);
-	STATEMANAGER.SaveTextureStageState(1, TSS11_TEXTURETRANSFORMFLAGS, TTFF11_COUNT2);
-	STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSU, D3D11_TEXTURE_ADDRESS_WRAP);
-	STATEMANAGER.SaveSamplerState(1, SS11_ADDRESSV, D3D11_TEXTURE_ADDRESS_WRAP);
+	_mgr->SetShader(VF_MESH, flags);
 }
 
 void CGrannyMaterial::__RestoreSpecularRenderState()
@@ -349,21 +333,6 @@ void CGrannyMaterial::__RestoreSpecularRenderState()
 		__RestoreDiffuseRenderState();
 		return;
 	}
-
-	STATEMANAGER.RestoreTextureStageState(1, TSS11_TEXTURETRANSFORMFLAGS);
-	STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSU);
-	STATEMANAGER.RestoreSamplerState(1, SS11_ADDRESSV);
-
-	STATEMANAGER.RestoreTextureStageState(1, TSS11_TEXCOORDINDEX);
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP, TOP11_DISABLE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP, TOP11_DISABLE);
-
-	STATEMANAGER.RestoreTextureStageState(0, TSS11_COLORARG1);
-	STATEMANAGER.RestoreTextureStageState(0, TSS11_COLORARG2);
-	STATEMANAGER.RestoreTextureStageState(0, TSS11_COLOROP);
-	STATEMANAGER.RestoreTextureStageState(0, TSS11_ALPHAARG1);
-	STATEMANAGER.RestoreTextureStageState(0, TSS11_ALPHAARG2);
-	STATEMANAGER.RestoreTextureStageState(0, TSS11_ALPHAOP);
 }
 
 void CGrannyMaterial::CreateSphereMap(UINT uMapIndex, const char* c_szSphereMapImageFileName)
@@ -419,10 +388,10 @@ void CGrannyMaterialPalette::SetMaterialImagePointer(const char* c_szImageName, 
 		int iStage;
 		if (roMtrl->IsIn(c_szImageName, &iStage))
 		{
-			CGrannyMaterial* pkNewMtrl=new CGrannyMaterial;
+			auto pkNewMtrl = std::make_unique<CGrannyMaterial>();
 			pkNewMtrl->Copy(*roMtrl.GetPointer());
 			pkNewMtrl->SetImagePointer(iStage, pImage);
-			roMtrl=pkNewMtrl;
+			roMtrl = pkNewMtrl.release();
 
 			return;
 		}
@@ -441,11 +410,11 @@ void CGrannyMaterialPalette::SetMaterialData(const char* c_szMtrlName, const SMa
 			int iStage;
 			if (roMtrl->IsIn(c_szMtrlName, &iStage))
 			{
-				CGrannyMaterial* pkNewMtrl=new CGrannyMaterial;
+				auto pkNewMtrl = std::make_unique<CGrannyMaterial>();
 				pkNewMtrl->Copy(*roMtrl.GetPointer());
 				pkNewMtrl->SetImagePointer(iStage, c_rkMaterialData.pImage);
 				pkNewMtrl->SetSpecularInfo(c_rkMaterialData.isSpecularEnable, c_rkMaterialData.fSpecularPower, c_rkMaterialData.bSphereMapIndex);
-				roMtrl=pkNewMtrl;
+				roMtrl = pkNewMtrl.release();
 
 				return;
 			}
@@ -454,9 +423,13 @@ void CGrannyMaterialPalette::SetMaterialData(const char* c_szMtrlName, const SMa
 	else
 	{
 		std::vector<CGrannyMaterial::TRef>::iterator i;
-		for (i=m_mtrlVector.begin(); i!=m_mtrlVector.end(); ++i)
+		for (i = m_mtrlVector.begin(); i != m_mtrlVector.end(); ++i)
 		{
-			CGrannyMaterial::TRef& roMtrl=*i;
+			CGrannyMaterial::TRef& roMtrl = *i;
+
+			if (roMtrl->GetType() != CGrannyMaterial::TYPE_DIFFUSE_PNT)
+				continue;
+
 			roMtrl->SetSpecularInfo(c_rkMaterialData.isSpecularEnable, c_rkMaterialData.fSpecularPower, c_rkMaterialData.bSphereMapIndex);
 		}
 	}
@@ -501,9 +474,9 @@ DWORD CGrannyMaterialPalette::RegisterMaterial(granny_material* pgrnMaterial)
 			return i;
 	}
 
-	CGrannyMaterial* pkNewMtrl=new CGrannyMaterial;
+	auto pkNewMtrl = std::make_unique<CGrannyMaterial>();
 	pkNewMtrl->CreateFromGrannyMaterialPointer(pgrnMaterial);
-	m_mtrlVector.push_back(pkNewMtrl);
+	m_mtrlVector.push_back(pkNewMtrl.release());
 	
 	return size;
 }

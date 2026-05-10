@@ -5,6 +5,7 @@
 #include "ThingInstance.h"
 #include "Thing.h"
 #include "ModelInstance.h"
+#include <memory>
 #ifdef ENABLE_OBJ_SCALLING
 #include "../UserInterface/Locale_inc.h"
 #endif
@@ -14,15 +15,15 @@ CDynamicPool<CGraphicThingInstance>		CGraphicThingInstance::ms_kPool;
 CGraphicThing* CGraphicThingInstance::GetBaseThingPtr()
 {
 	if (m_modelThingSetVector.empty())
-		return NULL;
+		return nullptr;
 
 	TModelThingSet& rkModelThingSet=m_modelThingSetVector[0];
 	if (rkModelThingSet.m_pLODThingRefVector.empty())
-		return NULL;
+		return nullptr;
 
 	CGraphicThing::TRef* proThing=rkModelThingSet.m_pLODThingRefVector[0];
 	if (!proThing)
-		return NULL;
+		return nullptr;
 
 	CGraphicThing::TRef roThing=*proThing;
 	return roThing.GetPointer();
@@ -253,8 +254,8 @@ void CGraphicThingInstance::ReserveModelInstance(int iCount)
 
 	for (int i = 0; i < iCount; ++i)
 	{
-		CGrannyLODController * pInstance = new CGrannyLODController;
-		m_LODControllerVector.push_back(pInstance);
+		auto instance = std::make_unique<CGrannyLODController>();
+		m_LODControllerVector.push_back(instance.release());
 	}
 }
 
@@ -365,7 +366,7 @@ bool CGraphicThingInstance::SetModelInstance(int iDstModelInstance, int iSrcMode
 		return false;
 
 	// HAIR_LINK
-	CGrannyLODController * pSkelController = NULL;
+	CGrannyLODController * pSkelController = nullptr;
 	if (iSkelInstance != DONTUSEVALUE)
 	{
 		if (!CheckModelInstanceIndex(iSkelInstance))
@@ -406,7 +407,7 @@ void CGraphicThingInstance::SetMaterialImagePointer(UINT ePart, const char* c_sz
 
 	if (!m_LODControllerVector[ePart])
 	{
-		TraceError("CGraphicThingInstance::SetMaterialImagePointer(ePart(%d), c_szImageName=%s, pImage=%s) - ePart Data is NULL",
+		TraceError("CGraphicThingInstance::SetMaterialImagePointer(ePart(%d), c_szImageName=%s, pImage=%s) - ePart Data is nullptr",
 			ePart, m_LODControllerVector.size(), c_szImageName, pImage->GetFileName());
 
 		return;
@@ -427,7 +428,7 @@ void CGraphicThingInstance::SetMaterialData(UINT ePart, const char* c_szImageNam
 
 	if (!m_LODControllerVector[ePart])
 	{
-		TraceError("CGraphicThingInstance::SetMaterialData(ePart(%d)) - ePart Data is NULL",
+		TraceError("CGraphicThingInstance::SetMaterialData(ePart(%d)) - ePart Data is nullptr",
 			ePart, m_LODControllerVector.size());
 
 		return;
@@ -448,7 +449,7 @@ void CGraphicThingInstance::SetSpecularInfo(UINT ePart, const char* c_szMtrlName
 
 	if (!m_LODControllerVector[ePart])
 	{
-		TraceError("CGraphicThingInstance::SetSpecularInfo(ePart(%d)) - ePart Data is NULL",
+		TraceError("CGraphicThingInstance::SetSpecularInfo(ePart(%d)) - ePart Data is nullptr",
 			ePart, m_LODControllerVector.size());
 
 		return;
@@ -528,16 +529,16 @@ void CGraphicThingInstance::RegisterModelThing(int iModelThing, CGraphicThing * 
 void CGraphicThingInstance::RegisterLODThing(int iModelThing, CGraphicThing * pModelThing)
 {
 	assert(CheckModelThingIndex(iModelThing));
-	CGraphicThing::TRef * pModelRef = new CGraphicThing::TRef;
-	pModelRef->SetPointer(pModelThing);
-	m_modelThingSetVector[iModelThing].m_pLODThingRefVector.push_back(pModelRef);
+	auto modelRef = std::make_unique<CGraphicThing::TRef>();
+	modelRef->SetPointer(pModelThing);
+	m_modelThingSetVector[iModelThing].m_pLODThingRefVector.push_back(modelRef.release());
 }
 
 void CGraphicThingInstance::RegisterMotionThing(DWORD dwMotionKey, CGraphicThing* pMotionThing)
 {
-	CGraphicThing::TRef * pMotionRef = new CGraphicThing::TRef;
-	pMotionRef->SetPointer(pMotionThing);
-	m_roMotionThingMap.insert(std::map<DWORD, CGraphicThing::TRef *>::value_type(dwMotionKey, pMotionRef));
+	auto motionRef = std::make_unique<CGraphicThing::TRef>();
+	motionRef->SetPointer(pMotionThing);
+	m_roMotionThingMap.insert(std::map<DWORD, CGraphicThing::TRef*>::value_type(dwMotionKey, motionRef.release()));
 }
 
 void CGraphicThingInstance::ResetLocalTime()
@@ -668,7 +669,7 @@ void CGraphicThingInstance::UpdateTransform(D3DXMATRIX * pMatrix, float fSeconds
 	CGrannyLODController* pkLODCtrl=m_LODControllerVector[iModelInstanceIndex];
 	if (!pkLODCtrl)
 	{
-		//TraceError("void CGraphicThingInstance::UpdateTransform(pMatrix, fSecondsElapsed=%f, iModelInstanceIndex=%d/nLODCount=%d) - m_LODControllerVector[iModelInstanceIndex] == NULL",
+		//TraceError("void CGraphicThingInstance::UpdateTransform(pMatrix, fSecondsElapsed=%f, iModelInstanceIndex=%d/nLODCount=%d) - m_LODControllerVector[iModelInstanceIndex] == nullptr",
 		//	fSecondsElapsed, iModelInstanceIndex, nLODCount);
 		return;
 	}
@@ -676,7 +677,7 @@ void CGraphicThingInstance::UpdateTransform(D3DXMATRIX * pMatrix, float fSeconds
 	CGrannyModelInstance * pModelInstance = pkLODCtrl->GetModelInstance();
 	if (!pModelInstance)
 	{
-	/*	TraceError("void CGraphicThingInstance::UpdateTransform(pMatrix, fSecondsElapsed=%f, iModelInstanceIndex=%d/nLODCount=%d) - pkLODCtrl->GetModelInstance() == NULL",
+	/*	TraceError("void CGraphicThingInstance::UpdateTransform(pMatrix, fSecondsElapsed=%f, iModelInstanceIndex=%d/nLODCount=%d) - pkLODCtrl->GetModelInstance() == nullptr",
 			fSecondsElapsed, iModelInstanceIndex, nLODCount);*/
 		return;
 	}
@@ -752,7 +753,7 @@ void CGraphicThingInstance::UpdateLODLevel()
 	CCamera * pcurCamera = CCameraManager::Instance().GetCurrentCamera();
 	if (!pcurCamera)
 	{
-		TraceError("CGraphicThingInstance::UpdateLODLevel - GetCurrentCamera() == NULL");
+		TraceError("CGraphicThingInstance::UpdateLODLevel - GetCurrentCamera() == nullptr");
 		return;
 	}
 

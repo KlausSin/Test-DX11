@@ -619,20 +619,12 @@ void CGraphicTextInstance::Render(RECT * pClipRect)
 	STATEMANAGER.SetRenderState(RS11_FOGENABLE, FALSE);
 	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
 
-	_mgr->SetShader(VF_PDT);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2,	TA11_DIFFUSE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP,	TOP11_MODULATE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG2,	TA11_DIFFUSE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP,	TOP11_MODULATE);
+	_mgr->SetShader(VF_PDT, BLEND_MODULATE);
 
-	// Font textures need point filtering for crisp pixel-perfect glyphs
 	STATEMANAGER.SaveSamplerState(0, SS11_MINFILTER, TF11_POINT);
 	STATEMANAGER.SaveSamplerState(0, SS11_MAGFILTER, TF11_POINT);
 	STATEMANAGER.SaveSamplerState(0, SS11_MIPFILTER, TF11_POINT);
 
-	// LCD subpixel rendering: mask alpha writes to prevent corruption during two-pass blending
 	STATEMANAGER.SaveRenderState(RS11_COLORWRITEENABLE,
 		D3D11_COLOR_WRITE_ENABLE_RED |
 		D3D11_COLOR_WRITE_ENABLE_GREEN |
@@ -965,25 +957,18 @@ void CGraphicTextInstance::Render(RECT * pClipRect)
 			// Pass 1: dest.rgb *= (1 - coverage.rgb)
 			STATEMANAGER.SetRenderState(RS11_SRCBLEND, D3D11_BLEND_ZERO);
 			STATEMANAGER.SetRenderState(RS11_DESTBLEND, D3D11_BLEND_INV_SRC_COLOR);
-			STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_SELECTARG1);
-			STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
-			STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, TOP11_SELECTARG1);
-			STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1, TA11_TEXTURE);
+			_mgr->SetShader(VF_PDT, BLEND_UI_TEX);
 			STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, (UINT)vtxBatch.size() / 3, sizeof(SVertex), vtxBatch.data());
+
 			if (!skipPass2) {
 				// Pass 2: dest.rgb += textColor.rgb * coverage.rgb
 				STATEMANAGER.SetRenderState(RS11_SRCBLEND, D3D11_BLEND_ONE);
 				STATEMANAGER.SetRenderState(RS11_DESTBLEND, D3D11_BLEND_ONE);
-				STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_MODULATE);
-				STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
-				STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2, TA11_DIFFUSE);
-				STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, TOP11_MODULATE);
-				STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1, TA11_TEXTURE);
-				STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG2, TA11_DIFFUSE);
+				_mgr->SetShader(VF_PDT, BLEND_MODULATE);
 				STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, (UINT)vtxBatch.size() / 3, sizeof(SVertex), vtxBatch.data());
 			}
 		}
-	};
+		};
 
 	// Draw outline batches first (skip Pass 2 for black outlines — MODULATE with black = 0)
 	bool outlineIsBlack = ((m_dwOutLineColor & 0x00FFFFFF) == 0);

@@ -16,28 +16,10 @@ struct CBMaterial
 
 	int useTexture0;
 	int useTexture1;
-	int colorOp0;
-	int alphaOp0;
-
-	int colorOp1;
-	int alphaOp1;
-	int colorArg10;
-	int colorArg20;
-
-	int alphaArg10;
-	int alphaArg20;
-	int colorArg11;
-	int colorArg21;
-
-	int alphaArg11;
-	int alphaArg21;
 	int alphaTestEnable;
 	int alphaRef;
 
-	int texCoordGen1;   // 0=vertex UV, 1=camera-space position, 2=camera-space reflection
-	int padMat1;
-	int padMat2;
-	int padMat3;
+	float drawColor[4];
 };
 
 // b2: Lighting emulation
@@ -59,6 +41,8 @@ struct CBLighting
 	int pad0;
 	int pad1;
 	int pad2;
+	float specularColor[4];
+	float pad[12];
 };
 
 // b3: Texture coordinate transform
@@ -66,6 +50,8 @@ struct CBTexTransform
 {
 	D3DXMATRIX matTexTransform0;
 	D3DXMATRIX matTexTransform1;
+	D3DXMATRIX matTexTransform2;
+	D3DXMATRIX matTexTransform3;
 };
 
 // b4: Fog
@@ -143,9 +129,9 @@ public:
 
 	// Texture stage states → constant buffer b1
 	void SetTextureFactor(DWORD dwFactor);
-	void SetTextureStageOp(DWORD dwStage, int colorOp, int alphaOp);
-	void SetTextureStageArgs(DWORD dwStage, int colorArg1, int colorArg2, int alphaArg1, int alphaArg2);
-	void SetTexCoordGen(DWORD dwStage, int mode);  // 0=vertex UV, 1=cam pos, 2=cam reflection
+	void SetAlphaTestEnable(BOOL bEnable);
+	void SetAlphaRef(DWORD dwRef);
+
 	void FlushMaterial();
 
 	void SetScreenSize(float width, float height);
@@ -160,6 +146,11 @@ public:
 
 	//bone mesh
 	bool UploadBonePalette(const DirectX::XMFLOAT4X4* bones, unsigned int count);
+	void SetSpecularPower(float power, const D3DXCOLOR& color);
+
+	void FlushAllState();
+	void SetAllBuffers();
+
 
 private:
 	CBufferPtr				m_pCBPerFrame;
@@ -184,8 +175,8 @@ private:
 	bool					m_bLightingDirty = true;
 	bool					m_bFogDirty = true;
 	bool					m_bSpeedTreeDirty = true;
-
-
+	bool m_bMaterialConstantsDirty = true;
+	DxManager* m_manager;
 
 	friend class CD3D11Renderer;
 };

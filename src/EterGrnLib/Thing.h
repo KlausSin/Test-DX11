@@ -2,6 +2,7 @@
 
 #include "Model.h"
 #include "Motion.h"
+#include <memory>
 
 class CGraphicThing : public CResource
 {
@@ -11,6 +12,12 @@ class CGraphicThing : public CResource
 	public:
 		static CGraphicThing::TType Type();
 
+public:
+	bool LoadFromMemoryForEditor(int size, const void* data)
+	{
+		OnClear();
+		return OnLoad(size, data);
+	}
 	public:
 		CGraphicThing(const char * c_szFileName);
 		virtual ~CGraphicThing();
@@ -44,6 +51,6 @@ class CGraphicThing : public CResource
 
 		granny_animation *		m_pgrnAni;
 
-		CGrannyModel *			m_models;
-		CGrannyMotion *			m_motions;
+		std::unique_ptr<CGrannyModel[]>	m_models;
+		std::unique_ptr<CGrannyMotion[]>	m_motions;
 };

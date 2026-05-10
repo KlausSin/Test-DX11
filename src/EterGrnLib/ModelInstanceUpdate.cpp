@@ -46,7 +46,7 @@ void CGrannyModelInstance::UpdateTransform(D3DXMATRIX * pMatrix, float fSecondsE
 {
 	if (!m_pgrnModelInstance)
 	{
-		TraceError("CGrannyModelIstance::UpdateTransform - m_pgrnModelInstance = NULL");
+		TraceError("CGrannyModelIstance::UpdateTransform - m_pgrnModelInstance = nullptr");
 		return;
 	}
 	GrannyUpdateModelMatrix(m_pgrnModelInstance, fSecondsElapsed, (const float *) pMatrix, (float *) pMatrix, false);
@@ -69,7 +69,7 @@ class CGrannyLocalPose
 	public:
 		CGrannyLocalPose()
 		{
-			m_pgrnLocalPose = NULL;
+			m_pgrnLocalPose = nullptr;
 			m_boneCount = 0;
 		}
 
@@ -117,7 +117,7 @@ void CGrannyModelInstance::UpdateWorldPose()
 	granny_skeleton * pgrnSkeleton = GrannyGetSourceSkeleton(m_pgrnModelInstance);
 	granny_local_pose * pgrnLocalPose = s_SharedLocalPose.Get(pgrnSkeleton->BoneCount);	
 
-	const float * pAttachBoneMatrix = (mc_pParentInstance) ? mc_pParentInstance->GetBoneMatrixPointer(m_iParentBoneIndex) : NULL;
+	const float * pAttachBoneMatrix = (mc_pParentInstance) ? mc_pParentInstance->GetBoneMatrixPointer(m_iParentBoneIndex) : nullptr;
 
 	GrannySampleModelAnimationsAccelerated(m_pgrnModelInstance, pgrnSkeleton->BoneCount, pAttachBoneMatrix, pgrnLocalPose, __GetWorldPosePtr());
 	GrannyFreeCompletedModelControls(m_pgrnModelInstance);	
@@ -126,11 +126,11 @@ void CGrannyModelInstance::UpdateWorldPose()
 
 void CGrannyModelInstance::UpdateWorldMatrices(const D3DXMATRIX* c_pWorldMatrix)
 {
-	if (!m_meshMatrices)
+	if (m_meshMatrices.empty())
 		return;
 
-	assert(m_pModel != NULL);
-	assert(ms_lpd3dMatStack != NULL);
+	assert(m_pModel != nullptr);
+	assert(ms_lpd3dMatStack != nullptr);
 
 	int meshCount = m_pModel->GetMeshCount();
 

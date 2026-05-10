@@ -278,26 +278,16 @@ bool CWeaponTrace::BuildVertex()
 
 void CWeaponTrace::Render()
 {
-	//if (!m_isPlaying)
-	//	return;
-	//if (m_CurvingTraceVector.size() < 4)
-	//	return;
-
 	if (!BuildVertex())
 		return;
 
-	if (m_PDTVertexVector.size()<4) 
+	if (m_PDTVertexVector.size() < 4)
 		return;
 
-
-	ID3D11ShaderResourceView* lpTexture=NULL;
-
-	// Have to optimize
 	D3DXMATRIX matWorld;
 	D3DXMatrixIdentity(&matWorld);
 
 	STATEMANAGER.SaveTransform(World, &matWorld);
-	_mgr->SetShader(VF_PDT);
 	STATEMANAGER.SaveRenderState(RS11_CULLMODE, D3D11_CULL_NONE);
 
 	STATEMANAGER.SaveRenderState(RS11_ALPHABLENDENABLE, TRUE);
@@ -310,22 +300,14 @@ void CWeaponTrace::Render()
 	STATEMANAGER.SaveRenderState(RS11_ZFUNC, D3D11_COMPARISON_LESS_EQUAL);
 	STATEMANAGER.SaveRenderState(RS11_ZWRITEENABLE, FALSE);
 
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_DIFFUSE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2, TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, (m_bUseTexture)?TOP11_SELECTARG2:TOP11_SELECTARG1);
-	//STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_SELECTARG1);
-	//STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_MODULATE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1, TA11_DIFFUSE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG2, TA11_TEXTURE);
-	//STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, TOP11_MODULATE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP, (m_bUseTexture)?TOP11_SELECTARG2:TOP11_SELECTARG1);
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP, TOP11_DISABLE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP, TOP11_DISABLE);
 	STATEMANAGER.SetRenderState(RS11_LIGHTING, FALSE);
-	STATEMANAGER.SetTexture(0, lpTexture);
+	STATEMANAGER.SetTexture(0, NULL);
 	STATEMANAGER.SetTexture(1, NULL);
+
+	_mgr->SetShader(VF_PDT, m_bUseTexture ? BLEND_UI_TEX : BLEND_UI_DIFFUSE);
+
 	STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, (UINT)(m_PDTVertexVector.size() - 2), sizeof(TPDTVertex), m_PDTVertexVector.data());
-	
+
 	STATEMANAGER.SetRenderState(RS11_LIGHTING, TRUE);
 
 	STATEMANAGER.RestoreRenderState(RS11_ZENABLE);
@@ -333,11 +315,9 @@ void CWeaponTrace::Render()
 	STATEMANAGER.RestoreRenderState(RS11_ZWRITEENABLE);
 	STATEMANAGER.RestoreRenderState(RS11_ALPHATESTENABLE);
 	STATEMANAGER.RestoreRenderState(RS11_ALPHAREF);
-
 	STATEMANAGER.RestoreRenderState(RS11_ALPHABLENDENABLE);
 	STATEMANAGER.RestoreRenderState(RS11_SRCBLEND);
 	STATEMANAGER.RestoreRenderState(RS11_DESTBLEND);
-
 	STATEMANAGER.RestoreTransform(World);
 	STATEMANAGER.RestoreRenderState(RS11_CULLMODE);
 }

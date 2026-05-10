@@ -34,6 +34,7 @@ void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch()
 
 	CSpeedTreeWrapper::ms_bSelfShadowOn = true;
 
+
 	STATEMANAGER.SetBestFiltering(0);
 	STATEMANAGER.SetBestFiltering(1);
 
@@ -305,9 +306,9 @@ void CMapOutdoor::__HardwareTransformPatch_RenderPatchSplat(long patchnum, WORD 
 
 void CMapOutdoor::__HardwareTransformPatch_RenderPatchNone(long patchnum, WORD wPrimitiveCount, D3D11_PRIMITIVE_TOPOLOGY ePrimitiveType)
 {
-	assert(NULL!=m_pTerrainPatchProxyList && "__HardwareTransformPatch_RenderPatchNone");
-	CTerrainPatchProxy * pTerrainPatchProxy = &m_pTerrainPatchProxyList[patchnum];
-	
+	assert(NULL != m_pTerrainPatchProxyList && "__HardwareTransformPatch_RenderPatchNone");
+	CTerrainPatchProxy* pTerrainPatchProxy = &m_pTerrainPatchProxyList[patchnum];
+
 	if (!pTerrainPatchProxy->isUsed())
 		return;
 
@@ -315,7 +316,7 @@ void CMapOutdoor::__HardwareTransformPatch_RenderPatchNone(long patchnum, WORD w
 	if (!pkVB)
 		return;
 
-	_mgr->SetShader(VF_PN);
+	_mgr->SetShader(VF_TERRAIN, TERRAIN_BASE);
 	_mgr->SetVertexBuffer(pkVB);
 	STATEMANAGER.DrawIndexedPrimitive11(ePrimitiveType, 0, 0, wPrimitiveCount);
 }

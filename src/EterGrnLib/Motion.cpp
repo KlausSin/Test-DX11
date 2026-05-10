@@ -23,7 +23,7 @@ void CGrannyMotion::Destroy()
 
 void CGrannyMotion::Initialize()
 {
-	m_pgrnAni = NULL;
+	m_pgrnAni = nullptr;
 }
 
 bool CGrannyMotion::BindGrannyAnimation(granny_animation * pgrnAni)

@@ -62,7 +62,7 @@ bool CGrannyModelInstance::IsEmpty()
 	if (m_pModel)
 	{
 		// NO_MESH_BUG_FIX
-		if (!m_meshMatrices)
+		if (m_meshMatrices.empty())
 			return true;
 		// END_OF_NO_MESH_BUG_FIX
 		return false;
@@ -87,24 +87,24 @@ void CGrannyModelInstance::__Initialize()
 		m_pModel->Release();
 	}
 
-	m_pModel = NULL;
-	mc_pParentInstance = NULL;
+	m_pModel = nullptr;
+	mc_pParentInstance = nullptr;
 	m_iParentBoneIndex = 0;
 
-	m_pgrnModelInstance = NULL;	
+	m_pgrnModelInstance = nullptr;	
 
 	// WORK
-	m_pgrnWorldPoseReal = NULL;	
+	m_pgrnWorldPoseReal = nullptr;	
 	// END_OF_WORK
 
 	// TEST
-	// m_pgrnWorldPose = NULL;
-	m_ppkSkeletonInst = NULL;
+	// m_pgrnWorldPose = nullptr;
+	m_ppkSkeletonInst = nullptr;
 	// END_OF_TEST
 
-	m_meshMatrices = NULL;
-	m_pgrnCtrl = NULL;
-	m_pgrnAni = NULL;
+	m_meshMatrices.clear();
+	m_pgrnCtrl = nullptr;
+	m_pgrnAni = nullptr;
 
 	// MR-12: Fix specular isolation issue
 	material_data_ = {};
@@ -114,7 +114,7 @@ void CGrannyModelInstance::__Initialize()
 
 CGrannyModelInstance::CGrannyModelInstance()
 {
-	m_pModel = NULL;
+	m_pModel = nullptr;
 	__Initialize();
 }
 

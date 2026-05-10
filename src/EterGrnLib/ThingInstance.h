@@ -10,15 +10,15 @@ const int DONTUSEVALUE = -1;
 class CGraphicThingInstance : public CGraphicObjectInstance
 {
 	public:		
-		typedef struct SModelThingSet
+		struct TModelThingSet
 		{
 			void Clear()
 			{
 				stl_wipe(m_pLODThingRefVector);
 			}
 
-			std::vector<CGraphicThing::TRef *>	m_pLODThingRefVector;
-		} TModelThingSet;
+			std::vector<CGraphicThing::TRef*> m_pLODThingRefVector;
+		};
 		
 	public:
 		enum

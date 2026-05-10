@@ -33,7 +33,7 @@ void CScreen::RenderLine3d(float sx, float sy, float sz, float ex, float ey, flo
 	{	
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
-		_mgr->SetShader(VF_PDT);
+		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 		STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_LINELIST, 1, 0);
 	}
 }
@@ -65,7 +65,7 @@ void CScreen::RenderBox3d(float sx, float sy, float sz, float ex, float ey, floa
 	{
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
-		_mgr->SetShader(VF_PDT);
+		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 		STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_LINELIST, 4, 0);
 	}
 }
@@ -88,7 +88,7 @@ void CScreen::RenderBar3d(float sx, float sy, float sz, float ex, float ey, floa
 	{
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
-		_mgr->SetShader(VF_PDT);
+		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 		STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, 2, 0);
 	}
 }
@@ -110,7 +110,7 @@ void CScreen::RenderBar3d(const D3DXVECTOR3 * c_pv3Positions)
 	{
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
-		_mgr->SetShader(VF_PDT);
+		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 		STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, 2, 0);
 	}
 }
@@ -133,7 +133,7 @@ void CScreen::RenderGradationBar3d(float sx, float sy, float sz, float ex, float
 	{
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
-		_mgr->SetShader(VF_PDT);
+		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 		STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, 2, 0);
 	}
 }
@@ -157,7 +157,7 @@ void CScreen::RenderLineCube(float sx, float sy, float sz, float ex, float ey, f
 	{
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
-		_mgr->SetShader(VF_PDT);
+		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 		STATEMANAGER.SetTransform(World, ms_lpd3dMatStack->GetTop());
 		SetDefaultIndexBuffer(DEFAULT_IB_LINE_CUBE);
 
@@ -184,7 +184,7 @@ void CScreen::RenderCube(float sx, float sy, float sz, float ex, float ey, float
 	{
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
-		_mgr->SetShader(VF_PDT);
+		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 		STATEMANAGER.SetTransform(World, ms_lpd3dMatStack->GetTop());
 
 		SetDefaultIndexBuffer(DEFAULT_IB_FILL_CUBE);
@@ -222,7 +222,7 @@ void CScreen::RenderCube(float sx, float sy, float sz, float ex, float ey, float
 	{
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
-		_mgr->SetShader(VF_PDT);
+		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 		STATEMANAGER.SetTransform(World, ms_lpd3dMatStack->GetTop());
 
 		SetDefaultIndexBuffer(DEFAULT_IB_FILL_CUBE);
@@ -317,11 +317,6 @@ public:
 	
 	CD3DXMeshRenderingOption(D3D11_FILL_MODE D3D11_FILL_MODE, const D3DXMATRIX & c_rmatWorld)
 	{
-		//STATEMANAGER.GetFVF(&m_dwVS);
-
-		STATEMANAGER.SaveTextureStageState(0, TSS11_COLORARG1, TA11_TFACTOR);
-		STATEMANAGER.SaveTextureStageState(0, TSS11_COLOROP, TOP11_SELECTARG1);
-		STATEMANAGER.SaveTextureStageState(0, TSS11_ALPHAOP, TOP11_DISABLE);
 		STATEMANAGER.SetRenderState(RS11_FILLMODE, D3D11_FILL_MODE);
 		STATEMANAGER.SaveTransform(World, &c_rmatWorld);
 
@@ -334,9 +329,6 @@ public:
 		//STATEMANAGER.SetFVF(m_dwVS);
 
 		STATEMANAGER.RestoreTransform(World);
-		STATEMANAGER.RestoreTextureStageState(0, TSS11_COLORARG1);
-		STATEMANAGER.RestoreTextureStageState(0, TSS11_COLOROP);
-		STATEMANAGER.RestoreTextureStageState(0, TSS11_ALPHAOP);
 		STATEMANAGER.SetRenderState(RS11_FILLMODE, D3D11_FILL_SOLID);
 	}
 };
@@ -396,7 +388,7 @@ void CScreen::RenderTextureBox(float sx, float sy, float ex, float ey, float z, 
 	vertices[3].diffuse = ms_diffuseColor;
 	vertices[3].texCoord = TTextureCoordinate(eu, ev);
 
-			_mgr->SetShader(VF_PDT);
+			_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 
 	SetDefaultIndexBuffer(DEFAULT_IB_FILL_RECT);
 	if (SetPDTStream(vertices, 4))
@@ -425,7 +417,7 @@ void CScreen::RenderBillboard(D3DXVECTOR3 * Position, D3DXCOLOR & Color)
 	vertices[3].diffuse = Color;
 	vertices[3].texCoord = TTextureCoordinate(1, 1);
 	
-			_mgr->SetShader(VF_PDT);
+			_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 
 	SetDefaultIndexBuffer(DEFAULT_IB_FILL_RECT);
 	if (SetPDTStream(vertices, 4))
@@ -716,53 +708,34 @@ void CScreen::UnprojectPosition(float x, float y, float z, float * pfX, float * 
 void CScreen::SetColorOperation()
 {
 	STATEMANAGER.SetTexture(0, NULL);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1,	TA11_DIFFUSE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP,	TOP11_SELECTARG1);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP,	TOP11_DISABLE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP,	TOP11_DISABLE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP,	TOP11_DISABLE);
+	STATEMANAGER.SetTexture(1, NULL);
+	_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 }
 
 void CScreen::SetDiffuseOperation()
 {
 	STATEMANAGER.SetTexture(0, NULL);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2,	TA11_DIFFUSE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP,	TOP11_MODULATE);
-
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP,	TOP11_DISABLE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP,	TOP11_DISABLE);
+	_mgr->SetShader(VF_PDT, BLEND_MODULATE);
 }
 
 void CScreen::SetBlendOperation()
 {
 	STATEMANAGER.SetTexture(0, NULL);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2,	TA11_CURRENT);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP,	TOP11_MODULATE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG1,	TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAARG2,	TA11_CURRENT);
-	STATEMANAGER.SetTextureStageState(0, TSS11_ALPHAOP,	TOP11_MODULATE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_COLOROP,	TOP11_DISABLE);
-	STATEMANAGER.SetTextureStageState(1, TSS11_ALPHAOP,	TOP11_DISABLE);
+	_mgr->SetShader(VF_PDT, BLEND_MODULATE);
 }
 
-void CScreen::SetOneColorOperation(D3DXCOLOR & rColor)
+void CScreen::SetOneColorOperation(D3DXCOLOR& rColor)
 {
 	STATEMANAGER.SetTexture(0, NULL);
 	STATEMANAGER.SetTexture(1, NULL);
-
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, rColor);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TFACTOR);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_SELECTARG1);
+	ms_diffuseColor = rColor;
+	_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 }
 
-void CScreen::SetAddColorOperation(D3DXCOLOR & rColor)
+void CScreen::SetAddColorOperation(D3DXCOLOR& rColor)
 {
-	STATEMANAGER.SetRenderState(RS11_TEXTUREFACTOR, rColor);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG1, TA11_TEXTURE);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLORARG2, TA11_TFACTOR);
-	STATEMANAGER.SetTextureStageState(0, TSS11_COLOROP, TOP11_ADD);
+	ms_diffuseColor = rColor;
+	_mgr->SetShader(VF_PDT, BLEND_ADD);
 }
 
 void CScreen::Identity()

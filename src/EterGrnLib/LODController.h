@@ -229,12 +229,12 @@ public:
 	void	CreateDeviceObjects();
 	void	DestroyDeviceObjects();
 
-	void	AddModel(CGraphicThing* pThing, int iSrcModel, CGrannyLODController* pSkelLODController = NULL);
+	void	AddModel(CGraphicThing* pThing, int iSrcModel, CGrannyLODController* pSkelLODController = nullptr);
 	void	AttachModelInstance(CGrannyLODController* pSrcLODController, const char* c_szBoneName);
 	void	DetachModelInstance(CGrannyLODController* pSrcLODController);
 	void	SetLODLimits(float fNearLOD, float fFarLOD);
 	void	SetLODLevel(BYTE bLODLevel);
-	BYTE	GetLODLevel() { return m_bLODLevel; }
+	BYTE	GetLODLevel() const { return m_bLODLevel; }
 	void	SetMaterialImagePointer(const char* c_szImageName, CGraphicImage* pImage);
 	void	SetMaterialData(const char* c_szImageName, const SMaterialData& c_rkMaterialData);
 	void	SetSpecularInfo(const char* c_szMtrlName, BOOL bEnable, float fPower);
@@ -269,10 +269,7 @@ public:
 
 	BOOL	isModelInstance();
 	CGrannyModelInstance* GetModelInstance();
-	bool	HaveBlendThing() 
-	{ 
-		return 0 != GetModelInstance() ? GetModelInstance()->HaveBlendThing() : false;
-	}
+	bool	HaveBlendThing() const;
 
 protected:
 	void	SetCurrentModelInstance(CGrannyModelInstance* pgrnModelInstance);
@@ -284,11 +281,11 @@ protected:
 
 	//// Attaching Link Data
 	// Data of Parent Side
-	typedef struct SAttachingModelData
+	struct TAttachingModelData
 	{
-		CGrannyLODController* pkLODController;
-		std::string				strBoneName;
-	} TAttachingModelData;
+		CGrannyLODController* pkLODController{};
+		std::string strBoneName;
+	};
 
 	std::vector<TAttachingModelData>	m_AttachedModelDataVector;
 	// Data of Child Side

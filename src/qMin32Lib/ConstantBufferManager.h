@@ -9,6 +9,19 @@ struct CBPerFrame
 	D3DXMATRIX matProj;
 };
 
+struct CBTexTransform
+{
+	D3DXMATRIX tex0;
+	D3DXMATRIX tex1;
+};
+
+
+struct CBMatrix
+{
+	CBPerFrame frame;
+	CBTexTransform texTransform;
+};
+
 // b1: Material / texture stage state emulation
 struct CBMaterial
 {
@@ -41,15 +54,6 @@ struct CBLighting
 	int pad2;
 	float specularColor[4];
 	float pad[12];
-};
-
-// b3: Texture coordinate transform
-struct CBTexTransform
-{
-	D3DXMATRIX matTexTransform0;
-	D3DXMATRIX matTexTransform1;
-	D3DXMATRIX matTexTransform2;
-	D3DXMATRIX matTexTransform3;
 };
 
 // b4: Fog
@@ -107,7 +111,7 @@ public:
 	void SetWorldMatrix(const D3DXMATRIX& mat);
 	void SetViewMatrix(const D3DXMATRIX& mat);
 	void SetProjMatrix(const D3DXMATRIX& mat);
-	void FlushTransforms();
+	void FlushMatrix();
 	// Texture coordinate transform → constant buffer b3
 	void SetTexTransform(DWORD dwStage, const D3DXMATRIX& mat);
 
@@ -153,29 +157,27 @@ public:
 
 
 private:
-	CBufferPtr				m_pCBPerFrame;
+	CBufferPtr				m_pCBMatrix;
 	CBufferPtr				m_pCBMaterial;
 	CBufferPtr				m_pCBLighting;
-	CBufferPtr				m_pCBTexTransform;
 	CBufferPtr				m_pCBFog;
 	CBufferPtr				m_pCBScreenSize;
 	CBufferPtr				m_pCBBonePalette;
 	CBufferPtr				m_pCBSpeedTree;
 
-	CBPerFrame				m_cbPerFrame = {};
+	CBMatrix				m_cbMatrix = {};
 	CBMaterial				m_cbMaterial = {};
 	CBLighting				m_cbLighting = {};
-	CBTexTransform			m_cbTexTransform = {};
 	CBFog					m_cbFog = {};
 	CBScreenSize			m_cbScreenSize = {};
 	CBSpeedTree				m_cbSpeedTree = {};
 
-	bool					m_bTransformDirty = true;
+	bool					m_bMatrixDirty = true;
 	bool					m_bMaterialDirty = true;
 	bool					m_bLightingDirty = true;
 	bool					m_bFogDirty = true;
 	bool					m_bSpeedTreeDirty = true;
-	bool m_bMaterialConstantsDirty = true;
+
 	DxManager* m_manager;
 
 	friend class CD3D11Renderer;

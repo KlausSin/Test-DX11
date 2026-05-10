@@ -293,12 +293,36 @@ void CD3D11SamplerStateCache::SetKey(UINT slot, const SD3D11SamplerStateKey& key
 	}
 }
 
-void CD3D11SamplerStateCache::SetFilter(D3D11_FILTER v) { SetFilter(0, v); }
-void CD3D11SamplerStateCache::SetAddressU(D3D11_TEXTURE_ADDRESS_MODE v) { SetAddressU(0, v); }
-void CD3D11SamplerStateCache::SetAddressV(D3D11_TEXTURE_ADDRESS_MODE v) { SetAddressV(0, v); }
-void CD3D11SamplerStateCache::SetAddressW(D3D11_TEXTURE_ADDRESS_MODE v) { SetAddressW(0, v); }
-void CD3D11SamplerStateCache::SetAddressUV(D3D11_TEXTURE_ADDRESS_MODE u, D3D11_TEXTURE_ADDRESS_MODE v) { SetAddressUV(0, u, v); }
-void CD3D11SamplerStateCache::SetAddressUVW(D3D11_TEXTURE_ADDRESS_MODE u, D3D11_TEXTURE_ADDRESS_MODE v, D3D11_TEXTURE_ADDRESS_MODE w) { SetAddressUVW(0, u, v, w); }
+void CD3D11SamplerStateCache::SetFilter(D3D11_FILTER v)
+{ 
+	SetFilter(0, v);
+}
+
+void CD3D11SamplerStateCache::SetAddressU(D3D11_TEXTURE_ADDRESS_MODE v)
+{ 
+	SetAddressU(0, v);
+}
+
+void CD3D11SamplerStateCache::SetAddressV(D3D11_TEXTURE_ADDRESS_MODE v)
+{ 
+	SetAddressV(0, v);
+}
+
+void CD3D11SamplerStateCache::SetAddressW(D3D11_TEXTURE_ADDRESS_MODE v) 
+{ 
+	SetAddressW(0, v);
+}
+
+void CD3D11SamplerStateCache::SetAddressUV(D3D11_TEXTURE_ADDRESS_MODE u, D3D11_TEXTURE_ADDRESS_MODE v) 
+{ 
+	SetAddressUV(0, u, v);
+}
+
+void CD3D11SamplerStateCache::SetAddressUVW(D3D11_TEXTURE_ADDRESS_MODE u, D3D11_TEXTURE_ADDRESS_MODE v, D3D11_TEXTURE_ADDRESS_MODE w)
+{ 
+	SetAddressUVW(0, u, v, w);
+}
+
 void CD3D11SamplerStateCache::SetAddressAll(D3D11_TEXTURE_ADDRESS_MODE v) { SetAddressAll(0, v); }
 void CD3D11SamplerStateCache::SetMaxAnisotropy(UINT v) { SetMaxAnisotropy(0, v); }
 void CD3D11SamplerStateCache::SetComparisonFunc(D3D11_COMPARISON_FUNC v) { SetComparisonFunc(0, v); }

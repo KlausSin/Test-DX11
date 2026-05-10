@@ -18,9 +18,9 @@ struct VS_OUTPUT
 VS_OUTPUT main(VS_INPUT input)
 {
 	VS_OUTPUT output;
-	float4 worldPos = mul(float4(input.pos, 1.0f), matWorld);
-	float4 viewPos = mul(worldPos, matView);
-	output.pos = mul(viewPos, matProj);
+	float4 worldPos = mul(float4(input.pos, 1.0f), frame.matWorld);
+	float4 viewPos = mul(worldPos, frame.matView);
+	output.pos = mul(viewPos, frame.matProj);
 	output.color = input.color;
 	output.tex = input.tex;
 	output.viewDepth = length(viewPos.xyz);

@@ -1,9 +1,22 @@
-cbuffer cbPerFrame : register(b0)
+struct cbPerFrame
 {
 	row_major float4x4 matWorld;
 	row_major float4x4 matView;
 	row_major float4x4 matProj;
 };
+
+struct cbTexTransform
+{
+    row_major float4x4 tex0;
+    row_major float4x4 tex1;
+};
+
+cbuffer cbMatrix : register(b0)
+{
+    cbPerFrame frame;
+    cbTexTransform texTransform;
+}
+
 
 cbuffer cbMaterial : register(b1)
 {
@@ -25,12 +38,6 @@ cbuffer cbLighting : register(b2)
 	int lightingEnable; 
 	int pad0; int pad1; int pad2;
 	float4 specularColor; // rgb = culoare, a = power
-};
-
-cbuffer cbTexTransform : register(b3)
-{
-	row_major float4x4 matTexTransform0;
-	row_major float4x4 matTexTransform1;
 };
 
 cbuffer cbFog : register(b4)

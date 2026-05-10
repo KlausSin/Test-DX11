@@ -57,14 +57,14 @@ VS_OUTPUT main(VS_INPUT input)
     float3 localNormal = input.normal;
 #endif
 
-    float4 worldPos = mul(localPos, matWorld);
-    float4 viewPos = mul(worldPos, matView);
+    float4 worldPos = mul(localPos, frame.matWorld);
+    float4 viewPos = mul(worldPos, frame.matView);
 
-    output.pos = mul(viewPos, matProj);
+    output.pos = mul(viewPos, frame.matProj);
     output.viewDepth = length(viewPos.xyz);
     output.tex0 = input.tex0;
 
-    float3 worldNormal = normalize(mul(localNormal, (float3x3) matWorld));
+    float3 worldNormal = normalize(mul(localNormal, (float3x3) frame.matWorld));
 
     if (lightingEnable)
     {
@@ -89,16 +89,15 @@ VS_OUTPUT main(VS_INPUT input)
     {
         output.color = float4(1, 1, 1, 1);
     }
-
 #ifdef MESH_SPECULAR
-    float3 viewNormal = normalize(mul(worldNormal, (float3x3)matView));
+    float3 viewNormal = normalize(mul(worldNormal, (float3x3)frame.matView));
     float3 viewDir    = normalize(viewPos.xyz);
     float3 reflVec    = reflect(viewDir, viewNormal);
 
     float2 uv = reflVec.xy;
 
-    float2 ofsA = float2(matTexTransform1._41, matTexTransform1._42);
-    float2 ofsB = float2(matTexTransform1._14, matTexTransform1._24);
+    float2 ofsA = float2(texTransform.tex1._41, texTransform.tex1._42);
+    float2 ofsB = float2(texTransform.tex1._14, texTransform.tex1._24);
 
     output.tex1 = uv + ofsA + ofsB;
 

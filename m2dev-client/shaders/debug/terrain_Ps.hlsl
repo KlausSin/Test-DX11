@@ -47,13 +47,14 @@ float4 main(PS_INPUT input) : SV_Target
 
 #elif defined(TERRAIN_SHADOW)
 
-    float3 shadow = txDiffuse0.Sample(sampler0, input.tex0).rgb;
+	float3 shadow = txDiffuse0.Sample(sampler0, input.tex0).rgb;
 
-#   if defined(TERRAIN_SHADOW_CHR)
-        shadow *= txDiffuse1.Sample(sampler1, input.tex1).rgb;
-#   endif
+#	if defined(TERRAIN_SHADOW_CHR)
+		shadow *= txDiffuse1.Sample(sampler1, input.tex1).rgb;
+#	endif
 
-    return float4(shadow, 1.0f);
+	float4 result = float4(shadow, 1.0f);
+	return ApplyFog(result, input.viewDepth);
 
 #elif defined(TERRAIN_MARKED)
 

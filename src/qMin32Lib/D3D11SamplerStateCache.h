@@ -65,6 +65,7 @@ public:
 	void SetAddressUV(D3D11_TEXTURE_ADDRESS_MODE u, D3D11_TEXTURE_ADDRESS_MODE v);
 	void SetAddressUVW(D3D11_TEXTURE_ADDRESS_MODE u, D3D11_TEXTURE_ADDRESS_MODE v, D3D11_TEXTURE_ADDRESS_MODE w);
 	void SetAddressAll(D3D11_TEXTURE_ADDRESS_MODE mode);
+
 	void SetMaxAnisotropy(UINT value);
 	void SetComparisonFunc(D3D11_COMPARISON_FUNC func);
 	void SetMipLODBias(FLOAT value);

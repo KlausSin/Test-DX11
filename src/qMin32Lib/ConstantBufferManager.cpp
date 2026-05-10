@@ -5,10 +5,9 @@
 
 CBManager::CBManager(DxManager* manager) : m_manager(manager)
 {
-	manager->CreateConstantBuffer(m_pCBPerFrame, sizeof(CBPerFrame));
+	manager->CreateConstantBuffer(m_pCBMatrix, sizeof(CBMatrix));
 	manager->CreateConstantBuffer(m_pCBMaterial, sizeof(CBMaterial));
 	manager->CreateConstantBuffer(m_pCBLighting, sizeof(CBLighting));
-	manager->CreateConstantBuffer(m_pCBTexTransform, sizeof(CBTexTransform));
 	manager->CreateConstantBuffer(m_pCBFog, sizeof(CBFog));
 	manager->CreateConstantBuffer(m_pCBScreenSize, sizeof(CBScreenSize));
 	manager->CreateConstantBuffer(m_pCBBonePalette, sizeof(SGrannyBonePalette)); // b6
@@ -17,49 +16,42 @@ CBManager::CBManager(DxManager* manager) : m_manager(manager)
 
 void CBManager::SetWorldMatrix(const D3DXMATRIX& mat)
 {
-	m_cbPerFrame.matWorld = mat;
-	m_bTransformDirty = true;
+	m_cbMatrix.frame.matWorld = mat;
+	m_bMatrixDirty = true;
 }
 
 void CBManager::SetViewMatrix(const D3DXMATRIX& mat)
 {
-	m_cbPerFrame.matView = mat;
-	m_bTransformDirty = true;
+	m_cbMatrix.frame.matView = mat;
+	m_bMatrixDirty = true;
 }
 
 void CBManager::SetProjMatrix(const D3DXMATRIX& mat)
 {
-	m_cbPerFrame.matProj = mat;
-	m_bTransformDirty = true;
-}
-
-void CBManager::FlushTransforms()
-{
-	if (!m_bTransformDirty)
-		return;
-
-	m_pCBPerFrame->Update(m_cbPerFrame);
-
-	m_bTransformDirty = false;
+	m_cbMatrix.frame.matProj = mat;
+	m_bMatrixDirty = true;
 }
 
 void CBManager::SetTexTransform(DWORD dwStage, const D3DXMATRIX& mat)
 {
 	if (dwStage == 0)
-		m_cbTexTransform.matTexTransform0 = mat;
+		m_cbMatrix.texTransform.tex0 = mat;
 	else if (dwStage == 1)
-		m_cbTexTransform.matTexTransform1 = mat;
-	else if (dwStage == 2)
-		m_cbTexTransform.matTexTransform2 = mat;
-	else if (dwStage == 3)
-		m_cbTexTransform.matTexTransform3 = mat;
+		m_cbMatrix.texTransform.tex1 = mat;
 	else
 		return;
 
-	m_pCBTexTransform->Update(m_cbTexTransform);
+	m_bMatrixDirty = true;
 }
 
+void CBManager::FlushMatrix()
+{
+	if (!m_bMatrixDirty)
+		return;
 
+	m_pCBMatrix->Update(m_cbMatrix);
+	m_bMatrixDirty = false;
+}
 
 void CBManager::SetLightingEnable(BOOL bEnable)
 {
@@ -257,7 +249,7 @@ void CBManager::SetSpecularPower(float power, const D3DXCOLOR& color)
 
 void CBManager::FlushAllState()
 {
-	FlushTransforms();
+	FlushMatrix();
 	FlushMaterial();
 	FlushLighting();
 	FlushFog();
@@ -266,10 +258,9 @@ void CBManager::FlushAllState()
 
 void CBManager::SetAllBuffers()
 {
-	m_manager->SetConstantBuffer(m_pCBPerFrame, 0);
+	m_manager->SetConstantBuffer(m_pCBMatrix, 0);
 	m_manager->SetConstantBuffer(m_pCBMaterial, 1);
 	m_manager->SetConstantBuffer(m_pCBLighting, 2);
-	m_manager->SetConstantBuffer(m_pCBTexTransform, 3);
 	m_manager->SetConstantBuffer(m_pCBFog, 4);
 	m_manager->SetConstantBuffer(m_pCBScreenSize, 5);
 	m_manager->SetConstantBuffer(m_pCBBonePalette, 6);

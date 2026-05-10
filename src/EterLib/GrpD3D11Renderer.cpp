@@ -71,15 +71,13 @@ bool CD3D11Renderer::Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCon
 	_mgr->GetCbMgr()->m_cbLighting.matAmbient[2] = 1.0f;
 	_mgr->GetCbMgr()->m_cbLighting.matAmbient[3] = 1.0f;
 
-	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbPerFrame.matWorld);
-	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbPerFrame.matView);
-	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbPerFrame.matProj);
-	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbTexTransform.matTexTransform0);
-	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbTexTransform.matTexTransform1);
-	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbTexTransform.matTexTransform2);
-	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbTexTransform.matTexTransform3);
+	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.frame.matWorld);
+	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.frame.matView);
+	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.frame.matProj);
+	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.texTransform.tex0);
+	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.texTransform.tex1);
 
-	_mgr->GetCbMgr()->m_bTransformDirty = true;
+	_mgr->GetCbMgr()->m_bMatrixDirty = true;
 	_mgr->GetCbMgr()->m_bMaterialDirty = true;
 	_mgr->GetCbMgr()->m_bLightingDirty = true;
 	_mgr->GetCbMgr()->m_bFogDirty = true;

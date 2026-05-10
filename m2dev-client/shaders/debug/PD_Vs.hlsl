@@ -17,13 +17,13 @@ struct VS_OUTPUT
 VS_OUTPUT main(VS_INPUT input)
 {
     VS_OUTPUT output;
-    float4 worldPos  = mul(float4(input.pos, 1.0f), matWorld);
-    float4 viewPos   = mul(worldPos, matView);
-    output.pos       = mul(viewPos, matProj);
+    float4 worldPos  = mul(float4(input.pos, 1.0f), frame.matWorld);
+    float4 viewPos = mul(worldPos, frame.matView);
+    output.pos = mul(viewPos, frame.matProj);
     output.color     = input.color;
     output.viewDepth = viewPos.z;
 
-    float4 texCoord  = mul(viewPos, matTexTransform0);
+    float4 texCoord  = mul(viewPos, texTransform.tex0);
     output.tex       = texCoord.xy;
 
     return output;

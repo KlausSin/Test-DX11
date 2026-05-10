@@ -16,10 +16,10 @@ VS_OUTPUT main(VS_INPUT input)
 {
 	VS_OUTPUT output;
 
-	float4 worldPos = mul(float4(input.pos, 1.0f), matWorld);
-	float4 viewPos = mul(worldPos, matView);
+	float4 worldPos = mul(float4(input.pos, 1.0f),frame. matWorld);
+	float4 viewPos = mul(worldPos, frame.matView);
 
-	output.pos = mul(viewPos, matProj);
+	output.pos = mul(viewPos, frame.matProj);
 	output.tex = input.tex;
 
 	return output;

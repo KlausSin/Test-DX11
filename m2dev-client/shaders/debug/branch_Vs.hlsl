@@ -25,7 +25,7 @@ VS_OUT main(VS_IN v)
     o.color = v.color;
     o.uv0 = v.uv0;
     o.uv1 = v.uv1;
-    float dist = mul(worldPos, matView).z;
+    float dist = mul(worldPos, frame.matView).z;
     o.fog = saturate((gSpeedTreeFog.y - dist) * gSpeedTreeFog.z);
     return o;
 }

@@ -18,16 +18,16 @@ VS_OUTPUT main(VS_INPUT input)
 {
     VS_OUTPUT output;
 
-    float4 worldPos = mul(float4(input.pos, 1.0f), matWorld);
-    float4 viewPos = mul(worldPos, matView);
+    float4 worldPos = mul(float4(input.pos, 1.0f), frame.matWorld);
+    float4 viewPos = mul(worldPos, frame.matView);
 
-    output.pos = mul(viewPos, matProj);
+    output.pos = mul(viewPos, frame.matProj);
     output.color = float4(1, 1, 1, 1);
 
     output.tex0 = input.tex;
 
 #if defined(TERRAIN_BASE)
-    float4 tc1 = mul(float4(worldPos.xy, 0.0f, 1.0f), matTexTransform1);
+    float4 tc1 = mul(float4(worldPos.xy, 0.0f, 1.0f), texTransform.tex1);
     output.tex1 = tc1.xy;
 #else
     output.tex1 = input.tex;

@@ -25,6 +25,11 @@ void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch()
 		fFogFarDistance = 10000.0f;
 	}
 
+	cb->SetFogEnable(mc_pEnvironmentData ? mc_pEnvironmentData->bFogEnable : false);
+	cb->SetFogColor(dwFogColor);
+	cb->SetFogStart(fFogNearDistance);
+	cb->SetFogEnd(fFogFarDistance);
+
 	state.Push();
 
 	state.Blend.SetBlendEnable(true);

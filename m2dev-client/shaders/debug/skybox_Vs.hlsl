@@ -19,14 +19,14 @@ VS_OUTPUT main(VS_INPUT input)
 {
 	VS_OUTPUT output;
 
-	float4 worldPos = mul(float4(input.pos, 1.0f), matWorld);
-	float4 viewPos = mul(worldPos, matView);
-	output.pos = mul(viewPos, matProj);
+	float4 worldPos = mul(float4(input.pos, 1.0f), frame.matWorld);
+	float4 viewPos = mul(worldPos, frame.matView);
+    output.pos = mul(viewPos, frame.matProj);
 
 	output.color = input.color;
 
 #if defined(SKY_CLOUD)
-	float4 tex = mul(float4(input.tex, 0.0f, 1.0f), matTexTransform0);
+	float4 tex = mul(float4(input.tex, 0.0f, 1.0f), texTransform.tex0);
 	output.tex = tex.xy;
 #else
 	output.tex = input.tex;

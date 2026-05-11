@@ -139,9 +139,9 @@ void CD3D11TransformStateCache::SetTexture1(const D3DXMATRIX& value)
 
 void CD3D11TransformStateCache::SetTexture2(const D3DXMATRIX& value)
 {
-	if (std::memcmp(&m_key.texture[1], &value, sizeof(value)) != 0)
+	if (std::memcmp(&m_key.texture[2], &value, sizeof(value)) != 0)
 	{
-		m_key.texture[1] = value;
+		m_key.texture[2] = value;
 		m_dirty = true;
 	}
 

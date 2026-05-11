@@ -58,9 +58,9 @@ class CPythonCharacterManager : public CSingleton<CPythonCharacterManager>, publ
 
 		void								Update();
 		void								Deform();
-		void								Render(const RenderFrameContext& ctx);
-		void								RenderShadowMainInstance(const RenderFrameContext& ctx);
-		void								RenderShadowAllInstances(const RenderFrameContext& ctx);
+		void								Render(const RenderContext& ctx);
+		void								RenderShadowMainInstance(const RenderContext& ctx);
+		void								RenderShadowAllInstances(const RenderContext& ctx);
 		void								RenderCollision();
 
 		// Create/Delete Instance
@@ -108,8 +108,8 @@ class CPythonCharacterManager : public CSingleton<CPythonCharacterManager>, publ
 		void __UpdatePickedActorList();
 		void __SortPickedActorList();
 
-		void __RenderSortedAliveActorList(const RenderFrameContext& ctx);
-		void __RenderSortedDeadActorList(const RenderFrameContext& ctx);
+		void __RenderSortedAliveActorList(const RenderContext& ctx);
+		void __RenderSortedDeadActorList(const RenderContext& ctx);
 
 	protected:
 		CInstanceBase *						m_pkInstMain;

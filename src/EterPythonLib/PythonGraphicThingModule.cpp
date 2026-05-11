@@ -76,7 +76,7 @@ PyObject* grpThingRender(PyObject* poSelf, PyObject* poArgs)
 		return Py_BuildException();
 
 	CMapOutdoor& rkMap = CPythonBackground::Instance().GetMapOutdoorRef();
-	const RenderFrameContext ctx = rkMap.BuildRenderFrameContext();
+	const RenderContext ctx = rkMap.BuildRenderFrameContext();
 
 	pThingInstance->Render(ctx);
 	Py_RETURN_NONE;

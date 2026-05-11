@@ -110,7 +110,7 @@ class CMapOutdoor : public CMapBase
 
 		bool			BeginRenderCharacterShadowToTexture();
 		void			EndRenderCharacterShadowToTexture();
-		void			RenderWater(const RenderFrameContext& ctx);
+		void			RenderWater(const RenderContext& ctx);
 		void			RenderMarkedArea();
 		void			RecurseRenderAttr(CTerrainQuadtreeNode *Node, bool bCullEnable=TRUE);
 		void			DrawPatchAttr(long patchnum);
@@ -120,13 +120,13 @@ class CMapOutdoor : public CMapBase
 		void			VisibleMarkedArea();
 		void			DisableMarkedArea();
 
-		void			UpdateSky(const RenderFrameContext& ctx);
+		void			UpdateSky(const RenderContext& ctx);
 		void			RenderCollision();
-		RenderFrameContext BuildRenderFrameContext() const;
+		RenderContext	BuildRenderFrameContext() const;
 
-		void			RenderSky(const RenderFrameContext& ctx);
+		void			RenderSky(const RenderContext& ctx);
 
-		void			RenderCloud(const RenderFrameContext& ctx);
+		void			RenderCloud(const RenderContext& ctx);
 		void			RenderBeforeLensFlare();
 		void			RenderAfterLensFlare();
 		void			RenderScreenFiltering();
@@ -243,7 +243,7 @@ class CMapOutdoor : public CMapBase
 		bool			GetWaterHeight(int iX, int iY, long * plWaterHeight);
 		bool			GetNormal(int ix, int iy, D3DXVECTOR3 * pv3Normal);
 
-		void			RenderTerrain(const RenderFrameContext& ctx);
+		void			RenderTerrain(const RenderContext& ctx);
 
 		const long		GetViewRadius()			{ return m_lViewRadius;		}
 		const float		GetHeightScale()		{ return m_fHeightScale;	}
@@ -277,12 +277,12 @@ class CMapOutdoor : public CMapBase
 
 	public:
 		BOOL			GetAreaPointer(const BYTE c_ucAreaNum, CArea ** ppArea);
-		void			RenderArea(const RenderFrameContext& ctx, bool bRenderAmbience = true);
-		void			RenderBlendArea(const RenderFrameContext& ctx);
-		void			RenderDungeon();
-		void			RenderEffect(const RenderFrameContext& ctx);
-		void			RenderPCBlocker(const RenderFrameContext& ctx);
-		void			RenderTree(const RenderFrameContext& ctx);
+		void			RenderArea(const RenderContext& ctx, bool bRenderAmbience = true);
+		void			RenderBlendArea(const RenderContext& ctx);
+		void			RenderDungeon(const RenderContext& ctx);
+		void			RenderEffect(const RenderContext& ctx);
+		void			RenderPCBlocker(const RenderContext& ctx);
+		void			RenderTree(const RenderContext& ctx);
 
 	public:
 		//////////////////////////////////////////////////////////////////////////
@@ -559,10 +559,10 @@ class CMapOutdoor : public CMapBase
 
 		void __RenderTerrain_AppendPatch(const D3DXVECTOR3& c_rv3Center, float fDistance, long lPatchNum);
 
-		void __RenderTerrain_RenderHardwareTransformPatch(const RenderFrameContext& ctx);
+		void __RenderTerrain_RenderHardwareTransformPatch(const RenderContext& ctx);
 
 	protected:
-		void __HardwareTransformPatch_RenderPatchSplat(const RenderFrameContext& ctx, long patchnum, WORD wPrimitiveCount, D3D11_PRIMITIVE_TOPOLOGY ePrimitiveType);
+		void __HardwareTransformPatch_RenderPatchSplat(const RenderContext& ctx, long patchnum, WORD wPrimitiveCount, D3D11_PRIMITIVE_TOPOLOGY ePrimitiveType);
 		void __HardwareTransformPatch_RenderPatchNone(long patchnum, WORD wPrimitiveCount, D3D11_PRIMITIVE_TOPOLOGY ePrimitiveType);
 
 	protected:

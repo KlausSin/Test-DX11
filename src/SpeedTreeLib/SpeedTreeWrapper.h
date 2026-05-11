@@ -126,12 +126,12 @@ public:
 	virtual void				SetPosition(float x, float y, float z);
 	virtual void				CalculateBBox();
 
-	virtual void				OnRender(const RenderFrameContext& ctx); // Render ½Ã¿¡ ¸Þ¼Òµå, ±×·¯³ª ÇÁ¸®ºä³ª Æ¯¼öÇÑ °æ¿ì¿¡¸¸ Á÷Á¢ Render ÄÝÀ» ºÎ¸£¸ç 
+	virtual void				OnRender(const RenderContext& ctx); // Render ½Ã¿¡ ¸Þ¼Òµå, ±×·¯³ª ÇÁ¸®ºä³ª Æ¯¼öÇÑ °æ¿ì¿¡¸¸ Á÷Á¢ Render ÄÝÀ» ºÎ¸£¸ç 
 											// ±× ÀÌ¿Ü¿¡´Â RenderBranches, RenderFronds µîÀÇ ¸Þ¼Òµå¸¦ CSpeedTreeForest¿¡¼­ È£ÃâÇÑ´Ù.
-	virtual void				OnBlendRender(const RenderFrameContext& ctx) {}
-	virtual void				OnRenderToShadowMap(const RenderFrameContext& ctx) {}
-	virtual void				OnRenderShadow(const RenderFrameContext& ctx) {}
-	virtual void				OnRenderPCBlocker(const RenderFrameContext& ctx);
+	virtual void				OnBlendRender(const RenderContext& ctx) {}
+	virtual void				OnRenderToShadowMap(const RenderContext& ctx) {}
+	virtual void				OnRenderShadow(const RenderContext& ctx) {}
+	virtual void				OnRenderPCBlocker(const RenderContext& ctx);
 
 public:
 	CSpeedTreeWrapper();

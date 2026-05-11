@@ -158,3 +158,33 @@ struct RenderFrameContext
 		return ctx;
 	}
 };
+
+struct RenderObjectContext
+{
+	D3DXMATRIX World{};
+	bool AlphaBlend = false;
+	bool AlphaTest = true;
+	bool TwoSided = false;
+	bool Skinned = false;
+
+	static RenderObjectContext Default()
+	{
+		RenderObjectContext ctx;
+		D3DXMatrixIdentity(&ctx.World);
+		return ctx;
+	}
+};
+
+struct RenderContext
+{
+	RenderFrameContext Frame;
+	RenderObjectContext Object;
+
+	static RenderContext Default()
+	{
+		RenderContext ctx;
+		ctx.Frame = RenderFrameContext::Default();
+		ctx.Object = RenderObjectContext::Default();
+		return ctx;
+	}
+};

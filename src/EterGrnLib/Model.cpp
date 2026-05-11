@@ -143,7 +143,13 @@ bool CGrannyModel::LoadMeshes()
         }
 
         m_bHaveBlendThing |= mesh.HaveBlendThing();
-        m_stride += GetMeshVertexStride(grannyMesh);
+        const UINT meshStride = GetMeshVertexStride(grannyMesh);
+
+        if (meshStride == sizeof(TPNT2Vertex))
+        {
+            mesh.SetPNT2Mesh();
+            m_hasPNT2 = true;
+        }
 
         vertexBase += vertexCount;
         indexBase += indexCount;
@@ -166,12 +172,6 @@ bool CGrannyModel::LoadMeshes()
 
         if (mesh.GetTriGroupNodeList(CGrannyMaterial::TYPE_BLEND_PNT))
             AppendMeshNode(meshType, CGrannyMaterial::TYPE_BLEND_PNT, i);
-    }
-
-    if (sizeof(TPNT2Vertex) == m_stride)
-    {
-        for (auto& mesh : m_meshes)
-            mesh.SetPNT2Mesh();
     }
 
     m_rigidVtxCount = rigidVertexBase;

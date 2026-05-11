@@ -76,6 +76,8 @@ bool CD3D11Renderer::Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCon
 	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.frame.matProj);
 	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.texTransform.tex0);
 	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.texTransform.tex1);
+	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.texTransform.tex2);
+	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.texTransform.tex3);
 
 	_mgr->GetCbMgr()->m_bMatrixDirty = true;
 	_mgr->GetCbMgr()->m_bMaterialDirty = true;

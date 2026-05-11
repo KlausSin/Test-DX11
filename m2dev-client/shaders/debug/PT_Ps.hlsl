@@ -28,6 +28,12 @@ float4 main(PS_INPUT input) : SV_Target
 
 #elif defined(TERRAIN_SPLAT)
     return baseTex * textureFactor;
+    
+#elif defined(MINIMAP_MARK)
+    if (alphaTestEnable != 0 && baseTex.a * 255.0f < alphaRef)
+        discard;
+
+    return float4(baseTex.rgb * input.color.rgb, baseTex.a);
 
 #else
     return baseTex * input.color;

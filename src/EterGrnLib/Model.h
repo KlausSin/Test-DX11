@@ -65,7 +65,7 @@ private:
 
     granny_model* m_pgrnModel{};
     bool m_hasPNT2{};
-
+    friend class CGrannyModelInstance;
     std::vector<CGrannyMesh> m_meshes;
 
     VBufferPtr m_pntVtxBuf;

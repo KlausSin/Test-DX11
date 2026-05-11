@@ -441,7 +441,7 @@ struct LessCharacterInstancePtrRenderOrder
 
 struct FCharacterManagerCharacterInstanceRender
 {
-	const RenderFrameContext& ctx;
+	const RenderContext& ctx;
 
 	inline void operator () (const std::pair<DWORD,CInstanceBase *>& cr_Pair)
 	{
@@ -451,7 +451,7 @@ struct FCharacterManagerCharacterInstanceRender
 };
 struct FCharacterInstanceRender
 {
-	const RenderFrameContext& ctx;
+	const RenderContext& ctx;
 	inline void operator () (CInstanceBase * pInstance)
 	{
 		pInstance->Render(ctx);
@@ -465,7 +465,7 @@ struct FCharacterInstanceRenderTrace
 	}
 };
 
-void CPythonCharacterManager::__RenderSortedAliveActorList(const RenderFrameContext& ctx)
+void CPythonCharacterManager::__RenderSortedAliveActorList(const RenderContext& ctx)
 {
 	static std::vector<CInstanceBase*> s_kVct_pkInstAliveSort;
 	s_kVct_pkInstAliveSort.clear();
@@ -474,14 +474,14 @@ void CPythonCharacterManager::__RenderSortedAliveActorList(const RenderFrameCont
 		s_kVct_pkInstAliveSort.push_back(it.second);
 
 	LessCharacterInstancePtrRenderOrder fSortFunc;
-	fSortFunc.v3CameraPosition = ctx.Eye;
+	fSortFunc.v3CameraPosition = ctx.Frame.Eye;
 
 	std::sort(s_kVct_pkInstAliveSort.begin(), s_kVct_pkInstAliveSort.end(), fSortFunc);
 	std::for_each(s_kVct_pkInstAliveSort.begin(), s_kVct_pkInstAliveSort.end(), FCharacterInstanceRender(ctx));
 	std::for_each(s_kVct_pkInstAliveSort.begin(), s_kVct_pkInstAliveSort.end(), FCharacterInstanceRenderTrace());
 }
 
-void CPythonCharacterManager::__RenderSortedDeadActorList(const RenderFrameContext& ctx)
+void CPythonCharacterManager::__RenderSortedDeadActorList(const RenderContext& ctx)
 {
 	static std::vector<CInstanceBase*> s_kVct_pkInstDeadSort;
 	s_kVct_pkInstDeadSort.clear();
@@ -490,13 +490,13 @@ void CPythonCharacterManager::__RenderSortedDeadActorList(const RenderFrameConte
 		s_kVct_pkInstDeadSort.push_back(inst);
 
 	LessCharacterInstancePtrRenderOrder fSortFunc;
-	fSortFunc.v3CameraPosition = ctx.Eye;
+	fSortFunc.v3CameraPosition = ctx.Frame.Eye;
 
 	std::sort(s_kVct_pkInstDeadSort.begin(), s_kVct_pkInstDeadSort.end(), fSortFunc);
 	std::for_each(s_kVct_pkInstDeadSort.begin(), s_kVct_pkInstDeadSort.end(), FCharacterInstanceRender(ctx));
 }
 
-void CPythonCharacterManager::Render(const RenderFrameContext& ctx)
+void CPythonCharacterManager::Render(const RenderContext& ctx)
 {
 	STATEMANAGER.SetTexture(0, NULL);	
 
@@ -514,7 +514,7 @@ void CPythonCharacterManager::Render(const RenderFrameContext& ctx)
 	}
 }
 
-void CPythonCharacterManager::RenderShadowMainInstance(const RenderFrameContext& ctx)
+void CPythonCharacterManager::RenderShadowMainInstance(const RenderContext& ctx)
 {
 	CInstanceBase* pkInstMain=GetMainInstancePtr();
 	if (pkInstMain)
@@ -523,7 +523,7 @@ void CPythonCharacterManager::RenderShadowMainInstance(const RenderFrameContext&
 
 struct FCharacterManagerCharacterInstanceRenderToShadowMap
 {
-	const RenderFrameContext& ctx;
+	const RenderContext& ctx;
 
 	inline void operator () (const std::pair<DWORD,CInstanceBase *>& cr_Pair)
 	{
@@ -531,7 +531,7 @@ struct FCharacterManagerCharacterInstanceRenderToShadowMap
 	}
 };
 
-void CPythonCharacterManager::RenderShadowAllInstances(const RenderFrameContext& ctx)
+void CPythonCharacterManager::RenderShadowAllInstances(const RenderContext& ctx)
 {
 	std::for_each(m_kAliveInstMap.begin(), m_kAliveInstMap.end(), FCharacterManagerCharacterInstanceRenderToShadowMap(ctx));
 }

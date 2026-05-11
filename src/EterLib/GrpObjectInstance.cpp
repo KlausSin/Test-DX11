@@ -36,7 +36,7 @@ void CGraphicObjectInstance::Clear()
 	OnClear();
 }
 
-bool CGraphicObjectInstance::Render(const RenderFrameContext& ctx)
+bool CGraphicObjectInstance::Render(const RenderContext& ctx)
 {
 	if (!isShow())
 		return false;
@@ -45,7 +45,7 @@ bool CGraphicObjectInstance::Render(const RenderFrameContext& ctx)
 	return true;
 }
 
-void CGraphicObjectInstance::BlendRender(const RenderFrameContext& ctx)
+void CGraphicObjectInstance::BlendRender(const RenderContext& ctx)
 {
 	if (!isShow())
 		return;
@@ -53,7 +53,7 @@ void CGraphicObjectInstance::BlendRender(const RenderFrameContext& ctx)
 	OnBlendRender(ctx);
 }
 
-void CGraphicObjectInstance::RenderToShadowMap(const RenderFrameContext& ctx)
+void CGraphicObjectInstance::RenderToShadowMap(const RenderContext& ctx)
 {
 	if (!isShow())
 		return;
@@ -61,7 +61,7 @@ void CGraphicObjectInstance::RenderToShadowMap(const RenderFrameContext& ctx)
 	OnRenderToShadowMap(ctx);
 }
 
-void CGraphicObjectInstance::RenderShadow(const RenderFrameContext& ctx)
+void CGraphicObjectInstance::RenderShadow(const RenderContext& ctx)
 {
 	if (!isShow())
 		return;
@@ -69,7 +69,7 @@ void CGraphicObjectInstance::RenderShadow(const RenderFrameContext& ctx)
 	OnRenderShadow(ctx);
 }
 
-void CGraphicObjectInstance::RenderPCBlocker(const RenderFrameContext& ctx)
+void CGraphicObjectInstance::RenderPCBlocker(const RenderContext& ctx)
 {
 	if (!isShow())
 		return;

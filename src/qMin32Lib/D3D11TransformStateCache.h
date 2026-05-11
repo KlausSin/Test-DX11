@@ -7,7 +7,7 @@ struct SD3D11TransformStateKey
 	D3DXMATRIX world;
 	D3DXMATRIX view;
 	D3DXMATRIX projection;
-	D3DXMATRIX texture[2];
+	D3DXMATRIX texture[4];
 
 	SD3D11TransformStateKey();
 	bool operator==(const SD3D11TransformStateKey& rhs) const;
@@ -32,6 +32,8 @@ public:
 	void SetProjection(const D3DXMATRIX& value);
 	void SetTexture0(const D3DXMATRIX& value);
 	void SetTexture1(const D3DXMATRIX& value);
+	void SetTexture2(const D3DXMATRIX& value);
+	void SetTexture3(const D3DXMATRIX& value);
 	void SetKey(const SD3D11TransformStateKey& key);
 
 	const D3DXMATRIX& GetWorld() const;

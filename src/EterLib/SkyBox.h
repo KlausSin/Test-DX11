@@ -63,9 +63,9 @@ public:
 
 	virtual void Destroy() = 0;
 	virtual void Render() = 0;
-	virtual void Render(const RenderFrameContext& ctx) = 0;
+	virtual void Render(const RenderContext& ctx) = 0;
 	virtual void Update();
-	virtual void Update(const RenderFrameContext& ctx);
+	virtual void Update(const RenderContext& ctx);
 	virtual void StartTransition();
 
 	void SetRenderMode(unsigned char renderMode) { m_ucRenderMode = renderMode; }
@@ -127,11 +127,11 @@ public:
 	~CSkyBox() override;
 
 	void Update() override;
-	void Update(const RenderFrameContext& ctx) override;
+	void Update(const RenderContext& ctx) override;
 	void Render() override;
-	void Render(const RenderFrameContext& ctx) override;
+	void Render(const RenderContext& ctx) override;
 	void RenderCloud();
-	void RenderCloud(const RenderFrameContext& ctx);
+	void RenderCloud(const RenderContext& ctx);
 	void Destroy() override;
 	void Unload();
 

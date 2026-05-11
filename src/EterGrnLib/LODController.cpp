@@ -489,7 +489,7 @@ bool CGrannyLODController::HaveBlendThing() const
 	return m_pCurrentModelInstance ? m_pCurrentModelInstance->HaveBlendThing() : false;
 }
 
-void CGrannyLODController::RenderWithOneTexture(const RenderFrameContext& ctx)
+void CGrannyLODController::RenderWithOneTexture(const RenderContext& ctx)
 {
 	assert(m_pCurrentModelInstance != nullptr);
 
@@ -510,32 +510,32 @@ void CGrannyLODController::RenderWithOneTexture(const RenderFrameContext& ctx)
 #endif
 }
 
-void CGrannyLODController::BlendRenderWithOneTexture(const RenderFrameContext& ctx)
+void CGrannyLODController::BlendRenderWithOneTexture(const RenderContext& ctx)
 {
 	assert(m_pCurrentModelInstance != nullptr);
 	m_pCurrentModelInstance->BlendRenderWithOneTexture(ctx);
 }
 
-void CGrannyLODController::RenderWithTwoTexture(const RenderFrameContext& ctx)
+void CGrannyLODController::RenderWithTwoTexture(const RenderContext& ctx)
 {
 	assert(m_pCurrentModelInstance != nullptr);
 	m_pCurrentModelInstance->RenderWithTwoTexture(ctx);
 }
 
-void CGrannyLODController::BlendRenderWithTwoTexture(const RenderFrameContext& ctx)
+void CGrannyLODController::BlendRenderWithTwoTexture(const RenderContext& ctx)
 {
 	assert(m_pCurrentModelInstance != nullptr);
 	m_pCurrentModelInstance->BlendRenderWithTwoTexture(ctx);
 }
 
-void CGrannyLODController::RenderToShadowMap(const RenderFrameContext& ctx)
+void CGrannyLODController::RenderToShadowMap(const RenderContext& ctx)
 {
 	if (m_pCurrentModelInstance)
 		m_pCurrentModelInstance->RenderWithoutTexture(ctx);
 }
 
-void CGrannyLODController::RenderShadow(const RenderFrameContext& ctx)
+void CGrannyLODController::RenderShadow(const RenderContext& ctx)
 {
 	if (m_pCurrentModelInstance)
-		m_pCurrentModelInstance->RenderWithOneTexture(ctx);
+		m_pCurrentModelInstance->RenderProjectedShadow(ctx);
 }

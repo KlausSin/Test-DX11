@@ -156,7 +156,7 @@ bool CMapOutdoor::Update(float fX, float fY, float fZ)
 	return true;
 }
 
-void CMapOutdoor::UpdateSky(const RenderFrameContext& ctx)
+void CMapOutdoor::UpdateSky(const RenderContext& ctx)
 {
 	m_SkyBox.Update(ctx);
 }

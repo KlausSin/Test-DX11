@@ -22,7 +22,11 @@ VS_OUTPUT main(VS_INPUT input)
     float4 viewPos = mul(worldPos, frame.matView);
 
     output.pos = mul(viewPos, frame.matProj);
+#if defined(MINIMAP_MARK)
+    output.color = textureFactor;
+#else
     output.color = float4(1, 1, 1, 1);
+#endif
 
     output.tex0 = input.tex;
 

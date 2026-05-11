@@ -118,7 +118,7 @@ void CPythonItem::Update(const POINT& c_rkPtMouse)
 	m_dwPickedItemID=__Pick(c_rkPtMouse);
 }
 
-void CPythonItem::Render(const RenderFrameContext& ctx)
+void CPythonItem::Render(const RenderContext& ctx)
 {
 	CPythonGraphic::Instance().SetDiffuseOperation();
 	TGroundItemInstanceMap::iterator itor = m_GroundItemInstanceMap.begin();

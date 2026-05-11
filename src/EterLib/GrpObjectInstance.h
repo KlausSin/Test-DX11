@@ -51,11 +51,11 @@ class CGraphicObjectInstance : public CGraphicCollisionObject
 
 		void					Clear();
 		void					Update();
-		bool					Render(const RenderFrameContext& ctx);
-		void					BlendRender(const RenderFrameContext& ctx);
-		void					RenderToShadowMap(const RenderFrameContext& ctx);
-		void					RenderShadow(const RenderFrameContext& ctx);
-		void					RenderPCBlocker(const RenderFrameContext& ctx);
+		bool					Render(const RenderContext& ctx);
+		void					BlendRender(const RenderContext& ctx);
+		void					RenderToShadowMap(const RenderContext& ctx);
+		void					RenderShadow(const RenderContext& ctx);
+		void					RenderPCBlocker(const RenderContext& ctx);
 		void					Deform();
 		void					Transform();
 		
@@ -98,11 +98,11 @@ class CGraphicObjectInstance : public CGraphicCollisionObject
 		void					RegisterBoundingSphere();
 		virtual bool			GetBoundingSphere(D3DXVECTOR3 & v3Center, float & fRadius) = 0;
 
-		virtual void OnRender(const RenderFrameContext& ctx) = 0;
-		virtual void OnBlendRender(const RenderFrameContext& ctx) = 0;
-		virtual void OnRenderToShadowMap(const RenderFrameContext& ctx) = 0;
-		virtual void OnRenderShadow(const RenderFrameContext& ctx) = 0;
-		virtual void OnRenderPCBlocker(const RenderFrameContext& ctx) = 0;
+		virtual void OnRender(const RenderContext& ctx) = 0;
+		virtual void OnBlendRender(const RenderContext& ctx) = 0;
+		virtual void OnRenderToShadowMap(const RenderContext& ctx) = 0;
+		virtual void OnRenderShadow(const RenderContext& ctx) = 0;
+		virtual void OnRenderPCBlocker(const RenderContext& ctx) = 0;
 
 		virtual void OnClear() {}
 		virtual void OnUpdate() {}

@@ -31,7 +31,7 @@ void CActorInstance::SetMaterialAlpha(DWORD dwAlpha)
 }
 
 
-void CActorInstance::OnRender(const RenderFrameContext& ctx)
+void CActorInstance::OnRender(const RenderContext& ctx)
 {
 	// Early out if race data is not loaded yet (async loading)
 	if (!m_pkCurRaceData)
@@ -330,7 +330,7 @@ void CActorInstance::RenderCollisionData()
 }
 
 
-void CActorInstance::RenderToShadowMap(const RenderFrameContext& ctx)
+void CActorInstance::RenderToShadowMap(const RenderContext& ctx)
 {
 	if (RENDER_MODE_BLEND == m_iRenderMode)
 	if (GetAlphaValue() < 0.5f)

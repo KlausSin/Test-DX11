@@ -85,14 +85,14 @@ void CSkyObject::Update()
 	if (!camera)
 		return;
 
-	RenderFrameContext ctx = RenderFrameContext::Default();
-	ctx.Eye = camera->GetEye();
+	RenderContext ctx = RenderContext::Default();
+	ctx.Frame.Eye = camera->GetEye();
 	Update(ctx);
 }
 
-void CSkyObject::Update(const RenderFrameContext& ctx)
+void CSkyObject::Update(const RenderContext& ctx)
 {
-	const D3DXVECTOR3 eye = ctx.Eye;
+	const D3DXVECTOR3 eye = ctx.Frame.Eye;
 	if (m_v3Position == eye && !m_bSkyMatrixUpdated)
 		return;
 
@@ -399,7 +399,7 @@ void CSkyBox::Update()
 	m_FaceCloud.Update();
 }
 
-void CSkyBox::Update(const RenderFrameContext& ctx)
+void CSkyBox::Update(const RenderContext& ctx)
 {
 	CSkyObject::Update(ctx);
 	for (auto& face : m_Faces)
@@ -415,10 +415,10 @@ CGraphicImageInstance* CSkyBox::FindTexture(const std::string& filename) const
 
 void CSkyBox::Render()
 {
-	Render(RenderFrameContext::Default());
+	Render(RenderContext::Default());
 }
 
-void CSkyBox::Render(const RenderFrameContext& ctx)
+void CSkyBox::Render(const RenderContext& ctx)
 {
 	Update(ctx);
 
@@ -434,8 +434,8 @@ void CSkyBox::Render(const RenderFrameContext& ctx)
 
 	STATEMANAGER.SetTexture(1, NULL);
 	STATEMANAGER.GetTransform().SetWorld(m_matWorld);
-	STATEMANAGER.GetTransform().SetView(ctx.View);
-	STATEMANAGER.GetTransform().SetProjection(ctx.Projection);
+	STATEMANAGER.GetTransform().SetView(ctx.Frame.View);
+	STATEMANAGER.GetTransform().SetProjection(ctx.Frame.Projection);
 
 	if (m_ucRenderMode == SKY_RENDER_MODE_TEXTURE)
 	{
@@ -465,10 +465,10 @@ void CSkyBox::Render(const RenderFrameContext& ctx)
 
 void CSkyBox::RenderCloud()
 {
-	RenderCloud(RenderFrameContext::Default());
+	RenderCloud(RenderContext::Default());
 }
 
-void CSkyBox::RenderCloud(const RenderFrameContext& ctx)
+void CSkyBox::RenderCloud(const RenderContext& ctx)
 {
 	if (m_FaceCloud.m_strfacename.empty())
 		return;
@@ -491,7 +491,7 @@ void CSkyBox::RenderCloud(const RenderFrameContext& ctx)
 	_mgr->GetCbMgr()->SetLightingEnable(FALSE);
 	_mgr->GetCbMgr()->SetFogEnable(FALSE);
 
-	const float delta = ctx.DeltaTime > 0.0f ? ctx.DeltaTime : 0.0f;
+	const float delta = ctx.Frame.DeltaTime > 0.0f ? ctx.Frame.DeltaTime : 0.0f;
 	m_fCloudPositionU += m_fCloudScrollSpeedU * delta;
 	m_fCloudPositionV += m_fCloudScrollSpeedV * delta;
 	m_fCloudPositionU -= std::floor(m_fCloudPositionU);
@@ -502,8 +502,8 @@ void CSkyBox::RenderCloud(const RenderFrameContext& ctx)
 	_mgr->SetShader(VF_SKYBOX, SKY_CLOUD);
 	STATEMANAGER.GetTransform().SetWorld(m_matWorldCloud);
 	STATEMANAGER.GetTransform().SetTexture0(m_matTextureCloud);
-	STATEMANAGER.GetTransform().SetView(ctx.View);
-	STATEMANAGER.GetTransform().SetProjection(ctx.Projection);
+	STATEMANAGER.GetTransform().SetView(ctx.Frame.View);
+	STATEMANAGER.GetTransform().SetProjection(ctx.Frame.Projection);
 	STATEMANAGER.SetTexture(0, imageInstance->GetTexturePointer()->GetSRV());
 	m_FaceCloud.Render();
 	STATEMANAGER.SetTexture(0, NULL);

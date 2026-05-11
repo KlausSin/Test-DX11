@@ -236,7 +236,7 @@ void CInstanceBase::SHORSE::Deform()
 	rkActor.INSTANCEBASE_Deform();
 }
 
-void CInstanceBase::SHORSE::Render(const RenderFrameContext& ctx)
+void CInstanceBase::SHORSE::Render(const RenderContext& ctx)
 {
 	if (!IsMounting())
 		return;
@@ -1979,7 +1979,7 @@ void CInstanceBase::RenderTrace()
 
 
 
-void CInstanceBase::Render(const RenderFrameContext& ctx)
+void CInstanceBase::Render(const RenderContext& ctx)
 {
 	// 2004.07.17.levites.isShow를 ViewFrustumCheck로 변경
 	if (!__CanRender())
@@ -2040,13 +2040,13 @@ void CInstanceBase::Render(const RenderFrameContext& ctx)
 
 			STATEMANAGER.GetStateCache().Restore();
 
-			_mgr->GetCbMgr()->SetFogEnable(ctx.FogEnable);
+			_mgr->GetCbMgr()->SetFogEnable(ctx.Frame.FogEnable);
 			_mgr->GetCbMgr()->SetLightingEnable(true);
 		}
 	}
 }
 
-void CInstanceBase::RenderToShadowMap(const RenderFrameContext& ctx)
+void CInstanceBase::RenderToShadowMap(const RenderContext& ctx)
 {
 	if (IsDoor())
 		return;

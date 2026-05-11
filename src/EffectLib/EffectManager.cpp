@@ -88,14 +88,14 @@ struct CEffectManager_LessEffectInstancePtrRenderOrder
 
 struct CEffectManager_FEffectInstanceRender
 {
-	const RenderFrameContext& ctx;
+	const RenderContext& ctx;
 	inline void operator () (CEffectInstance * pkEftInst)
 	{
 		pkEftInst->Render(ctx);
 	}
 };
 
-void CEffectManager::Render(const RenderFrameContext& ctx)
+void CEffectManager::Render(const RenderContext& ctx)
 {
 	STATEMANAGER.SetTexture(0, NULL);
 	STATEMANAGER.SetTexture(1, NULL);

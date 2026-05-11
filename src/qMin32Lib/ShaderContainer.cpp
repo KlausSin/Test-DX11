@@ -6,12 +6,17 @@
 static const std::vector<uint32_t> k_MeshPermutations = []()
 	{
 		const uint32_t blends[] = {
-			SHADER_NONE,        // RenderWithOneTexture rigid
-			IS_SKINNED,         // RenderWithOneTexture skinned
-			HAS_TEX2,           // RenderWithTwoTexture rigid
-			HAS_TEX2 | IS_SKINNED, // RenderWithTwoTexture skinned
+			SHADER_NONE,
+			IS_SKINNED,
+			HAS_TEX2,
+			HAS_TEX2 | IS_SKINNED,
 			MESH_SPECULAR,
 			MESH_SPECULAR | IS_SKINNED,
+			MESH_SPECULAR | HAS_TEX2,
+			MESH_SPECULAR | HAS_TEX2 | IS_SKINNED,
+
+			MESH_PROJECTED_SHADOW,
+			MESH_PROJECTED_SHADOW | IS_SKINNED,
 		};
 
 		std::vector<uint32_t> out(std::begin(blends), std::end(blends));
@@ -42,7 +47,6 @@ ShadersContainer::ShadersContainer(DxManager* manager)
 
 
 	Precompile(VF_SKYBOX, { SKY_USE_TEXTURE, SKY_USE_DIFFUSE, SKY_CLOUD });
-	Precompile(VF_TERRAIN, { TERRAIN_SPLAT, TERRAIN_SHADOW, TERRAIN_SHADOW_CHR, TERRAIN_MARKED, TERRAIN_BASE });
 }
 
 void ShadersContainer::Precompile(ED3D11VertexFormat format, const std::vector<uint32_t>& flagCombinations)

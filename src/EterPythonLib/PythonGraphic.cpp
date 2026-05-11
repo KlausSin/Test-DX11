@@ -91,7 +91,7 @@ void CPythonGraphic::SetOmniLight()
 	Light.Attenuation0 = 0.1f;
 	Light.Attenuation1 = 0.01f;
 	Light.Attenuation2 = 0.0f;
-	// Note: D3D11 renderer only supports light index 0 currently
+	STATEMANAGER.GetLight().SetLight(1, Light);
 }
 
 void CPythonGraphic::SetViewport(float fx, float fy, float fWidth, float fHeight)

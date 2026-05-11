@@ -82,16 +82,16 @@ CSpeedTreeWrapper::CSpeedTreeWrapper() :
 	m_pSpeedTree->SetLocalMatrices(0, 4);
 }
 
-void CSpeedTreeWrapper::OnRenderPCBlocker(const RenderFrameContext& ctx)
+void CSpeedTreeWrapper::OnRenderPCBlocker(const RenderContext& ctx)
 {
 	auto& state = STATEMANAGER.GetStateCache();
 	auto cb = _mgr->GetCbMgr();
 
-	CSpeedTreeForestDirectX::Instance().UpdateSystem(ctx.Time);
+	CSpeedTreeForestDirectX::Instance().UpdateSystem(ctx.Frame.Time);
 
 	m_pSpeedTree->SetLodLevel(1.0f);
 
-	CSpeedTreeForestDirectX::Instance().UpdateCompundMatrix(ctx.Eye, ctx.View, ctx.Projection);
+	CSpeedTreeForestDirectX::Instance().UpdateCompundMatrix(ctx.Frame.Eye, ctx.Frame.View, ctx.Frame.Projection);
 
 	state.Push();
 
@@ -182,16 +182,16 @@ void CSpeedTreeWrapper::OnRenderPCBlocker(const RenderFrameContext& ctx)
 	state.Restore();
 }
 
-void CSpeedTreeWrapper::OnRender(const RenderFrameContext& ctx)
+void CSpeedTreeWrapper::OnRender(const RenderContext& ctx)
 {
 	auto& state = STATEMANAGER.GetStateCache();
 	auto cb = _mgr->GetCbMgr();
 
-	CSpeedTreeForestDirectX::Instance().UpdateSystem(ctx.Time);
+	CSpeedTreeForestDirectX::Instance().UpdateSystem(ctx.Frame.Time);
 
 	m_pSpeedTree->SetLodLevel(1.0f);
 
-	CSpeedTreeForestDirectX::Instance().UpdateCompundMatrix(ctx.Eye, ctx.View, ctx.Projection);
+	CSpeedTreeForestDirectX::Instance().UpdateCompundMatrix(ctx.Frame.Eye, ctx.Frame.View, ctx.Frame.Projection);
 
 	state.Push();
 

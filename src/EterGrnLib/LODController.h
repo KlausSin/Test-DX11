@@ -46,10 +46,10 @@ public:
 
 	struct FRenderWithOneTexture
 	{
-		const RenderFrameContext* pCtx = nullptr;
+		const RenderContext* pCtx = nullptr;
 
 		FRenderWithOneTexture() = default;
-		explicit FRenderWithOneTexture(const RenderFrameContext& ctx) : pCtx(&ctx) {}
+		explicit FRenderWithOneTexture(const RenderContext& ctx) : pCtx(&ctx) {}
 
 		void operator() (CGrannyLODController* pController)
 		{
@@ -62,10 +62,10 @@ public:
 
 	struct FBlendRenderWithOneTexture
 	{
-		const RenderFrameContext* pCtx = nullptr;
+		const RenderContext* pCtx = nullptr;
 
 		FBlendRenderWithOneTexture() = default;
-		explicit FBlendRenderWithOneTexture(const RenderFrameContext& ctx) : pCtx(&ctx) {}
+		explicit FBlendRenderWithOneTexture(const RenderContext& ctx) : pCtx(&ctx) {}
 
 		void operator() (CGrannyLODController* pController)
 		{
@@ -78,10 +78,10 @@ public:
 
 	struct FRenderWithTwoTexture
 	{
-		const RenderFrameContext* pCtx = nullptr;
+		const RenderContext* pCtx = nullptr;
 
 		FRenderWithTwoTexture() = default;
-		explicit FRenderWithTwoTexture(const RenderFrameContext& ctx) : pCtx(&ctx) {}
+		explicit FRenderWithTwoTexture(const RenderContext& ctx) : pCtx(&ctx) {}
 
 		void operator() (CGrannyLODController* pController)
 		{
@@ -94,10 +94,10 @@ public:
 
 	struct FBlendRenderWithTwoTexture
 	{
-		const RenderFrameContext* pCtx = nullptr;
+		const RenderContext* pCtx = nullptr;
 
 		FBlendRenderWithTwoTexture() = default;
-		explicit FBlendRenderWithTwoTexture(const RenderFrameContext& ctx) : pCtx(&ctx) {}
+		explicit FBlendRenderWithTwoTexture(const RenderContext& ctx) : pCtx(&ctx) {}
 
 		void operator() (CGrannyLODController* pController)
 		{
@@ -110,10 +110,10 @@ public:
 
 	struct FRenderToShadowMap
 	{
-		const RenderFrameContext* pCtx = nullptr;
+		const RenderContext* pCtx = nullptr;
 
 		FRenderToShadowMap() = default;
-		explicit FRenderToShadowMap(const RenderFrameContext& ctx) : pCtx(&ctx) {}
+		explicit FRenderToShadowMap(const RenderContext& ctx) : pCtx(&ctx) {}
 
 		void operator() (CGrannyLODController* pController)
 		{
@@ -126,10 +126,10 @@ public:
 
 	struct FRenderShadow
 	{
-		const RenderFrameContext* pCtx = nullptr;
+		const RenderContext* pCtx = nullptr;
 
 		FRenderShadow() = default;
-		explicit FRenderShadow(const RenderFrameContext& ctx) : pCtx(&ctx) {}
+		explicit FRenderShadow(const RenderContext& ctx) : pCtx(&ctx) {}
 
 		void operator() (CGrannyLODController* pController)
 		{
@@ -281,10 +281,10 @@ public:
 	void	SetMaterialData(const char* c_szImageName, const SMaterialData& c_rkMaterialData);
 	void	SetSpecularInfo(const char* c_szMtrlName, BOOL bEnable, float fPower);
 
-	void	RenderWithOneTexture(const RenderFrameContext& ctx);
-	void	RenderWithTwoTexture(const RenderFrameContext& ctx);
-	void	BlendRenderWithOneTexture(const RenderFrameContext& ctx);
-	void	BlendRenderWithTwoTexture(const RenderFrameContext& ctx);
+	void	RenderWithOneTexture(const RenderContext& ctx);
+	void	RenderWithTwoTexture(const RenderContext& ctx);
+	void	BlendRenderWithOneTexture(const RenderContext& ctx);
+	void	BlendRenderWithTwoTexture(const RenderContext& ctx);
 
 	void	Update(float fElapsedTime, float fDistanceFromCenter, float fDistanceFromCamera);
 	void	UpdateLODLevel(float fDistanceFromCenter, float fDistanceFromCamera);
@@ -295,8 +295,8 @@ public:
 	void	DeformNoSkin(const D3DXMATRIX* c_pWorldMatrix);
 	void	DeformAll(const D3DXMATRIX* c_pWorldMatrix);
 
-	void	RenderToShadowMap(const RenderFrameContext& ctx);
-	void	RenderShadow(const RenderFrameContext& ctx);
+	void	RenderToShadowMap(const RenderContext& ctx);
+	void	RenderShadow(const RenderContext& ctx);
 	void	ReloadTexture();
 
 	void	GetBoundBox(D3DXVECTOR3* vtMin, D3DXVECTOR3* vtMax);

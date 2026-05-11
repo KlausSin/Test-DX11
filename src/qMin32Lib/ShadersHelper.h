@@ -18,9 +18,6 @@ enum ShaderFlags : uint32_t
 	SKY_CLOUD = 1 << 4,
 
 	TERRAIN_SPLAT = 1 << 5,
-	TERRAIN_SHADOW = 1 << 6,
-	TERRAIN_SHADOW_CHR = 1 << 7,
-	TERRAIN_MARKED = 1 << 8,
 
 	//pdt
 	BLEND_MODULATE = 1 << 9,
@@ -36,6 +33,7 @@ enum ShaderFlags : uint32_t
 	MESH_SPECULAR = 1 << 17,
 	TERRAIN_BASE = 1 << 18,
 	MINIMAP_MARK = 1 << 19,
+	MESH_PROJECTED_SHADOW = 1 << 20,
 };
 
 static std::string BuildShaderPath(const std::string& basePath)
@@ -77,16 +75,6 @@ static std::vector<D3D_SHADER_MACRO> BuildDefinesFromFlags(uint32_t flags)
 	if (flags & TERRAIN_SPLAT)
 		out.push_back({ "TERRAIN_SPLAT", "1" });
 
-	if (flags & TERRAIN_SHADOW)
-		out.push_back({ "TERRAIN_SHADOW", "1" });
-
-	if (flags & TERRAIN_SHADOW_CHR)
-		out.push_back({ "TERRAIN_SHADOW_CHR", "1" });
-
-	if (flags & TERRAIN_MARKED)
-		out.push_back({ "TERRAIN_MARKED", "1" });
-
-
 	if (flags & BLEND_MODULATE)
 		out.push_back({ "BLEND_MODULATE", "1" });
 	if (flags & BLEND_UI_TEX)
@@ -112,6 +100,8 @@ static std::vector<D3D_SHADER_MACRO> BuildDefinesFromFlags(uint32_t flags)
 
 	if (flags & MINIMAP_MARK)
 		out.push_back({ "MINIMAP_MARK", "1" });
+	if (flags & MESH_PROJECTED_SHADOW)
+		out.push_back({ "MESH_PROJECTED_SHADOW", "1" });
 
 	out.push_back({ nullptr, nullptr });
 

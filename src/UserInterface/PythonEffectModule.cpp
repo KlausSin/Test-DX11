@@ -24,7 +24,7 @@ PyObject* effectRender(PyObject* poSelf, PyObject* poArgs)
 	CPythonBackground& rkBG = CPythonBackground::Instance();
 
 	CMapOutdoor& rkMap = rkBG.GetMapOutdoorRef();
-	const RenderFrameContext ctx = rkMap.BuildRenderFrameContext();
+	const RenderContext ctx = rkMap.BuildRenderFrameContext();
 
 	CEffectManager::Instance().Render(ctx);
 

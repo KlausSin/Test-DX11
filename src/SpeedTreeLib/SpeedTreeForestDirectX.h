@@ -50,7 +50,7 @@ class CSpeedTreeForestDirectX : public CSpeedTreeForest, public CGraphicBase, pu
 		void			UpdateCompundMatrix(const D3DXVECTOR3 & c_rEyeVec, const D3DXMATRIX & c_rmatView, const D3DXMATRIX& c_rmatProj);
 
 		void			Render(unsigned long ulRenderBitVector = Forest_RenderAll);
-		void			Render(const RenderFrameContext& ctx, unsigned long ulRenderBitVector = Forest_RenderAll);
+		void			Render(const RenderContext& ctx, unsigned long ulRenderBitVector = Forest_RenderAll);
 
 		bool			SetRenderingDevice();
 		

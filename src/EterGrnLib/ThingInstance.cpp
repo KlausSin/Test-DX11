@@ -834,12 +834,12 @@ void CGraphicThingInstance::OnUpdate()
 #endif
 }
 
-void CGraphicThingInstance::OnRender(const RenderFrameContext& ctx)
+void CGraphicThingInstance::OnRender(const RenderContext& ctx)
 {
 	RenderWithOneTexture(ctx);
 }
 
-void CGraphicThingInstance::OnBlendRender(const RenderFrameContext& ctx)
+void CGraphicThingInstance::OnBlendRender(const RenderContext& ctx)
 {
 	BlendRenderWithOneTexture(ctx);
 }
@@ -932,7 +932,7 @@ CGraphicThingInstance::~CGraphicThingInstance()
 }
 
 
-void CGraphicThingInstance::RenderWithOneTexture(const RenderFrameContext& ctx)
+void CGraphicThingInstance::RenderWithOneTexture(const RenderContext& ctx)
 {
 	if (!m_bUpdated)
 		return;
@@ -941,7 +941,7 @@ void CGraphicThingInstance::RenderWithOneTexture(const RenderFrameContext& ctx)
 	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
 }
 
-void CGraphicThingInstance::BlendRenderWithOneTexture(const RenderFrameContext& ctx)
+void CGraphicThingInstance::BlendRenderWithOneTexture(const RenderContext& ctx)
 {
 	if (!m_bUpdated)
 		return;
@@ -950,7 +950,7 @@ void CGraphicThingInstance::BlendRenderWithOneTexture(const RenderFrameContext& 
 	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
 }
 
-void CGraphicThingInstance::RenderWithTwoTexture(const RenderFrameContext& ctx)
+void CGraphicThingInstance::RenderWithTwoTexture(const RenderContext& ctx)
 {
 	if (!m_bUpdated)
 		return;
@@ -959,7 +959,7 @@ void CGraphicThingInstance::RenderWithTwoTexture(const RenderFrameContext& ctx)
 	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
 }
 
-void CGraphicThingInstance::BlendRenderWithTwoTexture(const RenderFrameContext& ctx)
+void CGraphicThingInstance::BlendRenderWithTwoTexture(const RenderContext& ctx)
 {
 	if (!m_bUpdated)
 		return;
@@ -968,7 +968,7 @@ void CGraphicThingInstance::BlendRenderWithTwoTexture(const RenderFrameContext& 
 	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
 }
 
-void CGraphicThingInstance::OnRenderToShadowMap(const RenderFrameContext& ctx)
+void CGraphicThingInstance::OnRenderToShadowMap(const RenderContext& ctx)
 {
 	if (!m_bUpdated)
 		return;
@@ -977,7 +977,7 @@ void CGraphicThingInstance::OnRenderToShadowMap(const RenderFrameContext& ctx)
 	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
 }
 
-void CGraphicThingInstance::OnRenderShadow(const RenderFrameContext& ctx)
+void CGraphicThingInstance::OnRenderShadow(const RenderContext& ctx)
 {
 	if (!m_bUpdated)
 		return;
@@ -986,7 +986,7 @@ void CGraphicThingInstance::OnRenderShadow(const RenderFrameContext& ctx)
 	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
 }
 
-void CGraphicThingInstance::OnRenderPCBlocker(const RenderFrameContext& ctx)
+void CGraphicThingInstance::OnRenderPCBlocker(const RenderContext& ctx)
 {
 	if (!m_bUpdated)
 		return;

@@ -56,11 +56,11 @@ class CEffectInstance : public CGraphicObjectInstance
 		void SetGlobalMatrix(const D3DXMATRIX & c_rmatGlobal);
 		void UpdateSound();
 		void OnUpdate();
-		void OnRender(const RenderFrameContext& ctx);
-		void OnBlendRender(const RenderFrameContext& ctx) {} // Not used
-		void OnRenderToShadowMap(const RenderFrameContext& ctx) {} // Not used
-		void OnRenderShadow(const RenderFrameContext& ctx) {} // Not used
-		void OnRenderPCBlocker(const RenderFrameContext& ctx) {} // Not used
+		void OnRender(const RenderContext& ctx);
+		void OnBlendRender(const RenderContext& ctx) {} // Not used
+		void OnRenderToShadowMap(const RenderContext& ctx) {} // Not used
+		void OnRenderShadow(const RenderContext& ctx) {} // Not used
+		void OnRenderPCBlocker(const RenderContext& ctx) {} // Not used
 
 	protected:
 		void					__Initialize();

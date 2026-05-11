@@ -507,9 +507,9 @@ class CInstanceBase
 
 		void					Transform();
 		void					Deform();
-		void					Render(const RenderFrameContext& ctx);
+		void					Render(const RenderContext& ctx);
 		void					RenderTrace();
-		void					RenderToShadowMap(const RenderFrameContext& ctx);
+		void					RenderToShadowMap(const RenderContext& ctx);
 		void					RenderCollision();
 		void					RegisterBoundingSphere();
 
@@ -884,7 +884,7 @@ class CInstanceBase
 			void SetAttackSpeed(UINT uAtkSpd);
 			void SetMoveSpeed(UINT uMovSpd);
 			void Deform();
-			void Render(const RenderFrameContext& ctx);
+			void Render(const RenderContext& ctx);
 			CActorInstance& GetActorRef();
 			CActorInstance* GetActorPtr();
 

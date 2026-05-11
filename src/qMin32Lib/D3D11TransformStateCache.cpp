@@ -137,6 +137,28 @@ void CD3D11TransformStateCache::SetTexture1(const D3DXMATRIX& value)
 	_mgr->GetCbMgr()->SetTexTransform(1, value);
 }
 
+void CD3D11TransformStateCache::SetTexture2(const D3DXMATRIX& value)
+{
+	if (std::memcmp(&m_key.texture[1], &value, sizeof(value)) != 0)
+	{
+		m_key.texture[1] = value;
+		m_dirty = true;
+	}
+
+	_mgr->GetCbMgr()->SetTexTransform(2, value);
+}
+
+void CD3D11TransformStateCache::SetTexture3(const D3DXMATRIX& value)
+{
+	if (std::memcmp(&m_key.texture[3], &value, sizeof(value)) != 0)
+	{
+		m_key.texture[3] = value;
+		m_dirty = true;
+	}
+
+	_mgr->GetCbMgr()->SetTexTransform(3, value);
+}
+
 void CD3D11TransformStateCache::SetKey(const SD3D11TransformStateKey& key)
 {
 	if (!(m_key == key))

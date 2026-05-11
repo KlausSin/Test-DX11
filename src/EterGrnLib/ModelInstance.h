@@ -67,11 +67,12 @@ public:
 	// NOTE : 내부에 if문을 포함 시키기 보다는 조금은 번거롭지만 이렇게 함수 콜 자체를 분리
 	//        시키는 것이 퍼포먼스 적인 측면에서는 더 나은 것 같습니다. - [levites]
 	// NOTE : 건물은 무조건 OneTexture. 캐릭터는 경우에 따라 TwoTexture.
-	void	RenderWithOneTexture(const RenderFrameContext& ctx);
-	void	RenderWithTwoTexture(const RenderFrameContext& ctx);
-	void	BlendRenderWithOneTexture(const RenderFrameContext& ctx);
-	void	BlendRenderWithTwoTexture(const RenderFrameContext& ctx);
-	void	RenderWithoutTexture(const RenderFrameContext& ctx);
+	void	RenderWithOneTexture(const RenderContext& ctx);
+	void	RenderWithTwoTexture(const RenderContext& ctx);
+	void	BlendRenderWithOneTexture(const RenderContext& ctx);
+	void	BlendRenderWithTwoTexture(const RenderContext& ctx);
+	void	RenderWithoutTexture(const RenderContext& ctx);
+	void	RenderProjectedShadow(const RenderContext& ctx);
 
 	// Model
 	CGrannyModel* GetModel();
@@ -147,10 +148,10 @@ protected:
 
 
 	enum class TextureMode { None, One, Two };
-	void	RenderMeshNodeList(TextureMode textureMode, CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType);
-	void	RenderMeshNodeListWithOneTexture(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType);
-	void	RenderMeshNodeListWithTwoTexture(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType);
-	void	RenderMeshNodeListWithoutTexture(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType);
+	void RenderMeshNodeList(const RenderContext& ctx, TextureMode textureMode, CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType);
+	void RenderMeshNodeListWithOneTexture(const RenderContext& ctx, CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType);
+	void RenderMeshNodeListWithTwoTexture(const RenderContext& ctx, CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType);
+	void RenderMeshNodeListWithoutTexture(const RenderContext& ctx, CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType);
 	bool	UploadMeshBonePaletteToShader(int iMesh);
 
 protected:

@@ -13,6 +13,8 @@ struct CBTexTransform
 {
 	D3DXMATRIX tex0;
 	D3DXMATRIX tex1;
+	D3DXMATRIX tex2;
+	D3DXMATRIX tex3;
 };
 
 
@@ -135,7 +137,8 @@ public:
 	void SetTextureFactor(DWORD dwFactor);
 	void SetAlphaTestEnable(BOOL bEnable);
 	void SetAlphaRef(DWORD dwRef);
-
+	void SetUseTexture0(bool enable);
+	void SetUseTexture1(bool enable);
 	void FlushMaterial();
 
 	void SetScreenSize(float width, float height);

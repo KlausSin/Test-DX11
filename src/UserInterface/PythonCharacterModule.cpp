@@ -42,7 +42,7 @@ PyObject * chrDeform(PyObject * poSelf, PyObject * poArgs)
 
 PyObject* chrRender(PyObject* poSelf, PyObject* poArgs)
 {
-	RenderFrameContext ctx = RenderFrameContext::Default();
+	RenderContext ctx = RenderContext::Default();
 
 	if (CPythonBackground::Instance().IsMapReady())
 	{
@@ -51,23 +51,23 @@ PyObject* chrRender(PyObject* poSelf, PyObject* poArgs)
 	}
 	else
 	{
-		ctx.Device = CGraphicBase::ms_lpd3d11Device;
-		ctx.DeviceContext = CGraphicBase::ms_lpd3d11Context;
-		ctx.View = CGraphicBase::ms_matView;
-		ctx.Projection = CGraphicBase::ms_matProj;
-		ctx.ViewProjection = ctx.View * ctx.Projection;
+		ctx.Frame.Device = CGraphicBase::ms_lpd3d11Device;
+		ctx.Frame.DeviceContext = CGraphicBase::ms_lpd3d11Context;
+		ctx.Frame.View = CGraphicBase::ms_matView;
+		ctx.Frame.Projection = CGraphicBase::ms_matProj;
+		ctx.Frame.ViewProjection = ctx.Frame.View * ctx.Frame.Projection;
 
 		CCamera* camera = CCameraManager::Instance().GetCurrentCamera();
 		if (camera)
 		{
-			ctx.Eye = camera->GetEye();
-			ctx.Target = camera->GetTarget();
+			ctx.Frame.Eye = camera->GetEye();
+			ctx.Frame.Target = camera->GetTarget();
 		}
 
-		ctx.FogEnable = false;
-		ctx.FogColor = 0xffffffff;
-		ctx.FogStart = 5000.0f;
-		ctx.FogEnd = 10000.0f;
+		ctx.Frame.FogEnable = false;
+		ctx.Frame.FogColor = 0xffffffff;
+		ctx.Frame.FogStart = 5000.0f;
+		ctx.Frame.FogEnd = 10000.0f;
 	}
 
 	CPythonCharacterManager::Instance().Render(ctx);

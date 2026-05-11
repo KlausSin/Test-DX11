@@ -121,7 +121,7 @@ struct CArea_LessEffectInstancePtrRenderOrder
 
 struct CArea_FEffectInstanceRender
 {
-	const RenderFrameContext& ctx;
+	const RenderContext& ctx;
 
 	inline void operator()(CEffectInstance* pkEftInst) const
 	{
@@ -130,7 +130,7 @@ struct CArea_FEffectInstanceRender
 	}
 };
 
-void CArea::RenderEffect(const RenderFrameContext& ctx)
+void CArea::RenderEffect(const RenderContext& ctx)
 {
 	__UpdateEffectList();
 
@@ -203,7 +203,7 @@ void CArea::CollectBlendRenderingObject(std::vector<CGraphicThingInstance*>& rkV
 	}
 }
 
-void CArea::Render(const RenderFrameContext& ctx)
+void CArea::Render(const RenderContext& ctx)
 {		
 	{
 		CGraphicThingInstance* pkThingInst;
@@ -317,12 +317,12 @@ void CArea::RenderAmbience()
 	}
 }
 
-void CArea::RenderDungeon()
+void CArea::RenderDungeon(const RenderContext& ctx)
 {
 	TDungeonBlockInstanceVector::iterator itor = m_DungeonBlockCloneInstanceVector.begin();
 	for (; itor != m_DungeonBlockCloneInstanceVector.end(); ++itor)
 	{
-		(*itor)->Render();
+		(*itor)->Render(ctx);
 	}
 }
 

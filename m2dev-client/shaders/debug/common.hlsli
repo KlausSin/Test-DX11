@@ -9,6 +9,8 @@ struct cbTexTransform
 {
     row_major float4x4 tex0;
     row_major float4x4 tex1;
+    row_major float4x4 tex2;
+    row_major float4x4 tex3;
 };
 
 cbuffer cbMatrix : register(b0)
@@ -16,7 +18,6 @@ cbuffer cbMatrix : register(b0)
     cbPerFrame frame;
     cbTexTransform texTransform;
 }
-
 
 cbuffer cbMaterial : register(b1)
 {
@@ -29,15 +30,22 @@ cbuffer cbMaterial : register(b1)
 
 cbuffer cbLighting : register(b2)
 {
+    float4 lightPosition;
 	float4 lightDir; 
 	float4 lightDiffuse; 
 	float4 lightAmbient;
+    
 	float4 matDiffuse; 
 	float4 matAmbient; 
 	float4 matEmissive;
+    
+    float4 lightAttenuation;
+    float4 lightSpot;
+    
 	int lightingEnable; 
 	int pad0; int pad1; int pad2;
 	float4 specularColor; // rgb = culoare, a = power
+    float pad[12];
 };
 
 cbuffer cbFog : register(b4)
@@ -75,7 +83,7 @@ float4 ResolveArg(int arg, float4 tex, float4 diffuse)
 {
 	if (arg == 3) return textureFactor;
 	if (arg == 2) return tex;
-	return diffuse;  // DIFFUSE(0) or CURRENT(1)
+	return diffuse;
 }
 
 cbuffer GrannyBonePalette : register(b6)

@@ -30,18 +30,18 @@ class CDungeonBlock : public CGraphicObjectInstance
 		void GetBoundBox(D3DXVECTOR3 * pv3Min, D3DXVECTOR3 * pv3Max);
 
 		void Update();
-		void Render();
+		void Render(const RenderContext& ctx);
 
 		bool GetBoundingSphere(D3DXVECTOR3 & v3Center, float & fRadius);
 		void OnUpdateCollisionData(const CStaticCollisionDataVector * pscdVector);
 		void OnUpdateHeighInstance(CAttributeInstance * pAttributeInstance);
 		bool OnGetObjectHeight(float fX, float fY, float * pfHeight);
 
-		void OnRender(const RenderFrameContext& ctx) {}
-		void OnBlendRender(const RenderFrameContext& ctx) {}
-		void OnRenderToShadowMap(const RenderFrameContext& ctx) {}
-		void OnRenderShadow(const RenderFrameContext& ctx);
-		void OnRenderPCBlocker(const RenderFrameContext& ctx) {}
+		void OnRender(const RenderContext& ctx) {}
+		void OnBlendRender(const RenderContext& ctx) {}
+		void OnRenderToShadowMap(const RenderContext& ctx) {}
+		void OnRenderShadow(const RenderContext& ctx);
+		void OnRenderPCBlocker(const RenderContext& ctx) {}
 
 	protected:
 		void __Initialize();

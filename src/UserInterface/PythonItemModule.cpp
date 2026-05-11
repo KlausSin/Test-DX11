@@ -464,7 +464,7 @@ PyObject * itemIsMetin(PyObject * poSelf, PyObject * poArgs)
 PyObject* itemRender(PyObject* poSelf, PyObject* poArgs)
 {
 	CMapOutdoor& rkMap = CPythonBackground::Instance().GetMapOutdoorRef();
-	const RenderFrameContext ctx = rkMap.BuildRenderFrameContext();
+	const RenderContext ctx = rkMap.BuildRenderFrameContext();
 
 	CPythonItem::Instance().Render(ctx);
 

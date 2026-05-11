@@ -133,3 +133,13 @@ Large pack loading 		fragmentation 		more stable
  making animations, water, wind, and effects consistent across all systems.
 
 /////////////////////////////             /////////////////////////////
+
+
+
+/////////////////////////////   terrain /////////////////////////////
+
+Eliminated the passes with the terrain and shadow textures -> reduced the number of draws for the terrain.(MapOutdoorRenderHTP.cpp)
+Fixed character shadow
+Fixed dungeon
+
+/////////////////////////////             /////////////////////////////

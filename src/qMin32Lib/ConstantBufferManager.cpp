@@ -38,6 +38,10 @@ void CBManager::SetTexTransform(DWORD dwStage, const D3DXMATRIX& mat)
 		m_cbMatrix.texTransform.tex0 = mat;
 	else if (dwStage == 1)
 		m_cbMatrix.texTransform.tex1 = mat;
+	else if (dwStage == 2)
+		m_cbMatrix.texTransform.tex2 = mat;
+	else if (dwStage == 3)
+		m_cbMatrix.texTransform.tex3 = mat;
 	else
 		return;
 
@@ -335,4 +339,15 @@ void CBManager::FlushSpeedTree()
 		return;
 	m_pCBSpeedTree->Update(m_cbSpeedTree);
 	m_bSpeedTreeDirty = false;
+}
+
+void CBManager::SetUseTexture0(bool enable)
+{
+	m_cbMaterial.useTexture0 = enable ? 1 : 0;
+	m_bMaterialDirty = true;
+}
+void CBManager::SetUseTexture1(bool enable)
+{
+	m_cbMaterial.useTexture1 = enable ? 1 : 0;
+	m_bMaterialDirty = true;
 }

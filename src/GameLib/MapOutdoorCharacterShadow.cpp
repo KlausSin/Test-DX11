@@ -108,17 +108,19 @@ bool CMapOutdoor::BeginRenderCharacterShadowToTexture()
 	D3DXMATRIX matLightView, matLightProj;
 
 	CCamera* pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
-
 	if (!pCurrentCamera)
 		return false;
 
-	if (!ms_lpd3d11Context)
+	if (!ms_lpd3d11Context || !m_lpCharacterShadowMapRTV || !m_lpCharacterShadowMapDSV)
 		return false;
 
 	if (recreate)
 	{
 		CreateCharacterShadowTexture();
 		recreate = false;
+
+		if (!m_lpCharacterShadowMapRTV || !m_lpCharacterShadowMapDSV)
+			return false;
 	}
 
 	D3DXVECTOR3 v3Target = pCurrentCamera->GetTarget();
@@ -128,9 +130,9 @@ bool CMapOutdoor::BeginRenderCharacterShadowToTexture()
 		v3Target.y - 1250.0f,
 		v3Target.z + 2.0f * 1.732f * 1250.0f);
 
-	const auto vv = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
+	const auto vUp = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
 
-	D3DXMatrixLookAtRH(&matLightView, &v3Eye, &v3Target, &vv);
+	D3DXMatrixLookAtRH(&matLightView, &v3Eye, &v3Target, &vUp);
 	D3DXMatrixOrthoRH(&matLightProj, 2550.0f, 2550.0f, 1.0f, 15000.0f);
 
 	STATEMANAGER.GetTransform().Push();
@@ -139,6 +141,15 @@ bool CMapOutdoor::BeginRenderCharacterShadowToTexture()
 
 	_mgr->GetCbMgr()->SetLightingEnable(false);
 	_mgr->GetCbMgr()->SetTextureFactor(0xFF808080);
+	_mgr->GetCbMgr()->SetUseTexture0(false);
+	_mgr->GetCbMgr()->SetUseTexture1(false);
+	_mgr->GetCbMgr()->SetAlphaTestEnable(false);
+
+	STATEMANAGER.SetTexture(0, nullptr);
+	STATEMANAGER.SetTexture(1, nullptr);
+	STATEMANAGER.SetTexture(2, nullptr);
+	STATEMANAGER.SetTexture(3, nullptr);
+	STATEMANAGER.SetTexture(4, nullptr);
 
 	ms_lpd3d11Context->OMGetRenderTargets(1, &m_lpBackupRTV, &m_lpBackupDSV);
 
@@ -148,7 +159,6 @@ bool CMapOutdoor::BeginRenderCharacterShadowToTexture()
 	ms_lpd3d11Context->OMSetRenderTargets(1, &m_lpCharacterShadowMapRTV, m_lpCharacterShadowMapDSV);
 
 	float clearColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-
 	ms_lpd3d11Context->ClearRenderTargetView(m_lpCharacterShadowMapRTV, clearColor);
 	ms_lpd3d11Context->ClearDepthStencilView(m_lpCharacterShadowMapDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
@@ -171,4 +181,8 @@ void CMapOutdoor::EndRenderCharacterShadowToTexture()
 	STATEMANAGER.GetTransform().Restore();
 
 	_mgr->GetCbMgr()->SetLightingEnable(true);
+	_mgr->GetCbMgr()->SetUseTexture0(true);
+	_mgr->GetCbMgr()->SetUseTexture1(false);
+	_mgr->GetCbMgr()->SetAlphaTestEnable(true);
+	_mgr->GetCbMgr()->SetTextureFactor(0xFFFFFFFF);
 }

@@ -5,48 +5,47 @@
 
 class CDungeonModelInstance : public CGrannyModelInstance
 {
-	public:
-		CDungeonModelInstance() {}
-		virtual ~CDungeonModelInstance() {}
+public:
+	CDungeonModelInstance() = default;
+	virtual ~CDungeonModelInstance() = default;
 
-		void RenderDungeonBlock()
+	void RenderDungeonBlock(const RenderContext& ctx)
+	{
+		if (IsEmpty())
+			return;
+
+		_mgr->SetShader(VF_MESH, HAS_TEX2);
+
+		auto vb = m_pModel->GetVertexBuffer();
+		if (vb)
 		{
-			if (IsEmpty())
-				return;
+			_mgr->SetVertexBuffer(vb, sizeof(TPNT2Vertex));
+			RenderMeshNodeListWithTwoTexture(ctx, CGrannyMesh::TYPE_RIGID, CGrannyMaterial::TYPE_BLEND_PNT);
+		}
+	}
 
-			_mgr->SetShader(VF_MESH, HAS_TEX2);
-			auto lpd3dRigidPNTVtxBuf = m_pModel->GetVertexBuffer();
-			if (lpd3dRigidPNTVtxBuf)
-			{
-				_mgr->SetVertexBuffer(lpd3dRigidPNTVtxBuf, sizeof(TPNT2Vertex));
-				RenderMeshNodeListWithTwoTexture(CGrannyMesh::TYPE_RIGID, CGrannyMaterial::TYPE_BLEND_PNT);
-			}
+	void RenderDungeonBlockShadow(const RenderContext& ctx)
+	{
+		if (IsEmpty())
+			return;
+
+		STATEMANAGER.GetBlend().Push();
+
+		STATEMANAGER.GetBlend().SetBlendEnable(true);
+		STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_ZERO);
+		STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_SRC_COLOR);
+
+		_mgr->SetShader(VF_MESH, HAS_TEX2);
+
+		auto lpd3dRigidPNTVtxBuf = m_pModel->GetVertexBuffer();
+		if (lpd3dRigidPNTVtxBuf)
+		{
+			_mgr->SetVertexBuffer(lpd3dRigidPNTVtxBuf, sizeof(TPNT2Vertex));
+			RenderMeshNodeListWithoutTexture(ctx, CGrannyMesh::TYPE_RIGID, CGrannyMaterial::TYPE_BLEND_PNT);
 		}
 
-		void RenderDungeonBlockShadow()
-		{
-			if (IsEmpty())
-				return;
-
-			_mgr->GetCbMgr()->SetTextureFactor(0xffffffff);
-
-			STATEMANAGER.GetBlend().Push();
-
-			STATEMANAGER.GetBlend().SetBlendEnable(true);
-			STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_ZERO);
-			STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_SRC_COLOR);
-
-			_mgr->SetShader(VF_MESH, HAS_TEX2);
-
-			auto lpd3dRigidPNTVtxBuf = m_pModel->GetVertexBuffer();
-			if (lpd3dRigidPNTVtxBuf)
-			{
-				_mgr->SetVertexBuffer(lpd3dRigidPNTVtxBuf, sizeof(TPNT2Vertex));
-				RenderMeshNodeListWithoutTexture(CGrannyMesh::TYPE_RIGID, CGrannyMaterial::TYPE_BLEND_PNT);
-			}
-
-			STATEMANAGER.GetBlend().Restore();
-		}
+		STATEMANAGER.GetBlend().Restore();
+	}
 };
 
 
@@ -74,31 +73,34 @@ void CDungeonBlock::Update()
 
 struct FRender
 {
-	void operator() (CDungeonModelInstance * pInstance)
+	const RenderContext& ctx;
+
+	void operator()(CDungeonModelInstance* pInstance) const
 	{
-		pInstance->RenderDungeonBlock();
+		if (pInstance)
+			pInstance->RenderDungeonBlock(ctx);
 	}
 };
 
-void CDungeonBlock::Render()
+void CDungeonBlock::Render(const RenderContext& ctx)
 {
-//	if (!isShow())
-//		return;
-
-	for_each(m_ModelInstanceContainer.begin(), m_ModelInstanceContainer.end(), FRender());
+	std::for_each(m_ModelInstanceContainer.begin(), m_ModelInstanceContainer.end(), FRender{ctx});
 }
 
 struct FRenderShadow
 {
-	void operator() (CDungeonModelInstance * pInstance)
+	const RenderContext& ctx;
+
+	void operator()(CDungeonModelInstance* pInstance) const
 	{
-		pInstance->RenderDungeonBlockShadow();
+		if (pInstance)
+			pInstance->RenderDungeonBlockShadow(ctx);
 	}
 };
 
-void CDungeonBlock::OnRenderShadow(const RenderFrameContext& ctx)
+void CDungeonBlock::OnRenderShadow(const RenderContext& ctx)
 {
-	for_each(m_ModelInstanceContainer.begin(), m_ModelInstanceContainer.end(), FRenderShadow());
+	std::for_each(m_ModelInstanceContainer.begin(), m_ModelInstanceContainer.end(), FRenderShadow{ ctx });
 }
 
 struct FBoundBox
@@ -217,6 +219,7 @@ bool CDungeonBlock::Load(const char * c_szFileName)
 	{
 		CDungeonModelInstance* pModelInstance = new CDungeonModelInstance;
 		pModelInstance->SetMainModelPointer(m_pThing->GetModelPointer(i));
+		m_ModelInstanceContainer.push_back(pModelInstance);
 	}
 
 	return true;

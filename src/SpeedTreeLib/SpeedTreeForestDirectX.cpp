@@ -58,28 +58,28 @@ void CSpeedTreeForestDirectX::UpdateCompundMatrix(const D3DXVECTOR3& c_rEyeVec, 
 
 void CSpeedTreeForestDirectX::Render(unsigned long ulRenderBitVector)
 {
-	RenderFrameContext ctx = RenderFrameContext::Default();
+	RenderContext ctx = RenderContext::Default();
 
-	ctx.Device = ms_lpd3d11Device;
-	ctx.DeviceContext = ms_lpd3d11Context;
-	ctx.View = ms_matView;
-	ctx.Projection = ms_matProj;
-	ctx.ViewProjection = ms_matView * ms_matProj;
-	ctx.Time = CTimer::Instance().GetCurrentSecond();
+	ctx.Frame.Device = ms_lpd3d11Device;
+	ctx.Frame.DeviceContext = ms_lpd3d11Context;
+	ctx.Frame.View = ms_matView;
+	ctx.Frame.Projection = ms_matProj;
+	ctx.Frame.ViewProjection = ms_matView * ms_matProj;
+	ctx.Frame.Time = CTimer::Instance().GetCurrentSecond();
 
 	CCamera* camera = CCameraManager::Instance().GetCurrentCamera();
 	if (camera)
 	{
-		ctx.Eye = camera->GetEye();
-		ctx.Target = camera->GetTarget();
+		ctx.Frame.Eye = camera->GetEye();
+		ctx.Frame.Target = camera->GetTarget();
 	}
 
 	Render(ctx, ulRenderBitVector);
 }
 
-void CSpeedTreeForestDirectX::Render(const RenderFrameContext& ctx, unsigned long ulRenderBitVector)
+void CSpeedTreeForestDirectX::Render(const RenderContext& ctx, unsigned long ulRenderBitVector)
 {
-	if (!ctx.DeviceContext)
+	if (!ctx.Frame.DeviceContext)
 		return;
 
 	if (m_pMainTreeMap.empty())
@@ -88,10 +88,10 @@ void CSpeedTreeForestDirectX::Render(const RenderFrameContext& ctx, unsigned lon
 	auto& state = STATEMANAGER.GetStateCache();
 	auto cb = _mgr->GetCbMgr();
 
-	UpdateSystem(ctx.Time);
+	UpdateSystem(ctx.Frame.Time);
 
 	if (!(ulRenderBitVector & Forest_RenderToShadow) && !(ulRenderBitVector & Forest_RenderToMiniMap))
-		UpdateCompundMatrix(ctx.Eye, ctx.View, ctx.Projection);
+		UpdateCompundMatrix(ctx.Frame.Eye, ctx.Frame.View, ctx.Frame.Projection);
 
 #ifdef WRAPPER_USE_DYNAMIC_LIGHTING
 	cb->SetLightingEnable(true);

@@ -22,7 +22,7 @@ void CMapOutdoor::UnloadWaterTexture()
 		m_WaterInstances[i].Destroy();
 }
 
-void CMapOutdoor::RenderWater(const RenderFrameContext& ctx)
+void CMapOutdoor::RenderWater(const RenderContext& ctx)
 {
     if (m_PatchVector.empty())
         return;
@@ -42,13 +42,13 @@ void CMapOutdoor::RenderWater(const RenderFrameContext& ctx)
     STATEMANAGER.GetBlend().SetBlendEnable(true);
     STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
 
-    const uint32_t frame = static_cast<uint32_t>(ctx.Time * 1000.0f / 70.0f) % 30;
+    const uint32_t frame = static_cast<uint32_t>(ctx.Frame.Time * 1000.0f / 70.0f) % 30;
 
     STATEMANAGER.SetTexture(0, m_WaterInstances[frame].GetTexturePointer()->GetSRV());
 
     D3DXMatrixScaling(&matTexTransformWater, m_fWaterTexCoordBase, -m_fWaterTexCoordBase, 0.0f);
 
-    D3DXMatrixMultiply(&matTexTransformWater, &ctx.ViewInverse, &matTexTransformWater);
+    D3DXMatrixMultiply(&matTexTransformWater, &ctx.Frame.ViewInverse, &matTexTransformWater);
 
     STATEMANAGER.GetTransform().Push();
     STATEMANAGER.GetTransform().SetTexture0(matTexTransformWater);
@@ -67,7 +67,7 @@ void CMapOutdoor::RenderWater(const RenderFrameContext& ctx)
     static float s_fBlendElapsed = 0.0f;
     static float s_fBlendDuration = 2.0f;
 
-    s_fBlendElapsed += ctx.DeltaTime;
+    s_fBlendElapsed += ctx.Frame.DeltaTime;
 
     if (s_fBlendElapsed >= s_fBlendDuration)
     {
@@ -89,7 +89,7 @@ void CMapOutdoor::RenderWater(const RenderFrameContext& ctx)
 
     STATEMANAGER.GetTransform().SetWorld(m_matWorldForCommonUse);
 
-    const float fogDistance = ctx.FogEnd;
+    const float fogDistance = ctx.Frame.FogEnd;
 
     for (const auto& patch : m_PatchVector)
     {

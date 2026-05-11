@@ -84,10 +84,10 @@ public:
 	BYTE		GetLODLevel(DWORD dwModelInstance);
 	float		GetHeight();
 
-	void		RenderWithOneTexture(const RenderFrameContext& ctx);
-	void		RenderWithTwoTexture(const RenderFrameContext& ctx);
-	void		BlendRenderWithOneTexture(const RenderFrameContext& ctx);
-	void		BlendRenderWithTwoTexture(const RenderFrameContext& ctx);
+	void		RenderWithOneTexture(const RenderContext& ctx);
+	void		RenderWithTwoTexture(const RenderContext& ctx);
+	void		BlendRenderWithOneTexture(const RenderContext& ctx);
+	void		BlendRenderWithTwoTexture(const RenderContext& ctx);
 
 	DWORD		GetLODControllerCount() const;
 	CGrannyLODController* GetLODControllerPointer(DWORD dwModelIndex) const;
@@ -119,11 +119,11 @@ protected:
 	void		OnClear();
 	void		OnDeform();
 	void		OnUpdate();
-	void		OnRender(const RenderFrameContext& ctx);
-	void		OnBlendRender(const RenderFrameContext& ctx);
-	void		OnRenderToShadowMap(const RenderFrameContext& ctx);
-	void		OnRenderShadow(const RenderFrameContext& ctx);
-	void		OnRenderPCBlocker(const RenderFrameContext& ctx);
+	void		OnRender(const RenderContext& ctx);
+	void		OnBlendRender(const RenderContext& ctx);
+	void		OnRenderToShadowMap(const RenderContext& ctx);
+	void		OnRenderShadow(const RenderContext& ctx);
+	void		OnRenderPCBlocker(const RenderContext& ctx);
 
 protected:
 	bool									m_bUpdated;

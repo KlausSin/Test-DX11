@@ -1401,7 +1401,7 @@ int CGraphicTextInstance::GetHorizontalAlign()
 
 void CGraphicTextInstance::__Initialize()
 {
-	m_roText = NULL;
+	m_roText = nullptr;
 
 	m_hAlign = HORIZONTAL_ALIGN_LEFT;
 	m_vAlign = VERTICAL_ALIGN_TOP;

@@ -101,21 +101,14 @@ bool CGraphicImageTexture::CreateDeviceObjects()
 
 	if (m_stFileName.empty())
 	{
-		// Font texture — create empty, will be filled via Lock/Unlock
 		m_lockPitch = m_width * 4;
 		m_lockBuffer.resize(m_lockPitch * m_height, 0);
 		CreateSRVFromBGRA(m_width, m_height, m_lockBuffer.data(), m_lockPitch);
 		m_bEmpty = false;
 		return true;
 	}
-	else
-	{
-		TPackFile mappedFile;
-		if (!CPackManager::Instance().GetFile(m_stFileName, mappedFile))
-			return false;
 
-		return CreateFromMemoryFile(mappedFile.size(), mappedFile.data(), m_d3dFmt, m_dwFilter);
-	}
+	return m_lpSRV != nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -463,9 +456,14 @@ bool CGraphicImageTexture::CreateFromMemoryFile(UINT bufSize, const void* c_pvBu
 {
 	assert(ms_lpd3d11Device != NULL);
 
-	// Release any existing SRV before creating a new one (avoid leak + dangling pointer if Create fails)
+	if (!c_pvBuf || bufSize == 0)
+		return false;
+
 	safe_release(m_lpSRV);
 	m_bEmpty = true;
+
+	m_d3dFmt = d3dFmt;
+	m_dwFilter = dwFilter;
 
 	if (CreateFromDDSMemory(bufSize, c_pvBuf))
 		return true;
@@ -490,7 +488,12 @@ bool CGraphicImageTexture::CreateFromDiskFile(const char* c_szFileName, DXGI_FOR
 
 	m_d3dFmt = d3dFmt;
 	m_dwFilter = dwFilter;
-	return CreateDeviceObjects();
+
+	TPackFile mappedFile;
+	if (!CPackManager::Instance().GetFile(m_stFileName, mappedFile))
+		return false;
+
+	return CreateFromMemoryFile(static_cast<UINT>(mappedFile.size()), mappedFile.data(), m_d3dFmt, m_dwFilter);
 }
 
 bool CGraphicImageTexture::CreateFromDecodedData(const TDecodedImageData& decodedImage, DXGI_FORMAT d3dFmt, DWORD dwFilter)

@@ -257,7 +257,7 @@ void CPythonSkill::__RegisterGradeIconImage(TSkillData & rData, const char * c_s
 		strFileName += c_szImageName;
 		strFileName += szCount;
 		strFileName += ".sub";
-		rGradeData.pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer(strFileName.c_str());
+		rGradeData.pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(strFileName.c_str());
 	}
 }
 
@@ -267,7 +267,7 @@ void CPythonSkill::__RegisterNormalIconImage(TSkillData & rData, const char * c_
 	strFileName += c_szHeader;
 	strFileName += c_szImageName;
 	strFileName += ".sub";
-	rData.pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer(strFileName.c_str());
+	rData.pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(strFileName.c_str());
 	for (int j = 0; j < SKILL_GRADE_COUNT; ++j)
 	{
 		TGradeData & rGradeData = rData.GradeData[j];
@@ -693,7 +693,7 @@ bool CPythonSkill::RegisterSkill(DWORD dwSkillIndex, const char * c_szFileName)
 			{
 				SkillData.GradeData[i].strName = pGradeDataVector->at(i*2+0);
 				std::string strIconFileName = g_strImagePath + pGradeDataVector->at(i*2+1);
-				SkillData.GradeData[i].pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer(strIconFileName.c_str());
+				SkillData.GradeData[i].pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(strIconFileName.c_str());
 			}
 		}
 	}
@@ -728,7 +728,7 @@ bool CPythonSkill::RegisterSkill(DWORD dwSkillIndex, const char * c_szFileName)
 	}
 
 	SkillData.strIconFileName = g_strImagePath + SkillData.strIconFileName;
-	SkillData.pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer(SkillData.strIconFileName.c_str());
+	SkillData.pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(SkillData.strIconFileName.c_str());
 
 	m_SkillDataMap.insert(TSkillDataMap::value_type(dwSkillIndex, SkillData));
 

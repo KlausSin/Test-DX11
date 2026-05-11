@@ -1,4 +1,5 @@
 #include "StdAfx.h"
+#include "../UserInterface/PythonBackground.h"
 
 bool PyTuple_GetThingInstance(PyObject* poArgs, int pos, CGraphicThingInstance** ppRetThingInstance)
 {
@@ -74,8 +75,11 @@ PyObject* grpThingRender(PyObject* poSelf, PyObject* poArgs)
 	if (!PyTuple_GetThingInstance(poArgs, 0, &pThingInstance))
 		return Py_BuildException();
 
-	pThingInstance->Render();
-	return Py_BuildNone();
+	CMapOutdoor& rkMap = CPythonBackground::Instance().GetMapOutdoorRef();
+	const RenderFrameContext ctx = rkMap.BuildRenderFrameContext();
+
+	pThingInstance->Render(ctx);
+	Py_RETURN_NONE;
 }
 
 PyObject* grpThingUpdate(PyObject* poSelf, PyObject* poArgs)

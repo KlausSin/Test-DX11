@@ -17,21 +17,21 @@ CGraphicThing* CGraphicThingInstance::GetBaseThingPtr()
 	if (m_modelThingSetVector.empty())
 		return nullptr;
 
-	TModelThingSet& rkModelThingSet=m_modelThingSetVector[0];
+	TModelThingSet& rkModelThingSet = m_modelThingSetVector[0];
 	if (rkModelThingSet.m_pLODThingRefVector.empty())
 		return nullptr;
 
-	CGraphicThing::TRef* proThing=rkModelThingSet.m_pLODThingRefVector[0];
+	CGraphicThing::TRef* proThing = rkModelThingSet.m_pLODThingRefVector[0];
 	if (!proThing)
 		return nullptr;
 
-	CGraphicThing::TRef roThing=*proThing;
+	CGraphicThing::TRef roThing = *proThing;
 	return roThing.GetPointer();
 }
 
 bool CGraphicThingInstance::LessRenderOrder(CGraphicThingInstance* pkThingInst)
 {
-	return (GetBaseThingPtr()<pkThingInst->GetBaseThingPtr());
+	return (GetBaseThingPtr() < pkThingInst->GetBaseThingPtr());
 }
 
 void CGraphicThingInstance::CreateSystem(UINT uCapacity)
@@ -57,34 +57,34 @@ void CGraphicThingInstance::Delete(CGraphicThingInstance* pkThingInst)
 
 void CGraphicThingInstance::SetMotionAtEnd()
 {
-	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), std::mem_fn(&CGrannyLODController::SetMotionAtEnd));	
+	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), std::mem_fn(&CGrannyLODController::SetMotionAtEnd));
 }
 
-bool CGraphicThingInstance::Picking(const D3DXVECTOR3 & v, const D3DXVECTOR3 & dir, float & out_x, float & out_y)
+bool CGraphicThingInstance::Picking(const D3DXVECTOR3& v, const D3DXVECTOR3& dir, float& out_x, float& out_y)
 {
 	if (!m_pHeightAttributeInstance)
 		return false;
-	return m_pHeightAttributeInstance->Picking(v,dir,out_x,out_y);
+	return m_pHeightAttributeInstance->Picking(v, dir, out_x, out_y);
 }
 
 
-void CGraphicThingInstance::OnUpdateCollisionData(const CStaticCollisionDataVector * pscdVector)
+void CGraphicThingInstance::OnUpdateCollisionData(const CStaticCollisionDataVector* pscdVector)
 {
 	assert(pscdVector);
 	CStaticCollisionDataVector::const_iterator it;
-	for(it = pscdVector->begin();it!=pscdVector->end();++it)
+	for (it = pscdVector->begin(); it != pscdVector->end(); ++it)
 	{
-		AddCollision(&(*it),&GetTransform());
+		AddCollision(&(*it), &GetTransform());
 	}
 }
 
-void CGraphicThingInstance::OnUpdateHeighInstance(CAttributeInstance * pAttributeInstance)
+void CGraphicThingInstance::OnUpdateHeighInstance(CAttributeInstance* pAttributeInstance)
 {
 	assert(pAttributeInstance);
 	SetHeightInstance(pAttributeInstance);
 }
 
-bool CGraphicThingInstance::OnGetObjectHeight(float fX, float fY, float * pfHeight)
+bool CGraphicThingInstance::OnGetObjectHeight(float fX, float fY, float* pfHeight)
 {
 	if (m_pHeightAttributeInstance && m_pHeightAttributeInstance->GetHeight(fX, fY, pfHeight))
 		return true;
@@ -101,7 +101,7 @@ void CGraphicThingInstance::BuildBoundingSphere()
 	m_fRadius = D3DXVec3Length(&vDelta) * 0.5f + 50.0f; // extra length for attached objects
 }
 
-bool CGraphicThingInstance::GetBoundingSphere(D3DXVECTOR3 & v3Center, float & fRadius)
+bool CGraphicThingInstance::GetBoundingSphere(D3DXVECTOR3& v3Center, float& fRadius)
 {
 	if (m_fRadius <= 0)
 	{
@@ -129,10 +129,10 @@ void CGraphicThingInstance::BuildBoundingAABB()
 	m_v3Max = v3Max;
 }
 
-bool CGraphicThingInstance::GetBoundingAABB(D3DXVECTOR3 & v3Min, D3DXVECTOR3 & v3Max)
+bool CGraphicThingInstance::GetBoundingAABB(D3DXVECTOR3& v3Min, D3DXVECTOR3& v3Max)
 {
 	BuildBoundingAABB();
-	
+
 	v3Min = m_v3Min;
 	v3Max = m_v3Max;
 
@@ -143,7 +143,7 @@ bool CGraphicThingInstance::GetBoundingAABB(D3DXVECTOR3 & v3Min, D3DXVECTOR3 & v
 void CGraphicThingInstance::CalculateBBox()
 {
 	GetBoundBox(&m_v3BBoxMin, &m_v3BBoxMax);
-	
+
 	m_v4TBBox[0] = D3DXVECTOR4(m_v3BBoxMin.x, m_v3BBoxMin.y, m_v3BBoxMin.z, 1.0f);
 	m_v4TBBox[1] = D3DXVECTOR4(m_v3BBoxMin.x, m_v3BBoxMax.y, m_v3BBoxMin.z, 1.0f);
 	m_v4TBBox[2] = D3DXVECTOR4(m_v3BBoxMax.x, m_v3BBoxMin.y, m_v3BBoxMin.z, 1.0f);
@@ -153,7 +153,7 @@ void CGraphicThingInstance::CalculateBBox()
 	m_v4TBBox[6] = D3DXVECTOR4(m_v3BBoxMax.x, m_v3BBoxMin.y, m_v3BBoxMax.z, 1.0f);
 	m_v4TBBox[7] = D3DXVECTOR4(m_v3BBoxMax.x, m_v3BBoxMax.y, m_v3BBoxMax.z, 1.0f);
 
-	const D3DXMATRIX & c_rmatTransform = GetTransform();
+	const D3DXMATRIX& c_rmatTransform = GetTransform();
 
 	for (DWORD i = 0; i < 8; ++i)
 	{
@@ -182,7 +182,7 @@ void CGraphicThingInstance::CalculateBBox()
 			if (m_v3TBBoxMax.z < m_v4TBBox[i].z)
 				m_v3TBBoxMax.z = m_v4TBBox[i].z;
 		}
-	}	
+	}
 }
 
 bool CGraphicThingInstance::CreateDeviceObjects()
@@ -226,7 +226,7 @@ bool CGraphicThingInstance::CheckModelThingIndex(int iModelThing)
 
 bool CGraphicThingInstance::CheckMotionThingIndex(DWORD dwMotionKey)
 {
-	std::map<DWORD, CGraphicThing::TRef *>::iterator itor = m_roMotionThingMap.find(dwMotionKey);
+	std::map<DWORD, CGraphicThing::TRef*>::iterator itor = m_roMotionThingMap.find(dwMotionKey);
 
 	if (m_roMotionThingMap.end() == itor)
 		return false;
@@ -234,7 +234,7 @@ bool CGraphicThingInstance::CheckMotionThingIndex(DWORD dwMotionKey)
 	return true;
 }
 
-bool CGraphicThingInstance::GetMotionThingPointer(DWORD dwKey, CGraphicThing ** ppMotion)
+bool CGraphicThingInstance::GetMotionThingPointer(DWORD dwKey, CGraphicThing** ppMotion)
 {
 	if (!CheckMotionThingIndex(dwKey))
 		return false;
@@ -268,7 +268,7 @@ bool CGraphicThingInstance::FindBoneIndex(int iModelInstance, const char* c_szBo
 {
 	assert(CheckModelInstanceIndex(iModelInstance));
 
-	CGrannyModelInstance * pModelInstance = m_LODControllerVector[iModelInstance]->GetModelInstance();
+	CGrannyModelInstance* pModelInstance = m_LODControllerVector[iModelInstance]->GetModelInstance();
 
 	if (!pModelInstance)
 		return false;
@@ -276,7 +276,7 @@ bool CGraphicThingInstance::FindBoneIndex(int iModelInstance, const char* c_szBo
 	return pModelInstance->GetBoneIndexByName(c_szBoneName, iRetBone);
 }
 
-void CGraphicThingInstance::AttachModelInstance(int iDstModelInstance, const char * c_szBoneName, int iSrcModelInstance)
+void CGraphicThingInstance::AttachModelInstance(int iDstModelInstance, const char* c_szBoneName, int iSrcModelInstance)
 {
 	if (!CheckModelInstanceIndex(iSrcModelInstance))
 	{
@@ -289,12 +289,12 @@ void CGraphicThingInstance::AttachModelInstance(int iDstModelInstance, const cha
 		return;
 	}
 
-	CGrannyLODController * pSrcLODController = m_LODControllerVector[iSrcModelInstance];
-	CGrannyLODController * pDstLODController = m_LODControllerVector[iDstModelInstance];
+	CGrannyLODController* pSrcLODController = m_LODControllerVector[iSrcModelInstance];
+	CGrannyLODController* pDstLODController = m_LODControllerVector[iDstModelInstance];
 	pDstLODController->AttachModelInstance(pSrcLODController, c_szBoneName);
 }
 
-void CGraphicThingInstance::AttachModelInstance(int iDstModelInstance, const char * c_szBoneName, CGraphicThingInstance & rSrcInstance, int iSrcModelInstance)
+void CGraphicThingInstance::AttachModelInstance(int iDstModelInstance, const char* c_szBoneName, CGraphicThingInstance& rSrcInstance, int iSrcModelInstance)
 {
 	if (!CheckModelInstanceIndex(iDstModelInstance))
 	{
@@ -307,12 +307,12 @@ void CGraphicThingInstance::AttachModelInstance(int iDstModelInstance, const cha
 		return;
 	}
 
-	CGrannyLODController * pDstLODController = m_LODControllerVector[iDstModelInstance];
-	CGrannyLODController * pSrcLODController = rSrcInstance.m_LODControllerVector[iSrcModelInstance];
+	CGrannyLODController* pDstLODController = m_LODControllerVector[iDstModelInstance];
+	CGrannyLODController* pSrcLODController = rSrcInstance.m_LODControllerVector[iSrcModelInstance];
 	pDstLODController->AttachModelInstance(pSrcLODController, c_szBoneName);
 }
 
-void CGraphicThingInstance::DetachModelInstance(int iDstModelInstance, CGraphicThingInstance & rSrcInstance, int iSrcModelInstance)
+void CGraphicThingInstance::DetachModelInstance(int iDstModelInstance, CGraphicThingInstance& rSrcInstance, int iSrcModelInstance)
 {
 	if (!CheckModelInstanceIndex(iDstModelInstance))
 	{
@@ -325,21 +325,21 @@ void CGraphicThingInstance::DetachModelInstance(int iDstModelInstance, CGraphicT
 		return;
 	}
 
-	CGrannyLODController * pDstLODController = m_LODControllerVector[iDstModelInstance];
-	CGrannyLODController * pSrcLODController = rSrcInstance.m_LODControllerVector[iSrcModelInstance];
+	CGrannyLODController* pDstLODController = m_LODControllerVector[iDstModelInstance];
+	CGrannyLODController* pSrcLODController = rSrcInstance.m_LODControllerVector[iSrcModelInstance];
 	pDstLODController->DetachModelInstance(pSrcLODController);
 }
 
-bool CGraphicThingInstance::GetBonePosition(int iModelIndex, int iBoneIndex, float * pfx, float * pfy, float * pfz)
+bool CGraphicThingInstance::GetBonePosition(int iModelIndex, int iBoneIndex, float* pfx, float* pfy, float* pfz)
 {
 	assert(CheckModelInstanceIndex(iModelIndex));
 
-	CGrannyModelInstance * pModelInstance = m_LODControllerVector[iModelIndex]->GetModelInstance();
+	CGrannyModelInstance* pModelInstance = m_LODControllerVector[iModelIndex]->GetModelInstance();
 
 	if (!pModelInstance)
 		return false;
 
-	const float * pfMatrix = pModelInstance->GetBoneMatrixPointer(iBoneIndex);
+	const float* pfMatrix = pModelInstance->GetBoneMatrixPointer(iBoneIndex);
 
 	*pfx = pfMatrix[12];
 	*pfy = pfMatrix[13];
@@ -348,7 +348,7 @@ bool CGraphicThingInstance::GetBonePosition(int iModelIndex, int iBoneIndex, flo
 }
 //iSkelInstance 가 있으면 기본 본에 Link(본이 붙는것)시키고,
 //없으면 기본 본에 attach(좌표만 가져다 쓰는것) 됩니다.
-bool CGraphicThingInstance::SetModelInstance(int iDstModelInstance, int iSrcModelThing, int iSrcModel,int iSkelInstance)
+bool CGraphicThingInstance::SetModelInstance(int iDstModelInstance, int iSrcModelThing, int iSrcModel, int iSkelInstance)
 {
 	if (!CheckModelInstanceIndex(iDstModelInstance))
 	{
@@ -361,12 +361,12 @@ bool CGraphicThingInstance::SetModelInstance(int iDstModelInstance, int iSrcMode
 		return false;
 	}
 
-	CGrannyLODController * pController = m_LODControllerVector[iDstModelInstance];
+	CGrannyLODController* pController = m_LODControllerVector[iDstModelInstance];
 	if (!pController)
 		return false;
 
 	// HAIR_LINK
-	CGrannyLODController * pSkelController = nullptr;
+	CGrannyLODController* pSkelController = nullptr;
 	if (iSkelInstance != DONTUSEVALUE)
 	{
 		if (!CheckModelInstanceIndex(iSkelInstance))
@@ -379,8 +379,8 @@ bool CGraphicThingInstance::SetModelInstance(int iDstModelInstance, int iSrcMode
 			return false;
 	}
 	// END_OF_HAIR_LINK
-	
-	TModelThingSet & rModelThingSet = m_modelThingSetVector[iSrcModelThing];
+
+	TModelThingSet& rModelThingSet = m_modelThingSetVector[iSrcModelThing];
 
 	pController->Clear();
 
@@ -397,7 +397,7 @@ bool CGraphicThingInstance::SetModelInstance(int iDstModelInstance, int iSrcMode
 
 void CGraphicThingInstance::SetMaterialImagePointer(UINT ePart, const char* c_szImageName, CGraphicImage* pImage)
 {
-	if (ePart>=m_LODControllerVector.size())
+	if (ePart >= m_LODControllerVector.size())
 	{
 		TraceError("CGraphicThingInstance::SetMaterialImagePointer(ePart(%d)<uPartCount(%d), c_szImageName=%s, pImage=%s) - ePart OUT OF RANGE",
 			ePart, m_LODControllerVector.size(), c_szImageName, pImage->GetFileName());
@@ -413,12 +413,12 @@ void CGraphicThingInstance::SetMaterialImagePointer(UINT ePart, const char* c_sz
 		return;
 	}
 
-	m_LODControllerVector[ePart]->SetMaterialImagePointer(c_szImageName, pImage);	
+	m_LODControllerVector[ePart]->SetMaterialImagePointer(c_szImageName, pImage);
 }
 
 void CGraphicThingInstance::SetMaterialData(UINT ePart, const char* c_szImageName, SMaterialData kMaterialData)
 {
-	if (ePart>=m_LODControllerVector.size())
+	if (ePart >= m_LODControllerVector.size())
 	{
 		TraceError("CGraphicThingInstance::SetMaterialData(ePart(%d)<uPartCount(%d)) - ePart OUT OF RANGE",
 			ePart, m_LODControllerVector.size());
@@ -434,12 +434,12 @@ void CGraphicThingInstance::SetMaterialData(UINT ePart, const char* c_szImageNam
 		return;
 	}
 
-	m_LODControllerVector[ePart]->SetMaterialData(c_szImageName, kMaterialData);	
+	m_LODControllerVector[ePart]->SetMaterialData(c_szImageName, kMaterialData);
 }
 
 void CGraphicThingInstance::SetSpecularInfo(UINT ePart, const char* c_szMtrlName, BOOL bEnable, float fPower)
 {
-	if (ePart>=m_LODControllerVector.size())
+	if (ePart >= m_LODControllerVector.size())
 	{
 		TraceError("CGraphicThingInstance::SetSpecularInfo(ePart(%d)<uPartCount(%d)) - ePart OUT OF RANGE",
 			ePart, m_LODControllerVector.size());
@@ -455,7 +455,7 @@ void CGraphicThingInstance::SetSpecularInfo(UINT ePart, const char* c_szMtrlName
 		return;
 	}
 
-	m_LODControllerVector[ePart]->SetSpecularInfo(c_szMtrlName, bEnable, fPower);	
+	m_LODControllerVector[ePart]->SetSpecularInfo(c_szMtrlName, bEnable, fPower);
 }
 
 bool CGraphicThingInstance::SetMotion(DWORD dwMotionKey, float blendTime, int loopCount, float speedRatio)
@@ -463,9 +463,9 @@ bool CGraphicThingInstance::SetMotion(DWORD dwMotionKey, float blendTime, int lo
 	if (!CheckMotionThingIndex(dwMotionKey))
 		return false;
 
-	std::map<DWORD, CGraphicThing::TRef *>::iterator itor = m_roMotionThingMap.find(dwMotionKey);
-	CGraphicThing::TRef * proMotionThing = itor->second;
-	CGraphicThing * pMotionThing = proMotionThing->GetPointer();
+	std::map<DWORD, CGraphicThing::TRef*>::iterator itor = m_roMotionThingMap.find(dwMotionKey);
+	CGraphicThing::TRef* proMotionThing = itor->second;
+	CGraphicThing* pMotionThing = proMotionThing->GetPointer();
 
 	if (!pMotionThing)
 		return false;
@@ -488,9 +488,9 @@ bool CGraphicThingInstance::ChangeMotion(DWORD dwMotionKey, int loopCount, float
 	if (!CheckMotionThingIndex(dwMotionKey))
 		return false;
 
-	std::map<DWORD, CGraphicThing::TRef *>::iterator itor = m_roMotionThingMap.find(dwMotionKey);
-	CGraphicThing::TRef * proMotionThing = itor->second;
-	CGraphicThing * pMotionThing = proMotionThing->GetPointer();
+	std::map<DWORD, CGraphicThing::TRef*>::iterator itor = m_roMotionThingMap.find(dwMotionKey);
+	CGraphicThing::TRef* proMotionThing = itor->second;
+	CGraphicThing* pMotionThing = proMotionThing->GetPointer();
 
 	if (!pMotionThing)
 		return false;
@@ -512,7 +512,7 @@ void CGraphicThingInstance::SetEndStopMotion()
 	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), CGrannyLODController::FEndStopMotionPointer());
 }
 
-void CGraphicThingInstance::RegisterModelThing(int iModelThing, CGraphicThing * pModelThing)
+void CGraphicThingInstance::RegisterModelThing(int iModelThing, CGraphicThing* pModelThing)
 {
 	if (!CheckModelThingIndex(iModelThing))
 	{
@@ -526,7 +526,7 @@ void CGraphicThingInstance::RegisterModelThing(int iModelThing, CGraphicThing * 
 		RegisterLODThing(iModelThing, pModelThing);
 }
 
-void CGraphicThingInstance::RegisterLODThing(int iModelThing, CGraphicThing * pModelThing)
+void CGraphicThingInstance::RegisterLODThing(int iModelThing, CGraphicThing* pModelThing)
 {
 	assert(CheckModelThingIndex(iModelThing));
 	auto modelRef = std::make_unique<CGraphicThing::TRef>();
@@ -594,7 +594,7 @@ bool CGraphicThingInstance::Intersect(float* pu, float* pv, float* pt)
 		//TraceError("CGraphicThingInstance::Intersect - m_LODControllerVector is empty");
 		return false;
 	}
-	
+
 	return m_LODControllerVector[0]->Intersect(&GetTransform(), pu, pv, pt);
 }
 
@@ -605,7 +605,7 @@ void CGraphicThingInstance::GetBoundBox(D3DXVECTOR3* vtMin, D3DXVECTOR3* vtMax)
 	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), CGrannyLODController::FBoundBox(vtMin, vtMax));
 }
 
-BOOL CGraphicThingInstance::GetBoundBox(DWORD dwModelInstanceIndex, D3DXVECTOR3 * vtMin, D3DXVECTOR3 * vtMax)
+BOOL CGraphicThingInstance::GetBoundBox(DWORD dwModelInstanceIndex, D3DXVECTOR3* vtMin, D3DXVECTOR3* vtMax)
 {
 	if (!CheckModelInstanceIndex(dwModelInstanceIndex))
 		return FALSE;
@@ -613,60 +613,60 @@ BOOL CGraphicThingInstance::GetBoundBox(DWORD dwModelInstanceIndex, D3DXVECTOR3 
 	vtMin->x = vtMin->y = vtMin->z = 100000.0f;
 	vtMax->x = vtMax->y = vtMax->z = -100000.0f;
 
-	CGrannyLODController * pController = m_LODControllerVector[dwModelInstanceIndex];
+	CGrannyLODController* pController = m_LODControllerVector[dwModelInstanceIndex];
 	if (!pController->isModelInstance())
 		return FALSE;
 
-	CGrannyModelInstance * pModelInstance = pController->GetModelInstance();
+	CGrannyModelInstance* pModelInstance = pController->GetModelInstance();
 	pModelInstance->GetBoundBox(vtMin, vtMax);
 	return TRUE;
 }
 
-BOOL CGraphicThingInstance::GetBoneMatrix(DWORD dwModelInstanceIndex, DWORD dwBoneIndex, D3DXMATRIX ** ppMatrix)
+BOOL CGraphicThingInstance::GetBoneMatrix(DWORD dwModelInstanceIndex, DWORD dwBoneIndex, D3DXMATRIX** ppMatrix)
 {
 	if (!CheckModelInstanceIndex(dwModelInstanceIndex))
 		return FALSE;
 
-	CGrannyModelInstance * pModelInstance = m_LODControllerVector[dwModelInstanceIndex]->GetModelInstance();
+	CGrannyModelInstance* pModelInstance = m_LODControllerVector[dwModelInstanceIndex]->GetModelInstance();
 	if (!pModelInstance)
 		return FALSE;
 
-	*ppMatrix = (D3DXMATRIX *)pModelInstance->GetBoneMatrixPointer(dwBoneIndex);
+	*ppMatrix = (D3DXMATRIX*)pModelInstance->GetBoneMatrixPointer(dwBoneIndex);
 	if (!*ppMatrix)
 		return FALSE;
 
 	return TRUE;
 }
 
-BOOL CGraphicThingInstance::GetCompositeBoneMatrix(DWORD dwModelInstanceIndex, DWORD dwBoneIndex, D3DXMATRIX ** ppMatrix)
+BOOL CGraphicThingInstance::GetCompositeBoneMatrix(DWORD dwModelInstanceIndex, DWORD dwBoneIndex, D3DXMATRIX** ppMatrix)
 {
 	if (!CheckModelInstanceIndex(dwModelInstanceIndex))
 		return FALSE;
 
-	CGrannyModelInstance * pModelInstance = m_LODControllerVector[dwModelInstanceIndex]->GetModelInstance();
+	CGrannyModelInstance* pModelInstance = m_LODControllerVector[dwModelInstanceIndex]->GetModelInstance();
 	if (!pModelInstance)
 	{
 		//TraceError("CGraphicThingInstance::GetCompositeBoneMatrix(dwModelInstanceIndex=%d, dwBoneIndex=%d, D3DXMATRIX ** ppMatrix)", dwModelInstanceIndex, dwBoneIndex);
 		return FALSE;
 	}
-	
-	*ppMatrix = (D3DXMATRIX *)pModelInstance->GetCompositeBoneMatrixPointer(dwBoneIndex);
+
+	*ppMatrix = (D3DXMATRIX*)pModelInstance->GetCompositeBoneMatrixPointer(dwBoneIndex);
 
 	return TRUE;
 }
 
-void CGraphicThingInstance::UpdateTransform(D3DXMATRIX * pMatrix, float fSecondsElapsed, int iModelInstanceIndex)
+void CGraphicThingInstance::UpdateTransform(D3DXMATRIX* pMatrix, float fSecondsElapsed, int iModelInstanceIndex)
 {
 	//TraceError("%s",GetBaseThingPtr()->GetFileName());
-	int nLODCount=m_LODControllerVector.size();
-	if (iModelInstanceIndex>=nLODCount)
+	int nLODCount = m_LODControllerVector.size();
+	if (iModelInstanceIndex >= nLODCount)
 	{
 		//TraceError("void CGraphicThingInstance::UpdateTransform(pMatrix, fSecondsElapsed=%f, iModelInstanceIndex=%d/nLODCount=%d)",
 		//	fSecondsElapsed, iModelInstanceIndex, nLODCount);
 		return;
 	}
 
-	CGrannyLODController* pkLODCtrl=m_LODControllerVector[iModelInstanceIndex];
+	CGrannyLODController* pkLODCtrl = m_LODControllerVector[iModelInstanceIndex];
 	if (!pkLODCtrl)
 	{
 		//TraceError("void CGraphicThingInstance::UpdateTransform(pMatrix, fSecondsElapsed=%f, iModelInstanceIndex=%d/nLODCount=%d) - m_LODControllerVector[iModelInstanceIndex] == nullptr",
@@ -674,11 +674,11 @@ void CGraphicThingInstance::UpdateTransform(D3DXMATRIX * pMatrix, float fSeconds
 		return;
 	}
 
-	CGrannyModelInstance * pModelInstance = pkLODCtrl->GetModelInstance();
+	CGrannyModelInstance* pModelInstance = pkLODCtrl->GetModelInstance();
 	if (!pModelInstance)
 	{
-	/*	TraceError("void CGraphicThingInstance::UpdateTransform(pMatrix, fSecondsElapsed=%f, iModelInstanceIndex=%d/nLODCount=%d) - pkLODCtrl->GetModelInstance() == nullptr",
-			fSecondsElapsed, iModelInstanceIndex, nLODCount);*/
+		/*	TraceError("void CGraphicThingInstance::UpdateTransform(pMatrix, fSecondsElapsed=%f, iModelInstanceIndex=%d/nLODCount=%d) - pkLODCtrl->GetModelInstance() == nullptr",
+				fSecondsElapsed, iModelInstanceIndex, nLODCount);*/
 		return;
 	}
 
@@ -699,7 +699,7 @@ void CGraphicThingInstance::DeformNoSkin()
 	m_bUpdated = true;
 	for (std::vector<CGrannyLODController*>::size_type iMod = 0; iMod != m_LODControllerVector.size(); iMod++)
 	{
-		CGrannyLODController * pkLOD = m_LODControllerVector[iMod];
+		CGrannyLODController* pkLOD = m_LODControllerVector[iMod];
 		if (!pkLOD->isModelInstance())
 			continue;
 
@@ -721,7 +721,7 @@ void CGraphicThingInstance::OnDeform()
 	m_bUpdated = true;
 	for (std::vector<CGrannyLODController*>::size_type iMod = 0; iMod != m_LODControllerVector.size(); iMod++)
 	{
-		CGrannyLODController * pkLOD = m_LODControllerVector[iMod];
+		CGrannyLODController* pkLOD = m_LODControllerVector[iMod];
 		if (!pkLOD->isModelInstance())
 			continue;
 
@@ -750,24 +750,24 @@ void CGraphicThingInstance::__SetLocalTime(float fLocalTime)
 
 void CGraphicThingInstance::UpdateLODLevel()
 {
-	CCamera * pcurCamera = CCameraManager::Instance().GetCurrentCamera();
+	CCamera* pcurCamera = CCameraManager::Instance().GetCurrentCamera();
 	if (!pcurCamera)
 	{
 		TraceError("CGraphicThingInstance::UpdateLODLevel - GetCurrentCamera() == nullptr");
 		return;
 	}
 
-	const D3DXVECTOR3 & c_rv3TargetPosition = pcurCamera->GetTarget();
-	const D3DXVECTOR3 & c_rv3CameraPosition = pcurCamera->GetEye();
-	const D3DXVECTOR3 & c_v3Position = GetPosition();
+	const D3DXVECTOR3& c_rv3TargetPosition = pcurCamera->GetTarget();
+	const D3DXVECTOR3& c_rv3CameraPosition = pcurCamera->GetEye();
+	const D3DXVECTOR3& c_v3Position = GetPosition();
 
 	// NOTE : 중심으로부터의 거리 계산에 z값 차이는 사용하지 않는다. - [levites]
 	CGrannyLODController::FUpdateLODLevel update;
 	update.fDistanceFromCenter = sqrtf((c_rv3TargetPosition.x - c_v3Position.x) * (c_rv3TargetPosition.x - c_v3Position.x) +
-									   (c_rv3TargetPosition.y - c_v3Position.y) * (c_rv3TargetPosition.y - c_v3Position.y));
+		(c_rv3TargetPosition.y - c_v3Position.y) * (c_rv3TargetPosition.y - c_v3Position.y));
 	update.fDistanceFromCamera = sqrtf((c_rv3CameraPosition.x - c_v3Position.x) * (c_rv3CameraPosition.x - c_v3Position.x) +
-									   (c_rv3CameraPosition.y - c_v3Position.y) * (c_rv3CameraPosition.y - c_v3Position.y) +
-									   (c_rv3CameraPosition.z - c_v3Position.z) * (c_rv3CameraPosition.z - c_v3Position.z));
+		(c_rv3CameraPosition.y - c_v3Position.y) * (c_rv3CameraPosition.y - c_v3Position.y) +
+		(c_rv3CameraPosition.z - c_v3Position.z) * (c_rv3CameraPosition.z - c_v3Position.z));
 
 	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), update);
 }
@@ -776,10 +776,10 @@ void CGraphicThingInstance::UpdateTime()
 {
 	//granny_system_clock clockNow = GrannyGetSystemSeconds();
 	//m_fSecondElapsed = GrannyGetSecondsElapsed(&m_clockLast, &clockNow) * m_fMotionTimeSpeed;
-	
+
 	//DWORD t1=ELTimer_GetMSec();
 
-	m_fSecondElapsed=CTimer::Instance().GetElapsedSecond();
+	m_fSecondElapsed = CTimer::Instance().GetElapsedSecond();
 
 	if (m_fDelay > m_fSecondElapsed)
 	{
@@ -805,27 +805,27 @@ void CGraphicThingInstance::UpdateTime()
 void CGraphicThingInstance::OnUpdate()
 {
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t1=timeGetTime();
+	DWORD t1 = timeGetTime();
 #endif
 	UpdateLODLevel();
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t2=timeGetTime();
+	DWORD t2 = timeGetTime();
 #endif
 	UpdateTime();
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t3=timeGetTime();
+	DWORD t3 = timeGetTime();
 #endif
 
 #ifdef __PERFORMANCE_CHECKER__
 	{
-		static FILE* fp=fopen("perf_thing_onupdate.txt", "w");
+		static FILE* fp = fopen("perf_thing_onupdate.txt", "w");
 
-		if (t3-t1>3)
+		if (t3 - t1 > 3)
 		{
-			fprintf(fp, "GTU.Total %d (Time %f)\n", 
-				t3-t1, ELTimer_GetMSec()/1000.0f);
-			fprintf(fp, "GTU.CAL %d\n", t2-t1);
-			fprintf(fp, "GTU.UP %d\n", t3-t2);
+			fprintf(fp, "GTU.Total %d (Time %f)\n",
+				t3 - t1, ELTimer_GetMSec() / 1000.0f);
+			fprintf(fp, "GTU.CAL %d\n", t2 - t1);
+			fprintf(fp, "GTU.UP %d\n", t3 - t2);
 			fprintf(fp, "-------------------------------- \n");
 			fflush(fp);
 		}
@@ -834,75 +834,14 @@ void CGraphicThingInstance::OnUpdate()
 #endif
 }
 
-void CGraphicThingInstance::OnRender()
+void CGraphicThingInstance::OnRender(const RenderFrameContext& ctx)
 {
-	RenderWithOneTexture();
+	RenderWithOneTexture(ctx);
 }
 
-void CGraphicThingInstance::OnBlendRender()
+void CGraphicThingInstance::OnBlendRender(const RenderFrameContext& ctx)
 {
-	BlendRenderWithOneTexture();
-}
-
-void CGraphicThingInstance::RenderWithOneTexture()
-{
-	//assert(m_bUpdated);
-	if (!m_bUpdated)
-		return;
-
-	CGrannyLODController::FRenderWithOneTexture render;
-	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
-}
-
-void CGraphicThingInstance::BlendRenderWithOneTexture()
-{
-	//assert(m_bUpdated);
-	if (!m_bUpdated)
-		return;
-
-	CGrannyLODController::FBlendRenderWithOneTexture blendRender;
-	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), blendRender);
-}
-
-void CGraphicThingInstance::RenderWithTwoTexture()
-{
-	//assert(m_bUpdated);
-	if (!m_bUpdated)
-		return;
-
-	CGrannyLODController::FRenderWithTwoTexture render;
-	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
-}
-
-void CGraphicThingInstance::BlendRenderWithTwoTexture()
-{
-	//assert(m_bUpdated);
-	if (!m_bUpdated)
-		return;
-
-	CGrannyLODController::FRenderWithTwoTexture blendRender;
-	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), blendRender);
-}
-
-void CGraphicThingInstance::OnRenderToShadowMap()
-{
-	if (!m_bUpdated)
-		return;
-	
-	CGrannyLODController::FRenderToShadowMap RenderToShadowMap;
-	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), RenderToShadowMap);
-}
-
-void CGraphicThingInstance::OnRenderShadow()
-{
-	CGrannyLODController::FRenderShadow RenderShadow;
-	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), RenderShadow);
-}
-
-void CGraphicThingInstance::OnRenderPCBlocker()
-{
-	CGrannyLODController::FRenderWithOneTexture RenderPCBlocker;
-	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), RenderPCBlocker);
+	BlendRenderWithOneTexture(ctx);
 }
 
 DWORD CGraphicThingInstance::GetLODControllerCount() const
@@ -910,13 +849,13 @@ DWORD CGraphicThingInstance::GetLODControllerCount() const
 	return m_LODControllerVector.size();
 }
 
-CGrannyLODController * CGraphicThingInstance::GetLODControllerPointer(DWORD dwModelIndex) const
+CGrannyLODController* CGraphicThingInstance::GetLODControllerPointer(DWORD dwModelIndex) const
 {
 	assert(dwModelIndex < m_LODControllerVector.size());
 	return m_LODControllerVector[dwModelIndex];
 }
 
-CGrannyLODController * CGraphicThingInstance::GetLODControllerPointer(DWORD dwModelIndex)
+CGrannyLODController* CGraphicThingInstance::GetLODControllerPointer(DWORD dwModelIndex)
 {
 	assert(dwModelIndex < m_LODControllerVector.size());
 	return m_LODControllerVector[dwModelIndex];
@@ -933,7 +872,7 @@ float CGraphicThingInstance::GetHeight()
 	if (m_LODControllerVector.empty())
 		return 0.0f;
 
-	CGrannyModelInstance * pModelInstance = m_LODControllerVector[0]->GetModelInstance();
+	CGrannyModelInstance* pModelInstance = m_LODControllerVector[0]->GetModelInstance();
 	if (!pModelInstance)
 		return 0.0f;
 
@@ -970,7 +909,7 @@ void CGraphicThingInstance::OnClear()
 }
 
 void CGraphicThingInstance::OnInitialize()
-{	
+{
 	m_bUpdated = false;
 	m_fLastLocalTime = 0.0f;
 	m_fLocalTime = 0.0f;
@@ -990,4 +929,68 @@ CGraphicThingInstance::CGraphicThingInstance()
 
 CGraphicThingInstance::~CGraphicThingInstance()
 {
+}
+
+
+void CGraphicThingInstance::RenderWithOneTexture(const RenderFrameContext& ctx)
+{
+	if (!m_bUpdated)
+		return;
+
+	CGrannyLODController::FRenderWithOneTexture render(ctx);
+	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
+}
+
+void CGraphicThingInstance::BlendRenderWithOneTexture(const RenderFrameContext& ctx)
+{
+	if (!m_bUpdated)
+		return;
+
+	CGrannyLODController::FBlendRenderWithOneTexture render(ctx);
+	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
+}
+
+void CGraphicThingInstance::RenderWithTwoTexture(const RenderFrameContext& ctx)
+{
+	if (!m_bUpdated)
+		return;
+
+	CGrannyLODController::FRenderWithTwoTexture render(ctx);
+	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
+}
+
+void CGraphicThingInstance::BlendRenderWithTwoTexture(const RenderFrameContext& ctx)
+{
+	if (!m_bUpdated)
+		return;
+
+	CGrannyLODController::FBlendRenderWithTwoTexture render(ctx);
+	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
+}
+
+void CGraphicThingInstance::OnRenderToShadowMap(const RenderFrameContext& ctx)
+{
+	if (!m_bUpdated)
+		return;
+
+	CGrannyLODController::FRenderToShadowMap render(ctx);
+	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
+}
+
+void CGraphicThingInstance::OnRenderShadow(const RenderFrameContext& ctx)
+{
+	if (!m_bUpdated)
+		return;
+
+	CGrannyLODController::FRenderShadow render(ctx);
+	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
+}
+
+void CGraphicThingInstance::OnRenderPCBlocker(const RenderFrameContext& ctx)
+{
+	if (!m_bUpdated)
+		return;
+
+	CGrannyLODController::FRenderWithOneTexture render(ctx);
+	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), render);
 }

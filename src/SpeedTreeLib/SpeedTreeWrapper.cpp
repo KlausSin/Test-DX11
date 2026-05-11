@@ -82,16 +82,16 @@ CSpeedTreeWrapper::CSpeedTreeWrapper() :
 	m_pSpeedTree->SetLocalMatrices(0, 4);
 }
 
-void CSpeedTreeWrapper::OnRenderPCBlocker()
+void CSpeedTreeWrapper::OnRenderPCBlocker(const RenderFrameContext& ctx)
 {
 	auto& state = STATEMANAGER.GetStateCache();
 	auto cb = _mgr->GetCbMgr();
 
-	CSpeedTreeForestDirectX::Instance().UpdateSystem(ELTimer_GetMSec() / 1000.0f);
+	CSpeedTreeForestDirectX::Instance().UpdateSystem(ctx.Time);
 
 	m_pSpeedTree->SetLodLevel(1.0f);
 
-	CSpeedTreeForestDirectX::Instance().UpdateCompundMatrix(CCameraManager::Instance().GetCurrentCamera()->GetEye(), ms_matView, ms_matProj);
+	CSpeedTreeForestDirectX::Instance().UpdateCompundMatrix(ctx.Eye, ctx.View, ctx.Projection);
 
 	state.Push();
 
@@ -182,16 +182,16 @@ void CSpeedTreeWrapper::OnRenderPCBlocker()
 	state.Restore();
 }
 
-void CSpeedTreeWrapper::OnRender()
+void CSpeedTreeWrapper::OnRender(const RenderFrameContext& ctx)
 {
 	auto& state = STATEMANAGER.GetStateCache();
 	auto cb = _mgr->GetCbMgr();
 
-	CSpeedTreeForestDirectX::Instance().UpdateSystem(ELTimer_GetMSec() / 1000.0f);
+	CSpeedTreeForestDirectX::Instance().UpdateSystem(ctx.Time);
 
 	m_pSpeedTree->SetLodLevel(1.0f);
 
-	CSpeedTreeForestDirectX::Instance().UpdateCompundMatrix(CCameraManager::Instance().GetCurrentCamera()->GetEye(), ms_matView, ms_matProj);
+	CSpeedTreeForestDirectX::Instance().UpdateCompundMatrix(ctx.Eye, ctx.View, ctx.Projection);
 
 	state.Push();
 

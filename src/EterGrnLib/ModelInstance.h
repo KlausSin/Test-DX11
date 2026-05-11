@@ -67,11 +67,11 @@ public:
 	// NOTE : 내부에 if문을 포함 시키기 보다는 조금은 번거롭지만 이렇게 함수 콜 자체를 분리
 	//        시키는 것이 퍼포먼스 적인 측면에서는 더 나은 것 같습니다. - [levites]
 	// NOTE : 건물은 무조건 OneTexture. 캐릭터는 경우에 따라 TwoTexture.
-	void	RenderWithOneTexture();
-	void	RenderWithTwoTexture();
-	void	BlendRenderWithOneTexture();
-	void	BlendRenderWithTwoTexture();
-	void	RenderWithoutTexture();
+	void	RenderWithOneTexture(const RenderFrameContext& ctx);
+	void	RenderWithTwoTexture(const RenderFrameContext& ctx);
+	void	BlendRenderWithOneTexture(const RenderFrameContext& ctx);
+	void	BlendRenderWithTwoTexture(const RenderFrameContext& ctx);
+	void	RenderWithoutTexture(const RenderFrameContext& ctx);
 
 	// Model
 	CGrannyModel* GetModel();
@@ -175,7 +175,7 @@ protected:
 
 	CGrannyMaterialPalette			m_kMtrlPal;
 
-	granny_world_pose* m_pgrnWorldPoseReal;	
+	granny_world_pose* m_pgrnWorldPoseReal;
 	std::vector<granny_mesh_binding*>	m_vct_pgrnMeshBinding;
 
 	CGrannyModelInstance** m_ppkSkeletonInst;

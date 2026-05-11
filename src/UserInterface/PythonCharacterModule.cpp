@@ -1,6 +1,8 @@
 #include "StdAfx.h"
 #include "PythonCharacterManager.h"
 #include "PythonNonPlayer.h"
+#include "PythonBackground.h"
+#include <EterLib/Camera.h>
 
 PyObject * chrRaceToJob(PyObject * poSelf, PyObject * poArgs)
 {
@@ -38,10 +40,38 @@ PyObject * chrDeform(PyObject * poSelf, PyObject * poArgs)
 	return Py_BuildNone();
 }
 
-PyObject * chrRender(PyObject * poSelf, PyObject * poArgs)
+PyObject* chrRender(PyObject* poSelf, PyObject* poArgs)
 {
-	CPythonCharacterManager::Instance().Render();
-	return Py_BuildNone();
+	RenderFrameContext ctx = RenderFrameContext::Default();
+
+	if (CPythonBackground::Instance().IsMapReady())
+	{
+		CMapOutdoor& rkMap = CPythonBackground::Instance().GetMapOutdoorRef();
+		ctx = rkMap.BuildRenderFrameContext();
+	}
+	else
+	{
+		ctx.Device = CGraphicBase::ms_lpd3d11Device;
+		ctx.DeviceContext = CGraphicBase::ms_lpd3d11Context;
+		ctx.View = CGraphicBase::ms_matView;
+		ctx.Projection = CGraphicBase::ms_matProj;
+		ctx.ViewProjection = ctx.View * ctx.Projection;
+
+		CCamera* camera = CCameraManager::Instance().GetCurrentCamera();
+		if (camera)
+		{
+			ctx.Eye = camera->GetEye();
+			ctx.Target = camera->GetTarget();
+		}
+
+		ctx.FogEnable = false;
+		ctx.FogColor = 0xffffffff;
+		ctx.FogStart = 5000.0f;
+		ctx.FogEnd = 10000.0f;
+	}
+
+	CPythonCharacterManager::Instance().Render(ctx);
+	Py_RETURN_NONE;
 }
 
 PyObject * chrRenderCollision(PyObject * poSelf, PyObject * poArgs)

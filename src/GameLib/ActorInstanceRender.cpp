@@ -2,6 +2,7 @@
 #include "EterLib/StateManager.h"
 
 #include "ActorInstance.h"
+#include "MapManager.h"
 
 bool CActorInstance::ms_isDirLine=false;
 
@@ -30,7 +31,7 @@ void CActorInstance::SetMaterialAlpha(DWORD dwAlpha)
 }
 
 
-void CActorInstance::OnRender()
+void CActorInstance::OnRender(const RenderFrameContext& ctx)
 {
 	// Early out if race data is not loaded yet (async loading)
 	if (!m_pkCurRaceData)
@@ -45,45 +46,45 @@ void CActorInstance::OnRender()
 	// 아니면 이런 형태로 가되 Texture & State Sorting 지원으로.. - [levites]
 	STATEMANAGER.GetRaster().Push();
 	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
-
+	
 	switch(m_iRenderMode)
 	{
 		case RENDER_MODE_NORMAL:
 			BeginDiffuseRender();
-				RenderWithOneTexture();
+				RenderWithOneTexture(ctx);
 			EndDiffuseRender();
 			BeginOpacityRender();
-				BlendRenderWithOneTexture();
+				BlendRenderWithOneTexture(ctx);
 			EndOpacityRender();
 			break;
 		case RENDER_MODE_BLEND:
 			if (m_fAlphaValue == 1.0f)
 			{
 				BeginDiffuseRender();
-					RenderWithOneTexture();
+					RenderWithOneTexture(ctx);
 				EndDiffuseRender();
 				BeginOpacityRender();
-					BlendRenderWithOneTexture();
+					BlendRenderWithOneTexture(ctx);
 				EndOpacityRender();
 			}
 			else if (m_fAlphaValue > 0.0f)
 			{
 				BeginBlendRender();
-					RenderWithOneTexture();
-					BlendRenderWithOneTexture();
+					RenderWithOneTexture(ctx);
+					BlendRenderWithOneTexture(ctx);
 				EndBlendRender();
 			}
 			break;
 		case RENDER_MODE_ADD:
 			BeginAddRender();
-				RenderWithOneTexture();
-				BlendRenderWithOneTexture();
+				RenderWithOneTexture(ctx);
+				BlendRenderWithOneTexture(ctx);
 			EndAddRender();
 			break;
 		case RENDER_MODE_MODULATE:
 			BeginModulateRender();
-				RenderWithOneTexture();
-				BlendRenderWithOneTexture();
+				RenderWithOneTexture(ctx);
+				BlendRenderWithOneTexture(ctx);
 			EndModulateRender();
 			break;
 	}
@@ -329,14 +330,14 @@ void CActorInstance::RenderCollisionData()
 }
 
 
-void CActorInstance::RenderToShadowMap()
+void CActorInstance::RenderToShadowMap(const RenderFrameContext& ctx)
 {
 	if (RENDER_MODE_BLEND == m_iRenderMode)
 	if (GetAlphaValue() < 0.5f)
 		return;
 
-	CGraphicThingInstance::RenderToShadowMap();
+	CGraphicThingInstance::RenderToShadowMap(ctx);
 
 	if (m_pkHorse)
-		m_pkHorse->RenderToShadowMap();
+		m_pkHorse->RenderToShadowMap(ctx);
 }

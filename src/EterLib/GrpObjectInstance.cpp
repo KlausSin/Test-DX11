@@ -36,57 +36,45 @@ void CGraphicObjectInstance::Clear()
 	OnClear();
 }
 
-bool CGraphicObjectInstance::Render()
+bool CGraphicObjectInstance::Render(const RenderFrameContext& ctx)
 {
-	/*
-	if (m_CullingHandle)
-	{
-		SpherePack * ps = m_CullingHandle->GetParent();
-		CScreen s;
-		s.SetColorOperation();
-		//s.SetDiffuseColor(1,isShow()?1:0,0);
-		//s.RenderCircle2d(m_CullingHandle->GetCenter().x,m_CullingHandle->GetCenter().y,m_CullingHandle->GetCenter().z,m_CullingHandle->GetRadius());
-		s.SetDiffuseColor(1,isShow()?1:0,ps->HasSpherePackFlag(SPF_PARTIAL)?1:0);
-		s.RenderCircle2d(ps->GetCenter().x,ps->GetCenter().y,ps->GetCenter().z,ps->GetRadius());
-	}
-	//*/
 	if (!isShow())
 		return false;
 
-	OnRender();
+	OnRender(ctx);
 	return true;
 }
 
-void CGraphicObjectInstance::BlendRender()
+void CGraphicObjectInstance::BlendRender(const RenderFrameContext& ctx)
 {
 	if (!isShow())
 		return;
 
-	OnBlendRender();
+	OnBlendRender(ctx);
 }
 
-void CGraphicObjectInstance::RenderToShadowMap()
+void CGraphicObjectInstance::RenderToShadowMap(const RenderFrameContext& ctx)
 {
 	if (!isShow())
 		return;
 
-	OnRenderToShadowMap();
+	OnRenderToShadowMap(ctx);
 }
 
-void CGraphicObjectInstance::RenderShadow()
+void CGraphicObjectInstance::RenderShadow(const RenderFrameContext& ctx)
 {
 	if (!isShow())
 		return;
 
-	OnRenderShadow();
+	OnRenderShadow(ctx);
 }
 
-void CGraphicObjectInstance::RenderPCBlocker()
+void CGraphicObjectInstance::RenderPCBlocker(const RenderFrameContext& ctx)
 {
 	if (!isShow())
 		return;
 
-	OnRenderPCBlocker();
+	OnRenderPCBlocker(ctx);
 }
 
 void CGraphicObjectInstance::Update()

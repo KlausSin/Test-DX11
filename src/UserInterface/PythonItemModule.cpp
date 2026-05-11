@@ -4,6 +4,7 @@
 #include "GameLib/ItemManager.h"
 #include "InstanceBase.h"
 #include "AbstractApplication.h"
+#include "PythonBackground.h"
 
 extern int TWOHANDED_WEWAPON_ATT_SPEED_DECREASE_VALUE;
 
@@ -84,13 +85,6 @@ PyObject * itemGetIconImage(PyObject * poSelf, PyObject * poArgs)
 	CItemData * pItemData = CItemManager::Instance().GetSelectedItemDataPointer();
 	if (!pItemData)
 		return Py_BuildException("no selected item data");
-
-//	if (CItemData::ITEM_TYPE_SKILLBOOK == pItemData->GetType())
-//	{
-//		char szItemName[64+1];
-//		_snprintf(szItemName, "d:/ymir work/ui/items/etc/book_%02d.sub", );
-//		CGraphicImage * pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer(szItemName);
-//	}
 
 	return Py_BuildValue("K", pItemData->GetIconImage());
 }
@@ -467,10 +461,14 @@ PyObject * itemIsMetin(PyObject * poSelf, PyObject * poArgs)
 	return Py_BuildValue("i", FALSE);
 }
 
-PyObject * itemRender(PyObject * poSelf, PyObject * poArgs)
+PyObject* itemRender(PyObject* poSelf, PyObject* poArgs)
 {
-	CPythonItem::Instance().Render();
-	return Py_BuildNone();
+	CMapOutdoor& rkMap = CPythonBackground::Instance().GetMapOutdoorRef();
+	const RenderFrameContext ctx = rkMap.BuildRenderFrameContext();
+
+	CPythonItem::Instance().Render(ctx);
+
+	Py_RETURN_NONE;
 }
 
 PyObject * itemUpdate(PyObject * poSelf, PyObject * poArgs)

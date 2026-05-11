@@ -236,13 +236,13 @@ void CInstanceBase::SHORSE::Deform()
 	rkActor.INSTANCEBASE_Deform();
 }
 
-void CInstanceBase::SHORSE::Render()
+void CInstanceBase::SHORSE::Render(const RenderFrameContext& ctx)
 {
 	if (!IsMounting())
 		return;
 
 	CActorInstance& rkActor=GetActorRef();
-	rkActor.Render();
+	rkActor.Render(ctx);
 }
 
 void CInstanceBase::__AttachHorseSaddle()
@@ -1979,7 +1979,7 @@ void CInstanceBase::RenderTrace()
 
 
 
-void CInstanceBase::Render()
+void CInstanceBase::Render(const RenderFrameContext& ctx)
 {
 	// 2004.07.17.levites.isShow를 ViewFrustumCheck로 변경
 	if (!__CanRender())
@@ -1987,8 +1987,8 @@ void CInstanceBase::Render()
 
 	++ms_dwRenderCounter;
 
-	m_kHorse.Render();
-	m_GraphicThingInstance.Render();
+	m_kHorse.Render(ctx);
+	m_GraphicThingInstance.Render(ctx);
 
 	CPythonCharacterManager& rkChrMgr = CPythonCharacterManager::Instance();
 
@@ -2040,13 +2040,13 @@ void CInstanceBase::Render()
 
 			STATEMANAGER.GetStateCache().Restore();
 
-			_mgr->GetCbMgr()->SetFogEnable(true);
+			_mgr->GetCbMgr()->SetFogEnable(ctx.FogEnable);
 			_mgr->GetCbMgr()->SetLightingEnable(true);
 		}
 	}
 }
 
-void CInstanceBase::RenderToShadowMap()
+void CInstanceBase::RenderToShadowMap(const RenderFrameContext& ctx)
 {
 	if (IsDoor())
 		return;
@@ -2068,7 +2068,7 @@ void CInstanceBase::RenderToShadowMap()
 	if (fDistance>=SHADOW_APPLY_DISTANCE)
 		return;
 
-	m_GraphicThingInstance.RenderToShadowMap();	
+	m_GraphicThingInstance.RenderToShadowMap(ctx);	
 }
 
 void CInstanceBase::RenderCollision()

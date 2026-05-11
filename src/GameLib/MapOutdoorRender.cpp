@@ -7,6 +7,7 @@
 #include "EterLib/Camera.h"
 #include "EterLib/StateManager.h"
 #include "qMin32Lib/DxManager.h"
+#include "EterBase/Timer.h"
 
 #define MAX_RENDER_SPALT 150
 
@@ -14,41 +15,66 @@ CArea::TCRCWithNumberVector m_dwRenderedCRCWithNumberVector;
 
 CMapOutdoor::TTerrainNumVector CMapOutdoor::FSortPatchDrawStructWithTerrainNum::m_TerrainNumVector;
 
-void CMapOutdoor::RenderTerrain()
+RenderFrameContext CMapOutdoor::BuildRenderFrameContext() const
 {
-	if (!IsVisiblePart(PART_TERRAIN))
+	RenderFrameContext ctx = RenderFrameContext::Default();
+	ctx.Device = ms_lpd3d11Device;
+	ctx.DeviceContext = ms_lpd3d11Context;
+	ctx.View = ms_matView;
+	ctx.Projection = ms_matProj;
+	ctx.ViewProjection = ms_matView * ms_matProj;
+	ctx.ViewInverse = m_matViewInverse;
+	ctx.DrawShadow = m_bDrawShadow;
+	ctx.DrawCharacterShadow = m_bDrawChrShadow && m_lpCharacterShadowMapTexture != nullptr;
+	ctx.CharacterShadowTexture = m_lpCharacterShadowMapTexture;
+	ctx.DynamicShadowMatrix = m_matDynamicShadow;
+
+	CCamera* camera = CCameraManager::Instance().GetCurrentCamera();
+	if (camera)
+	{
+		ctx.Eye = camera->GetEye();
+		ctx.Target = camera->GetTarget();
+	}
+
+	if (mc_pEnvironmentData)
+	{
+		ctx.FogEnable = mc_pEnvironmentData->bFogEnable;
+		ctx.FogColor = mc_pEnvironmentData->FogColor;
+		ctx.FogStart = mc_pEnvironmentData->GetFogNearDistance();
+		ctx.FogEnd = mc_pEnvironmentData->GetFogFarDistance();
+		ctx.DensityFog = mc_pEnvironmentData->bDensityFog;
+	}
+
+	static DWORD lastTime = CTimer::Instance().GetCurrentMillisecond();
+	const DWORD now = CTimer::Instance().GetCurrentMillisecond();
+	ctx.DeltaTime = static_cast<float>(now - lastTime) * 0.001f;
+	ctx.Time = static_cast<float>(now) * 0.001f;
+	lastTime = now;
+	return ctx;
+}
+
+void CMapOutdoor::RenderTerrain(const RenderFrameContext& ctx)
+{
+	if (!IsVisiblePart(PART_TERRAIN) || !m_bSettingTerrainVisible || !m_pTerrainPatchProxyList || !m_pRootNode)
 		return;
 
-	if (!m_bSettingTerrainVisible)
-		return;
+	D3DXMATRIX viewProjection = ctx.ViewProjection;
+	BuildViewFrustum(viewProjection);
 
-	// Inserted by levites
-	if (!m_pTerrainPatchProxyList)
-		return;
+	m_fXforDistanceCaculation = -ctx.Eye.x;
+	m_fYforDistanceCaculation = -ctx.Eye.y;
 
-	CCamera * pCamera = CCameraManager::Instance().GetCurrentCamera();
-	if (!pCamera)
-		return;
-
-	auto vv = ms_matView * ms_matProj;
-	BuildViewFrustum(vv);
-
-	D3DXVECTOR3 v3Eye = pCamera->GetEye();
-	m_fXforDistanceCaculation = -v3Eye.x;
-	m_fYforDistanceCaculation = -v3Eye.y;
-	
-	//////////////////////////////////////////////////////////////////////////
-	// Push
 	m_PatchVector.clear();
-	m_PatchVector.reserve(256);  // Pre-allocate to avoid reallocations
+	const size_t reserveCount = static_cast<size_t>(m_wPatchCount) * static_cast<size_t>(m_wPatchCount);
+	if (m_PatchVector.capacity() < reserveCount)
+		m_PatchVector.reserve(reserveCount);
 
 	__RenderTerrain_RecurseRenderQuadTree(m_pRootNode);
-	
-	// 거리순 정렬
-	std::sort(m_PatchVector.begin(),m_PatchVector.end());
+	if (m_PatchVector.empty())
+		return;
 
-	// 그리기 위한 벡터 세팅
-	__RenderTerrain_RenderHardwareTransformPatch();
+	std::sort(m_PatchVector.begin(), m_PatchVector.end());
+	__RenderTerrain_RenderHardwareTransformPatch(ctx);
 }
 
 void CMapOutdoor::__RenderTerrain_RecurseRenderQuadTree(CTerrainQuadtreeNode *Node, bool bCullCheckNeed)
@@ -219,22 +245,22 @@ void CMapOutdoor::RenderScreenFiltering()
 	m_ScreenFilter.Render();
 }
 
-void CMapOutdoor::RenderSky()
+void CMapOutdoor::RenderSky(const RenderFrameContext& ctx)
 {
 	if (IsVisiblePart(PART_SKY))
-		m_SkyBox.Render();
+		m_SkyBox.Render(ctx);
 }
 
-void CMapOutdoor::RenderCloud()
+void CMapOutdoor::RenderCloud(const RenderFrameContext& ctx)
 {
 	if (IsVisiblePart(PART_CLOUD))
-		m_SkyBox.RenderCloud();
+		m_SkyBox.RenderCloud(ctx);
 }
 
-void CMapOutdoor::RenderTree()
+void CMapOutdoor::RenderTree(const RenderFrameContext& ctx)
 {
 	if (IsVisiblePart(PART_TREE))
-		CSpeedTreeForestDirectX::Instance().Render();
+		CSpeedTreeForestDirectX::Instance().Render(ctx);
 }
 
 void CMapOutdoor::SetInverseViewAndDynamicShaodwMatrices()
@@ -262,13 +288,16 @@ void CMapOutdoor::OnRender()
 #ifdef __PERFORMANCE_CHECKER__
 	DWORD t1=ELTimer_GetMSec();
 	SetInverseViewAndDynamicShaodwMatrices();
+	RenderFrameContext ctx = BuildRenderFrameContext();
 
 	SetBlendOperation();
+	RenderSky(ctx);
+	RenderCloud(ctx);
 	DWORD t2=ELTimer_GetMSec();
 	RenderArea();
 	DWORD t3=ELTimer_GetMSec();
 	if (!m_bEnableTerrainOnlyForHeight)
-		RenderTerrain();
+		RenderTerrain(ctx);
 	DWORD t4=ELTimer_GetMSec();
 	RenderTree();
 	DWORD t5=ELTimer_GetMSec();
@@ -286,21 +315,29 @@ void CMapOutdoor::OnRender()
 
 #else
 	SetInverseViewAndDynamicShaodwMatrices();
+	RenderFrameContext ctx = BuildRenderFrameContext();
+
+	RenderSky(ctx);
 
 	SetBlendOperation();
-	RenderArea();
-	RenderTree();
+
+	RenderArea(ctx);
+	RenderTree(ctx);
+
 	if (!m_bEnableTerrainOnlyForHeight)
-		RenderTerrain();
-	RenderBlendArea();
+		RenderTerrain(ctx);
+
+	RenderBlendArea(ctx);
+	RenderCloud(ctx);
 #endif
 }
 
 struct FAreaRenderShadow
 {
+	const RenderFrameContext& ctx;
 	void operator () (CGraphicObjectInstance * pInstance)
 	{
-		pInstance->RenderShadow();
+		pInstance->RenderShadow(ctx);
 		pInstance->Hide();
 	}
 };
@@ -315,24 +352,27 @@ struct FPCBlockerHide
 
 struct FRenderPCBlocker
 {
-	void operator () (CGraphicObjectInstance * pInstance)
+	const RenderFrameContext& ctx;
+
+	void operator()(CGraphicObjectInstance* pInstance) const
 	{
+		if (!pInstance)
+			return;
+
 		pInstance->Show();
-		CGraphicThingInstance* pThingInstance = dynamic_cast <CGraphicThingInstance*> (pInstance);
-		if (pThingInstance != NULL)
+
+		CGraphicThingInstance* pThingInstance = dynamic_cast<CGraphicThingInstance*>(pInstance);
+		if (pThingInstance && pThingInstance->HaveBlendThing())
 		{
-			if (pThingInstance->HaveBlendThing())
-			{
-				pThingInstance->BlendRender();
-				return;
-			}
+			pThingInstance->BlendRender(ctx);
+			return;
 		}
 
-		pInstance->RenderPCBlocker();
+		pInstance->RenderPCBlocker(ctx);
 	}
 };
 
-void CMapOutdoor::RenderEffect()
+void CMapOutdoor::RenderEffect(const RenderFrameContext& ctx)
 {
 	if (!IsVisiblePart(PART_OBJECT))
 		return;
@@ -341,7 +381,7 @@ void CMapOutdoor::RenderEffect()
 		CArea * pArea;
 		if (GetAreaPointer(i, &pArea))
 		{
-			pArea->RenderEffect();
+			pArea->RenderEffect(ctx);
 		}
 	}
 }
@@ -364,20 +404,27 @@ struct CMapOutdoor_LessThingInstancePtrRenderOrder
 
 struct CMapOutdoor_FOpaqueThingInstanceRender
 {
-	inline void operator () (CGraphicThingInstance * pkThingInst)
+	const RenderFrameContext& ctx;
+
+	inline void operator()(CGraphicThingInstance* pkThingInst) const
 	{
-		pkThingInst->Render();
-	}
-};
-struct CMapOutdoor_FBlendThingInstanceRender
-{
-	inline void operator () (CGraphicThingInstance * pkThingInst)
-	{
-		pkThingInst->BlendRender();
+		if (pkThingInst)
+			pkThingInst->Render(ctx);
 	}
 };
 
-void CMapOutdoor::RenderArea(bool bRenderAmbience)
+struct CMapOutdoor_FBlendThingInstanceRender
+{
+	const RenderFrameContext& ctx;
+
+	inline void operator()(CGraphicThingInstance* pkThingInst) const
+	{
+		if (pkThingInst)
+			pkThingInst->BlendRender(ctx);
+	}
+};
+
+void CMapOutdoor::RenderArea(const RenderFrameContext& ctx, bool bRenderAmbience)
 {
 	if (!IsVisiblePart(PART_OBJECT))
 		return;
@@ -395,97 +442,48 @@ void CMapOutdoor::RenderArea(bool bRenderAmbience)
 
 	std::for_each(m_PCBlockerVector.begin(), m_PCBlockerVector.end(), FPCBlockerHide());
 
-	if (m_bDrawShadow && m_bDrawChrShadow)
+	if (ctx.DrawShadow && ctx.DrawCharacterShadow && ctx.CharacterShadowTexture)
 	{
-		if (mc_pEnvironmentData != NULL)
-			_mgr->GetCbMgr()->SetFogColor(0xFFFFFFFF);
+		_mgr->GetCbMgr()->SetFogColor(0xFFFFFFFF);
 
 		STATEMANAGER.GetTransform().Push();
-		STATEMANAGER.GetTransform().SetTexture1(m_matDynamicShadow);
-		STATEMANAGER.SetTexture(1, m_lpCharacterShadowMapTexture);
+		STATEMANAGER.GetTransform().SetTexture1(ctx.DynamicShadowMatrix);
+		STATEMANAGER.SetTexture(1, ctx.CharacterShadowTexture);
 
 		STATEMANAGER.GetSampler().Push(1);
 		STATEMANAGER.GetSampler().SetAddressUV(1, D3D11_TEXTURE_ADDRESS_BORDER, D3D11_TEXTURE_ADDRESS_BORDER);
 
-		std::for_each(m_ShadowReceiverVector.begin(), m_ShadowReceiverVector.end(), FAreaRenderShadow());
+		std::for_each(m_ShadowReceiverVector.begin(), m_ShadowReceiverVector.end(), FAreaRenderShadow(ctx));
 
 		STATEMANAGER.GetSampler().Restore(1);
-
 		STATEMANAGER.GetTransform().Restore();
 
-		if (mc_pEnvironmentData != NULL)
-			_mgr->GetCbMgr()->SetFogColor(mc_pEnvironmentData->FogColor);
+		_mgr->GetCbMgr()->SetFogColor(ctx.FogColor);
 	}
 
 	STATEMANAGER.GetDepthStencil().Push();
 	STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(true);
 
-	bool m_isDisableSortRendering = false;
+	static std::vector<CGraphicThingInstance*> s_kVct_pkOpaqueThingInstSort;
+	s_kVct_pkOpaqueThingInstSort.clear();
+	s_kVct_pkOpaqueThingInstSort.reserve(512);
 
-	if (m_isDisableSortRendering)
+	for (int i = 0; i < AROUND_AREA_NUM; ++i)
 	{
-		for (int i = 0; i < AROUND_AREA_NUM; ++i)
-		{
-			CArea* pArea;
-			if (GetAreaPointer(i, &pArea))
-			{
-				pArea->Render();
-
-				m_dwRenderedCRCNum += pArea->DEBUG_GetRenderedCRCNum();
-				m_dwRenderedGraphicThingInstanceNum += pArea->DEBUG_GetRenderedGrapphicThingInstanceNum();
-
-				CArea::TCRCWithNumberVector& rCRCWithNumberVector = pArea->DEBUG_GetRenderedCRCWithNumVector();
-
-				CArea::TCRCWithNumberVector::iterator aIterator = rCRCWithNumberVector.begin();
-				while (aIterator != rCRCWithNumberVector.end())
-				{
-					DWORD dwCRC = (*aIterator++).dwCRC;
-
-					CArea::TCRCWithNumberVector::iterator aCRCWithNumberVectorIterator =
-						std::find_if(m_dwRenderedCRCWithNumberVector.begin(), m_dwRenderedCRCWithNumberVector.end(), CArea::FFindIfCRC(dwCRC));
-
-					if (m_dwRenderedCRCWithNumberVector.end() == aCRCWithNumberVectorIterator)
-					{
-						CArea::TCRCWithNumber aCRCWithNumber;
-						aCRCWithNumber.dwCRC = dwCRC;
-						aCRCWithNumber.dwNumber = 1;
-						m_dwRenderedCRCWithNumberVector.push_back(aCRCWithNumber);
-					}
-					else
-					{
-						CArea::TCRCWithNumber& rCRCWithNumber = *aCRCWithNumberVectorIterator;
-						rCRCWithNumber.dwNumber += 1;
-					}
-				}
-			}
-		}
-
-		std::sort(m_dwRenderedCRCWithNumberVector.begin(), m_dwRenderedCRCWithNumberVector.end(), CArea::CRCNumComp());
-	}
-	else
-	{
-		static std::vector<CGraphicThingInstance*> s_kVct_pkOpaqueThingInstSort;
-		s_kVct_pkOpaqueThingInstSort.clear();
-		s_kVct_pkOpaqueThingInstSort.reserve(512);
-
-		for (int i = 0; i < AROUND_AREA_NUM; ++i)
-		{
-			CArea* pArea;
-			if (GetAreaPointer(i, &pArea))
-				pArea->CollectRenderingObject(s_kVct_pkOpaqueThingInstSort);
-		}
-
-		std::sort(s_kVct_pkOpaqueThingInstSort.begin(), s_kVct_pkOpaqueThingInstSort.end(), CMapOutdoor_LessThingInstancePtrRenderOrder());
-		std::for_each(s_kVct_pkOpaqueThingInstSort.begin(), s_kVct_pkOpaqueThingInstSort.end(), CMapOutdoor_FOpaqueThingInstanceRender());
+		CArea* pArea;
+		if (GetAreaPointer(i, &pArea))
+			pArea->CollectRenderingObject(s_kVct_pkOpaqueThingInstSort);
 	}
 
+	std::sort(s_kVct_pkOpaqueThingInstSort.begin(), s_kVct_pkOpaqueThingInstSort.end(), CMapOutdoor_LessThingInstancePtrRenderOrder());
+	std::for_each(s_kVct_pkOpaqueThingInstSort.begin(), s_kVct_pkOpaqueThingInstSort.end(), CMapOutdoor_FOpaqueThingInstanceRender(ctx));
 	STATEMANAGER.GetDepthStencil().Restore();
 
 	if (m_bDrawShadow && m_bDrawChrShadow)
 		std::for_each(m_ShadowReceiverVector.begin(), m_ShadowReceiverVector.end(), std::mem_fn(&CGraphicObjectInstance::Show));
 }
 
-void CMapOutdoor::RenderBlendArea()
+void CMapOutdoor::RenderBlendArea(const RenderFrameContext& ctx)
 {
 	if (!IsVisiblePart(PART_OBJECT))
 		return;
@@ -514,7 +512,7 @@ void CMapOutdoor::RenderBlendArea()
 		STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
 		STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_INV_SRC_ALPHA);
 
-		std::for_each(s_kVct_pkBlendThingInstSort.begin(), s_kVct_pkBlendThingInstSort.end(), CMapOutdoor_FBlendThingInstanceRender());
+		std::for_each(s_kVct_pkBlendThingInstSort.begin(), s_kVct_pkBlendThingInstSort.end(), CMapOutdoor_FBlendThingInstanceRender(ctx));
 
 		STATEMANAGER.GetStateCache().Restore();
 	}
@@ -530,7 +528,7 @@ void CMapOutdoor::RenderDungeon()
 	}
 }
 
-void CMapOutdoor::RenderPCBlocker()
+void CMapOutdoor::RenderPCBlocker(const RenderFrameContext& ctx)
 {
 	if (m_PCBlockerVector.size() != 0)
 	{
@@ -546,7 +544,7 @@ void CMapOutdoor::RenderPCBlocker()
 		STATEMANAGER.GetTransform().SetTexture1(m_matBuildingTransparent);
 		STATEMANAGER.SetTexture(1, m_BuildingTransparentImageInstance.GetTexturePointer()->GetSRV());
 
-		std::for_each(m_PCBlockerVector.begin(), m_PCBlockerVector.end(), FRenderPCBlocker());
+		std::for_each(m_PCBlockerVector.begin(), m_PCBlockerVector.end(), FRenderPCBlocker(ctx));
 
 		STATEMANAGER.SetTexture(1, NULL);
 		STATEMANAGER.GetTransform().Restore();

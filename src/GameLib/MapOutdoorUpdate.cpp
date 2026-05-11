@@ -128,7 +128,7 @@ bool CMapOutdoor::Update(float fX, float fY, float fZ)
 #ifdef __PERFORMANCE_CHECKER__
 	DWORD t7=ELTimer_GetMSec();
 #endif
-	UpdateSky();
+	UpdateSky(BuildRenderFrameContext());
 #ifdef __PERFORMANCE_CHECKER__	
 	DWORD t8=ELTimer_GetMSec();
 #endif
@@ -156,9 +156,9 @@ bool CMapOutdoor::Update(float fX, float fY, float fZ)
 	return true;
 }
 
-void CMapOutdoor::UpdateSky()
+void CMapOutdoor::UpdateSky(const RenderFrameContext& ctx)
 {
-	m_SkyBox.Update();
+	m_SkyBox.Update(ctx);
 }
 
 struct FGetShadowReceiverFromCollisionData

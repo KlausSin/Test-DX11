@@ -74,7 +74,7 @@ bool CTextureSet::Load(const char * c_szTextureSetFileName, float fTerrainTexCoo
 
 	for (const auto& filename : textureFiles)
 	{
-		CResourceManager::Instance().GetResourcePointer(filename.c_str());
+		CResourceManager::Instance().GetTyped<CGraphicImage>(filename.c_str());
 	}
 
 	for (long i = 0; i < lCount; ++i)
@@ -194,7 +194,7 @@ void CTextureSet::Reload(float fTerrainTexCoordBase)
 	{
 		TTerrainTexture & tex = m_Textures[dwIndex];
 
-		tex.ImageInstance.ReloadImagePointer((CGraphicImage *) CResourceManager::Instance().GetResourcePointer(tex.stFilename.c_str()));
+		tex.ImageInstance.ReloadImagePointer(CResourceManager::Instance().GetTyped<CGraphicImage>(tex.stFilename.c_str()));
 		tex.pd3dTexture = tex.ImageInstance.GetTexturePointer()->GetSRV();
 
 		D3DXMatrixScaling(&tex.m_matTransform, fTerrainTexCoordBase * tex.UScale, -fTerrainTexCoordBase * tex.VScale, 0.0f);

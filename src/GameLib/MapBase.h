@@ -1,4 +1,5 @@
 #pragma once
+#include "MapType.h"
 
 class CMapBase : public CScreen
 {

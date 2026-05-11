@@ -210,11 +210,13 @@ public:
 	static void SetDefaultIndexBuffer(UINT eDefIB);
 	static bool SetPDTStream(SPDTVertex* pVertices, UINT uVtxCount);
 
+public:
+		static D3DXMATRIX				ms_matView;
+		static D3DXMATRIX				ms_matProj;
 protected:
 	static D3DXMATRIX				ms_matIdentity;
 
-	static D3DXMATRIX				ms_matView;
-	static D3DXMATRIX				ms_matProj;
+
 	static D3DXMATRIX				ms_matInverseView;
 	static D3DXMATRIX				ms_matInverseViewYAxis;
 

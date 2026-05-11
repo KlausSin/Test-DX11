@@ -68,34 +68,26 @@ bool CEffectMesh::OnIsType(TType type)
 	return CResource::OnIsType(type);
 }
 
-bool CEffectMesh::OnLoad(int iSize, const void * c_pvBuf)
+bool CEffectMesh::OnLoad(int iSize, const void* c_pvBuf)
 {
-	if (!c_pvBuf)
+	if (!c_pvBuf || iSize < 11)
 		return false;
 
-	const BYTE * c_pbBuf = static_cast<const BYTE *> (c_pvBuf);
+	const BYTE* c_pbBuf = static_cast<const BYTE*>(c_pvBuf);
 
-	char szHeader[10+1];
-	memcpy(szHeader, c_pbBuf, 10+1);
-	c_pbBuf += 10+1;
+	char szHeader[11] = {};
+	memcpy(szHeader, c_pbBuf, 11);
+	c_pbBuf += 11;
 
-	if (0 == strcmp("EffectData", szHeader))
-	{
-		if (!__LoadData_Ver001(iSize, c_pbBuf))
-			return false;
-	}
-	else if (0 == strcmp("MDEData002", szHeader))
-	{
-		if (!__LoadData_Ver002(iSize, c_pbBuf))
-			return false;
-	}
-	else
-	{
-		return false;
-	}
+	bool ok = false;
 
-	m_isData = true;
-	return true;
+	if (strcmp("EffectData", szHeader) == 0)
+		ok = __LoadData_Ver001(iSize - 11, c_pbBuf) != FALSE;
+	else if (strcmp("MDEData002", szHeader) == 0)
+		ok = __LoadData_Ver002(iSize - 11, c_pbBuf) != FALSE;
+
+	m_isData = ok;
+	return ok;
 }
 
 BOOL CEffectMesh::__LoadData_Ver002(int iSize, const BYTE * c_pbBuf)
@@ -215,16 +207,14 @@ BOOL CEffectMesh::__LoadData_Ver002(int iSize, const BYTE * c_pbBuf)
 					strTextureFileName = strPathName;
 					strTextureFileName += c_rstrFileName;
 
-					CGraphicImage * pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer(strTextureFileName.c_str());
-
+					CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(strTextureFileName.c_str());
 					pMeshData->pImageVector.push_back(pImage);
 				}
 			}
 		}
 		else
 		{
-			CGraphicImage * pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer(pMeshData->szDiffuseMapFileName);
-
+			CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(pMeshData->szDiffuseMapFileName);
 			pMeshData->pImageVector.push_back(pImage);
 		}
 
@@ -359,7 +349,7 @@ BOOL CEffectMesh::__LoadData_Ver001(int iSize, const BYTE * c_pbBuf)
 					strTextureFileName = strPathName;
 					strTextureFileName += c_rstrFileName;
 
-					CGraphicImage * pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer(strTextureFileName.c_str());
+					CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(strTextureFileName.c_str());
 
 					pMeshData->pImageVector.push_back(pImage);
 				}
@@ -367,7 +357,7 @@ BOOL CEffectMesh::__LoadData_Ver001(int iSize, const BYTE * c_pbBuf)
 		}
 		else
 		{
-			CGraphicImage * pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer(pMeshData->szDiffuseMapFileName);
+			CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(pMeshData->szDiffuseMapFileName);
 
 			pMeshData->pImageVector.push_back(pImage);
 		}

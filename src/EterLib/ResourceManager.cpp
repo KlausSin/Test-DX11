@@ -1,7 +1,6 @@
 #include "StdAfx.h"
 #include "ResourceManager.h"
 
-#include "EterBase/CRC32.h"
 #include "EterBase/Stl.h"
 #include "PackLib/PackManager.h"
 #include "TextureCache.h"
@@ -40,19 +39,52 @@ namespace
     }
 }
 
-CFileLoaderThread CResourceManager::ms_loadingThread;
+std::string CResourceManager::MakeKey(const char* c_szFileName) const
+{
+    return NormalizeFileName(c_szFileName);
+}
+
+void CResourceManager::StartupAsync(uint32_t ioThreads)
+{
+    m_asyncFiles.Start(ioThreads);
+}
+
+void CResourceManager::ShutdownAsync()
+{
+    m_asyncFiles.Stop();
+}
+
+void CResourceManager::PreloadResource(const char* c_szFileName, AssetPriority priority)
+{
+    const std::string key = MakeKey(c_szFileName);
+    if (key.empty())
+        return;
+
+    CResource* res = FindResourcePointer(key);
+    if (!res)
+        res = GetResourcePointer(key.c_str());
+
+    if (!res || res->IsData())
+        return;
+
+    res->MarkQueued();
+
+    std::lock_guard lock(m_ResourceMapMutex);
+    m_RequestMap[key] = priority;
+}
 
 CResourceManager::CResourceManager()
     : m_pTextureCache(std::make_unique<CTextureCache>(512))
 {
-    ms_loadingThread.Create(0);
+    StartupAsync(1);
 }
 
 CResourceManager::~CResourceManager()
 {
+    ShutdownAsync();
+
     DestroyDeletingList();
     Destroy();
-    ms_loadingThread.Shutdown();
 }
 
 void CResourceManager::BeginThreadLoading()
@@ -86,17 +118,6 @@ std::string CResourceManager::NormalizeFileName(const char* c_szFileName) const
     return out;
 }
 
-DWORD CResourceManager::__GetFileCRC(const char* c_szFileName, const char** c_ppszLowerFileName)
-{
-    thread_local std::string normalized;
-    normalized = NormalizeFileName(c_szFileName);
-
-    if (c_ppszLowerFileName)
-        *c_ppszLowerFileName = normalized.c_str();
-
-    return normalized.empty() ? 0u : GetCRC32(normalized.c_str(), normalized.size());
-}
-
 void CResourceManager::LoadStaticCache(const char* c_szFileName)
 {
     CResource* pkRes = GetResourcePointer(c_szFileName);
@@ -106,10 +127,13 @@ void CResourceManager::LoadStaticCache(const char* c_szFileName)
         return;
     }
 
-    const DWORD key = __GetFileCRC(c_szFileName);
+    const std::string key = MakeKey(c_szFileName);
+    if (key.empty())
+        return;
+
     std::lock_guard lock(m_ResourceMapMutex);
 
-    if (m_pCacheMap.contains(key))
+    if (m_pCacheMap.find(key) != m_pCacheMap.end())
         return;
 
     pkRes->AddReference();
@@ -118,70 +142,60 @@ void CResourceManager::LoadStaticCache(const char* c_szFileName)
 
 void CResourceManager::ProcessBackgroundLoading()
 {
-    std::vector<std::string> toRequest;
-
+    std::vector<std::pair<std::string, AssetPriority>> requests;
     {
         std::lock_guard lock(m_ResourceMapMutex);
         for (auto it = m_RequestMap.begin(); it != m_RequestMap.end();)
         {
-            const DWORD crc = it->first;
-            if (isResourcePointerData(crc) || m_WaitingMap.contains(crc))
+            if (m_WaitingMap.find(it->first) != m_WaitingMap.end())
             {
-                it = m_RequestMap.erase(it);
+                ++it;
                 continue;
             }
-
-            toRequest.push_back(it->second);
-            m_WaitingMap.emplace(crc, it->second);
+            requests.emplace_back(it->first, it->second);
+            m_WaitingMap[it->first] = it->second;
             it = m_RequestMap.erase(it);
         }
     }
 
-    for (const auto& fileName : toRequest)
-        ms_loadingThread.Request(fileName);
+    for (const auto& req : requests)
+        m_asyncFiles.Request(req.first, req.second);
 
-    CFileLoaderThread::TData* pData = nullptr;
-    while (ms_loadingThread.Fetch(&pData))
+    AsyncFileResult result;
+    while (m_asyncFiles.Fetch(result))
     {
-        std::unique_ptr<CFileLoaderThread::TData> data(pData);
-        CResource* pResource = GetResourcePointer(data->stFileName.c_str());
+        CResource* res = FindResourcePointer(result.path);
 
-        if (pResource && pResource->IsEmpty())
+        if (res)
         {
-            pResource->OnLoad(static_cast<int>(data->File.size()), data->File.data());
-            pResource->AddReferenceOnly();
-
-            std::lock_guard lock(m_ResourceMapMutex);
-            m_pResRefDecreaseWaitingMap.emplace(NowMS(), pResource);
+            if (result.success && result.blob.Data() && result.blob.Size() > 0)
+                res->LoadFromMemory(result.blob.Data(), result.blob.Size());
+            else
+                res->LoadFromMemory(nullptr, 0);
         }
+
+        result.blob.Clear();
 
         std::lock_guard lock(m_ResourceMapMutex);
-        m_WaitingMap.erase(__GetFileCRC(data->stFileName.c_str()));
-    }
-
-    const DWORD current = NowMS();
-    std::lock_guard lock(m_ResourceMapMutex);
-    for (auto it = m_pResRefDecreaseWaitingMap.begin(); it != m_pResRefDecreaseWaitingMap.end();)
-    {
-        if (current - it->first <= ReferenceDecreaseWaitTimeMS)
-        {
-            ++it;
-            continue;
-        }
-
-        it->second->Release();
-        it = m_pResRefDecreaseWaitingMap.erase(it);
+        m_WaitingMap.erase(result.path);
     }
 }
 
 void CResourceManager::PushBackgroundLoadingSet(std::set<std::string>& LoadingSet)
 {
     std::lock_guard lock(m_ResourceMapMutex);
+
     for (const auto& fileName : LoadingSet)
     {
-        const DWORD crc = __GetFileCRC(fileName.c_str());
-        if (!isResourcePointerData(crc))
-            m_RequestMap.emplace(crc, fileName);
+        const std::string key = MakeKey(fileName.c_str());
+        if (key.empty())
+            continue;
+
+        auto it = m_pResMap.find(key);
+        if (it != m_pResMap.end() && it->second && it->second->IsData())
+            continue;
+
+        m_RequestMap.emplace(key, AssetPriority::Normal);
     }
 }
 
@@ -267,51 +281,30 @@ CResourceManager::ResourceFactory CResourceManager::FindFactory(const std::strin
     return it != m_pResNewFuncMap.end() ? it->second : nullptr;
 }
 
-CResource* CResourceManager::InsertResourcePointer(DWORD dwFileCRC, CResource* pResource)
+CResource* CResourceManager::InsertResourcePointer(const std::string& key, CResource* pResource)
 {
     if (!pResource)
         return nullptr;
-
     std::lock_guard lock(m_ResourceMapMutex);
-    auto [it, inserted] = m_pResMap.emplace(dwFileCRC, pResource);
+    auto [it, inserted] = m_pResMap.emplace(key, pResource);
     if (!inserted)
-    {
-        TraceError("CResource::InsertResourcePointer: %s is already registered\n", pResource->GetFileName());
         delete pResource;
-    }
-
     return it->second;
 }
 
 CResource* CResourceManager::GetTypeResourcePointer(const char* c_szFileName, int iType)
 {
-    if (!c_szFileName || !*c_szFileName)
-    {
-        assert(c_szFileName && *c_szFileName);
+    const std::string key = MakeKey(c_szFileName);
+    if (key.empty())
         return nullptr;
-    }
-
-    const char* normalizedCStr = nullptr;
-    const DWORD crc = __GetFileCRC(c_szFileName, &normalizedCStr);
-
-    if (CResource* pResource = FindResourcePointer(crc))
-        return pResource;
-
-    const std::string normalizedFileName = normalizedCStr ? normalizedCStr : "";
-
+    if (CResource* res = FindResourcePointer(key))
+        return res;
     ResourceFactory factory = nullptr;
     {
         std::lock_guard lock(m_ResourceMapMutex);
-        factory = FindFactory(normalizedFileName, iType);
+        factory = FindFactory(key, iType);
     }
-
-    if (!factory)
-    {
-        TraceError("ResourceManager::GetResourcePointer: NOT SUPPORT FILE %s", normalizedFileName.c_str());
-        return nullptr;
-    }
-
-    return InsertResourcePointer(crc, factory(normalizedFileName.c_str()));
+    return factory ? InsertResourcePointer(key, factory(key.c_str())) : nullptr;
 }
 
 CResource* CResourceManager::GetResourcePointer(const char* c_szFileName)
@@ -319,17 +312,27 @@ CResource* CResourceManager::GetResourcePointer(const char* c_szFileName)
     return GetTypeResourcePointer(c_szFileName, -1);
 }
 
-CResource* CResourceManager::FindResourcePointer(DWORD dwFileCRC)
+CResource* CResourceManager::FindResourcePointer(const std::string& key)
 {
     std::lock_guard lock(m_ResourceMapMutex);
-    auto it = m_pResMap.find(dwFileCRC);
-    return it != m_pResMap.end() ? it->second : nullptr;
+    auto it = m_pResMap.find(key);
+    return it == m_pResMap.end() ? nullptr : it->second;
 }
 
-bool CResourceManager::isResourcePointerData(DWORD dwFileCRC)
+bool CResourceManager::isResourcePointerData(const char* c_szFileName)
+{
+    const std::string key = MakeKey(c_szFileName);
+    if (key.empty())
+        return false;
+
+    return isResourcePointerDataByKey(key);
+}
+
+bool CResourceManager::isResourcePointerDataByKey(const std::string& key)
 {
     std::lock_guard lock(m_ResourceMapMutex);
-    auto it = m_pResMap.find(dwFileCRC);
+
+    auto it = m_pResMap.find(key);
     return it != m_pResMap.end() && it->second && it->second->IsData();
 }
 

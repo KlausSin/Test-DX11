@@ -3,102 +3,161 @@
 
 #include "ReferenceObject.h"
 
-#include <assert.h>
+#include <cassert>
+#include <utility>
 
-template<typename T> class CRef
+template <typename T>
+class CRef
 {
-	public:
-		struct FClear
-		{
-			void operator() (CRef<T>& rRef)
-			{
-				rRef.Clear();
-			}
-		};
+public:
+    struct FClear
+    {
+        void operator()(CRef<T>& ref) const
+        {
+            ref.Clear();
+        }
+    };
 
-	public:
-		CRef() : m_pObject(NULL)
-		{
-		}
-		
-		CRef(CReferenceObject* pObject)
-		{
-			m_pObject = NULL;
-			Initialize(pObject);
-		}
+public:
+    CRef() noexcept = default;
 
-		CRef(const CRef& c_rRef)
-		{
-			m_pObject = NULL;
-			Initialize(c_rRef.m_pObject);			
-		}
+    CRef(std::nullptr_t) noexcept
+    {
+    }
 
-		~CRef()
-		{
-			Clear();
-		}
-		
-		void operator = (CReferenceObject* pObject)
-		{
-			SetPointer(pObject);
-		}
+    explicit CRef(T* object)
+    {
+        Attach(object);
+    }
 
-		void operator = (const CRef& c_rRef)
-		{
-			SetPointer(c_rRef.m_pObject);			
-		}
+    explicit CRef(CReferenceObject* object)
+    {
+        Attach(static_cast<T*>(object));
+    }
 
-		void Clear()
-		{
-			if (m_pObject)
-			{
-				m_pObject->Release();
-				m_pObject = NULL;
-			}
-		}
+    CRef(const CRef& other)
+    {
+        Attach(other.m_object);
+    }
 
-		bool IsNull() const
-		{
-			return m_pObject == NULL ? true : false;
-		}
+    CRef(CRef&& other) noexcept
+        : m_object(other.m_object)
+    {
+        other.m_object = nullptr;
+    }
 
-		void SetPointer(CReferenceObject* pObject)
-		{
-			CReferenceObject* pOldObject = m_pObject;
+    ~CRef()
+    {
+        Clear();
+    }
 
-			m_pObject = pObject;
+    CRef& operator=(std::nullptr_t) noexcept
+    {
+        Clear();
+        return *this;
+    }
 
-			if (m_pObject)
-				m_pObject->AddReference();
+    CRef& operator=(T* object)
+    {
+        SetPointer(object);
+        return *this;
+    }
 
-			if (pOldObject)
-				pOldObject->Release();
-		}
+    CRef& operator=(CReferenceObject* object)
+    {
+        SetPointer(static_cast<T*>(object));
+        return *this;
+    }
 
-		T* GetPointer() const
-		{
-			return static_cast<T*>(m_pObject);
-		}
+    CRef& operator=(const CRef& other)
+    {
+        if (this != &other)
+            SetPointer(other.m_object);
 
-		T* operator->() const
-		{
-			assert(m_pObject != NULL);
-			return static_cast<T*>(m_pObject);
-		}
-				
-	private:
-		void Initialize(CReferenceObject* pObject)
-		{
-			assert(m_pObject == NULL);
+        return *this;
+    }
 
-			m_pObject = pObject;
+    CRef& operator=(CRef&& other) noexcept
+    {
+        if (this != &other)
+        {
+            Clear();
+            m_object = other.m_object;
+            other.m_object = nullptr;
+        }
 
-			if (m_pObject)
-				m_pObject->AddReference();
-		}
+        return *this;
+    }
 
-	private:
-		CReferenceObject* m_pObject;
+    void Clear() noexcept
+    {
+        T* old = m_object;
+        m_object = nullptr;
+
+        if (old)
+            old->Release();
+    }
+
+    void SetPointer(T* object)
+    {
+        if (m_object == object)
+            return;
+
+        if (object)
+            object->AddReference();
+
+        T* old = m_object;
+        m_object = object;
+
+        if (old)
+            old->Release();
+    }
+
+    void Attach(T* object)
+    {
+        Clear();
+        m_object = object;
+
+        if (m_object)
+            m_object->AddReference();
+    }
+
+    T* Detach() noexcept
+    {
+        T* object = m_object;
+        m_object = nullptr;
+        return object;
+    }
+
+    bool IsNull() const noexcept
+    {
+        return m_object == nullptr;
+    }
+
+    explicit operator bool() const noexcept
+    {
+        return m_object != nullptr;
+    }
+
+    T* GetPointer() const noexcept
+    {
+        return m_object;
+    }
+
+    T& operator*() const
+    {
+        assert(m_object != nullptr);
+        return *m_object;
+    }
+
+    T* operator->() const
+    {
+        assert(m_object != nullptr);
+        return m_object;
+    }
+
+private:
+    T* m_object = nullptr;
 };
 
 #endif

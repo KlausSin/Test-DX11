@@ -121,13 +121,16 @@ struct CArea_LessEffectInstancePtrRenderOrder
 
 struct CArea_FEffectInstanceRender
 {
-	inline void operator () (CEffectInstance * pkEftInst)
+	const RenderFrameContext& ctx;
+
+	inline void operator()(CEffectInstance* pkEftInst) const
 	{
-		pkEftInst->Render();
+		if (pkEftInst)
+			pkEftInst->Render(ctx);
 	}
 };
 
-void CArea::RenderEffect()
+void CArea::RenderEffect(const RenderFrameContext& ctx)
 {
 	__UpdateEffectList();
 
@@ -143,7 +146,7 @@ void CArea::RenderEffect()
 		for (i = m_EffectInstanceMap.begin(); i != m_EffectInstanceMap.end();)
 		{
 			CEffectInstance * pEffectInstance = i->second;
-			pEffectInstance->Render();
+			pEffectInstance->Render(ctx);
 			++i;
 		}
 	}
@@ -158,7 +161,7 @@ void CArea::RenderEffect()
 			s_kVct_pkEftInstSort.push_back(i->second);
 
 		std::sort(s_kVct_pkEftInstSort.begin(), s_kVct_pkEftInstSort.end(), CArea_LessEffectInstancePtrRenderOrder());
-		std::for_each(s_kVct_pkEftInstSort.begin(), s_kVct_pkEftInstSort.end(), CArea_FEffectInstanceRender());
+		std::for_each(s_kVct_pkEftInstSort.begin(), s_kVct_pkEftInstSort.end(), CArea_FEffectInstanceRender(ctx));
 		
 	}
 }
@@ -200,7 +203,7 @@ void CArea::CollectBlendRenderingObject(std::vector<CGraphicThingInstance*>& rkV
 	}
 }
 
-void CArea::Render()
+void CArea::Render(const RenderFrameContext& ctx)
 {		
 	{
 		CGraphicThingInstance* pkThingInst;
@@ -224,7 +227,7 @@ void CArea::Render()
 	while (i!=m_ThingCloneInstaceVector.end())
 	{
 		pkThingInst=*i++;
-		if (pkThingInst->Render())
+		if (pkThingInst->Render(ctx))
 		{
 			aGraphicThingInstanceCRCMapIterator = m_GraphicThingInstanceCRCMap.find(pkThingInst);
 			DWORD dwCRC = (*aGraphicThingInstanceCRCMapIterator).second;
@@ -664,7 +667,7 @@ void CArea::__LoadAttribute(TObjectInstance * pObjectInstance, const char * c_sz
 	// OBB를 사용한 충돌 정보 자동 생성.
 	const bool bFileExist = CResourceManager::Instance().IsFileExist(c_szAttributeFileName);
 	
-	CAttributeData * pAttributeData = (CAttributeData *) CResourceManager::Instance().GetResourcePointer(c_szAttributeFileName);
+	CAttributeData * pAttributeData = CResourceManager::Instance().GetTyped<CAttributeData>(c_szAttributeFileName);
 
 	CAttributeInstance * pAttrInstance = ms_AttributeInstancePool.Alloc();
 	pAttrInstance->Clear();

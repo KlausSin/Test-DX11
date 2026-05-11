@@ -294,7 +294,7 @@ void CRaceData::RegisterMotionMode(WORD wMotionModeIndex)
 
 CGraphicThing* CRaceData::NEW_RegisterMotion(CRaceMotionData* pkMotionData, WORD wMotionModeIndex, WORD wMotionIndex, const char * c_szFileName, BYTE byPercentage)
 {	
-	CGraphicThing * pMotionThing = (CGraphicThing *)CResourceManager::Instance().GetResourcePointer(c_szFileName);
+	CGraphicThing * pMotionThing = CResourceManager::Instance().GetTyped<CGraphicThing>(c_szFileName);
 
 	TMotionModeData * pMotionModeData;
 	if (!GetMotionModeDataPointer(wMotionModeIndex, &pMotionModeData))
@@ -336,7 +336,7 @@ CGraphicThing* CRaceData::RegisterMotionData(WORD wMotionMode, WORD wMotionIndex
 	// 2004.09.03.myevan.새로운함수로 대처	
 	//TMotion	Motion;
 	//Motion.byPercentage	= byPercentage;
-	//Motion.pMotion = (CGraphicThing *)CResourceManager::Instance().GetResourcePointer(pRaceMotionData->GetMotionFileName());
+	//Motion.pMotion = CResourceManager::Instance().GetTyped<CGraphicThing>(pRaceMotionData->GetMotionFileName());
 	//Motion.pMotionData = pRaceMotionData;
 	//__OLD_RegisterMotion(wMotionMode, wMotionIndex, Motion);
 	//return true;
@@ -345,7 +345,7 @@ CGraphicThing* CRaceData::RegisterMotionData(WORD wMotionMode, WORD wMotionIndex
 
 void CRaceData::OLD_RegisterMotion(WORD wMotionModeIndex, WORD wMotionIndex, const char * c_szFileName, BYTE byPercentage)
 {
-	CGraphicThing * pThing = (CGraphicThing *)CResourceManager::Instance().GetResourcePointer(c_szFileName);
+	CGraphicThing * pThing = CResourceManager::Instance().GetTyped<CGraphicThing>(c_szFileName);
 
 	TMotion	Motion;
 	Motion.byPercentage	= byPercentage;
@@ -484,7 +484,7 @@ CGraphicThing * CRaceData::GetBaseModelThing()
 {
 	if (!m_pBaseModelThing)
 	{
-		m_pBaseModelThing = (CGraphicThing *)CResourceManager::Instance().GetResourcePointer(m_strBaseModelFileName.c_str());
+		m_pBaseModelThing = CResourceManager::Instance().GetTyped<CGraphicThing>(m_strBaseModelFileName.c_str());
 	}
 
 	return m_pBaseModelThing;
@@ -497,7 +497,7 @@ CGraphicThing * CRaceData::GetLODModelThing()
 		std::string strLODFileName = CFileNameHelper::NoExtension(m_strBaseModelFileName) + "_lod_01.gr2";
 		if (CResourceManager::Instance().IsFileExist(strLODFileName.c_str()))
 		{
-			m_pLODModelThing = (CGraphicThing *)CResourceManager::Instance().GetResourcePointer(strLODFileName.c_str());
+			m_pLODModelThing = CResourceManager::Instance().GetTyped<CGraphicThing>(strLODFileName.c_str());
 		}
 	}
 
@@ -512,7 +512,7 @@ CAttributeData * CRaceData::GetAttributeDataPtr()
 	if (!CResourceManager::Instance().IsFileExist(m_strAttributeFileName.c_str()))
 		return NULL;
 
-	return (CAttributeData *)CResourceManager::Instance().GetResourcePointer(m_strAttributeFileName.c_str());
+	return CResourceManager::Instance().GetTyped<CAttributeData>(m_strAttributeFileName.c_str());
 }
 
 BOOL CRaceData::GetAttachingBoneName(DWORD dwPartIndex, const char ** c_pszBoneName)

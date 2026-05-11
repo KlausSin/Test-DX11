@@ -485,7 +485,7 @@ class CActorInstance : public IActorInstance, public IFlyTargetableObject
 
 		void		RenderTrace();
 		void		RenderCollisionData();
-		void		RenderToShadowMap();
+		void		RenderToShadowMap(const RenderFrameContext& ctx);
 
 	protected:
 		void		__AdjustCollisionMovement(const CGraphicObjectInstance * c_pGraphicObjectInstance);
@@ -568,7 +568,7 @@ class CActorInstance : public IActorInstance, public IFlyTargetableObject
 		bool		__IsInSplashTime();
 
 		void		OnUpdate();
-		void		OnRender();
+		void		OnRender(const RenderFrameContext& ctx);
 
 		BOOL		isValidAttacking();
 

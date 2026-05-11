@@ -4,7 +4,7 @@
 
 void CParticleProperty::InsertTexture(const char * c_szFileName)
 {
-	CGraphicImage * pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer(c_szFileName);
+	CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(c_szFileName);
 	m_ImageVector.push_back(pImage);
 }
 

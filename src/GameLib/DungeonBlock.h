@@ -37,11 +37,11 @@ class CDungeonBlock : public CGraphicObjectInstance
 		void OnUpdateHeighInstance(CAttributeInstance * pAttributeInstance);
 		bool OnGetObjectHeight(float fX, float fY, float * pfHeight);
 
-		void OnRender() {}
-		void OnBlendRender() {}
-		void OnRenderToShadowMap() {}
-		void OnRenderShadow();
-		void OnRenderPCBlocker() {}
+		void OnRender(const RenderFrameContext& ctx) {}
+		void OnBlendRender(const RenderFrameContext& ctx) {}
+		void OnRenderToShadowMap(const RenderFrameContext& ctx) {}
+		void OnRenderShadow(const RenderFrameContext& ctx);
+		void OnRenderPCBlocker(const RenderFrameContext& ctx) {}
 
 	protected:
 		void __Initialize();

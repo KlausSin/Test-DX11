@@ -482,9 +482,9 @@ bool CPythonMiniMap::Create()
 	const std::string strWhiteMark = strImageRoot + "minimap/whitemark.sub";
 
 	// 미니맵 커버
-	CGraphicImage * pImage = (CGraphicImage *) CResourceManager::Instance().GetResourcePointer(strImageFilter.c_str());
+	CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(strImageFilter.c_str());
 	m_MiniMapFilterGraphicImageInstance.SetImagePointer(pImage);
-	pImage = (CGraphicImage *) CResourceManager::Instance().GetResourcePointer(strImageCamera.c_str());
+	pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(strImageCamera.c_str());
 	m_MiniMapCameraraphicImageInstance.SetImagePointer(pImage);
 
 	m_matMiniMapCover._11 = 1.0f / ((float)m_MiniMapFilterGraphicImageInstance.GetWidth());
@@ -492,34 +492,33 @@ bool CPythonMiniMap::Create()
 	m_matMiniMapCover._33 = 0.0f;
 
 	// 캐릭터 마크
-	CGraphicSubImage * pSubImage = (CGraphicSubImage *) CResourceManager::Instance().GetResourcePointer(strPlayerMark.c_str());
+	CGraphicSubImage * pSubImage = CResourceManager::Instance().GetTyped<CGraphicSubImage>(strPlayerMark.c_str());
 	m_PlayerMark.SetImagePointer(pSubImage);
 
-	pSubImage = (CGraphicSubImage *) CResourceManager::Instance().GetResourcePointer(strWhiteMark.c_str());
+	pSubImage = CResourceManager::Instance().GetTyped<CGraphicSubImage>(strWhiteMark.c_str());
 	m_WhiteMark.SetImagePointer(pSubImage);
 
 	char buf[256];
 	for (int i = 0; i < MINI_WAYPOINT_IMAGE_COUNT; ++i)
 	{
 		sprintf(buf, "%sminimap/mini_waypoint%02d.sub", strImageRoot.c_str(), i+1);
-		m_MiniWayPointGraphicImageInstances[i].SetImagePointer((CGraphicSubImage *) CResourceManager::Instance().GetResourcePointer(buf));
+		m_MiniWayPointGraphicImageInstances[i].SetImagePointer(CResourceManager::Instance().GetTyped<CGraphicSubImage>(buf));
 		m_MiniWayPointGraphicImageInstances[i].SetRenderingMode(CGraphicExpandedImageInstance::RENDERING_MODE_SCREEN);
 	}
 	for (int j = 0; j < WAYPOINT_IMAGE_COUNT; ++j)
 	{
 		sprintf(buf, "%sminimap/waypoint%02d.sub", strImageRoot.c_str(), j+1);
-		m_WayPointGraphicImageInstances[j].SetImagePointer((CGraphicSubImage *) CResourceManager::Instance().GetResourcePointer(buf));
+		m_WayPointGraphicImageInstances[j].SetImagePointer(CResourceManager::Instance().GetTyped<CGraphicSubImage>(buf));
 		m_WayPointGraphicImageInstances[j].SetRenderingMode(CGraphicExpandedImageInstance::RENDERING_MODE_SCREEN);
 	}
 	for (int k = 0; k < TARGET_MARK_IMAGE_COUNT; ++k)
 	{
 		sprintf(buf, "%sminimap/targetmark%02d.sub", strImageRoot.c_str(), k+1);
-		m_TargetMarkGraphicImageInstances[k].SetImagePointer((CGraphicSubImage *) CResourceManager::Instance().GetResourcePointer(buf));
+		m_TargetMarkGraphicImageInstances[k].SetImagePointer(CResourceManager::Instance().GetTyped<CGraphicSubImage>(buf));
 		m_TargetMarkGraphicImageInstances[k].SetRenderingMode(CGraphicExpandedImageInstance::RENDERING_MODE_SCREEN);
 	}
 
-	m_GuildAreaFlagImageInstance.SetImagePointer((CGraphicSubImage *) CResourceManager::Instance().GetResourcePointer("d:/ymir work/ui/minimap/GuildArea01.sub"));
-
+	m_GuildAreaFlagImageInstance.SetImagePointer(CResourceManager::Instance().GetTyped<CGraphicSubImage>("d:/ymir work/ui/minimap/GuildArea01.sub"));
 	std::vector<MINIMAPVERTEX> miniMapVertices(36);
 
 	int idx = 0;
@@ -743,7 +742,7 @@ bool CPythonMiniMap::LoadAtlas()
 	
 	m_AtlasImageInstance.Destroy();
 	m_AtlasPlayerMark.Destroy();
-	CGraphicImage* pkGrpImgAtlas = (CGraphicImage *) CResourceManager::Instance().GetResourcePointer(atlasFileName);
+	CGraphicImage* pkGrpImgAtlas = CResourceManager::Instance().GetTyped<CGraphicImage>(atlasFileName);
 	if (pkGrpImgAtlas)
 	{
 		m_AtlasImageInstance.SetImagePointer(pkGrpImgAtlas);
@@ -756,7 +755,7 @@ bool CPythonMiniMap::LoadAtlas()
 	else
 	{
 	}
-	m_AtlasPlayerMark.SetImagePointer((CGraphicSubImage *) CResourceManager::Instance().GetResourcePointer(playerMarkFileName));
+	m_AtlasPlayerMark.SetImagePointer(CResourceManager::Instance().GetTyped<CGraphicSubImage>(playerMarkFileName));
 
 	short sTerrainCountX, sTerrainCountY;
 	rkMap.GetBaseXY(&m_dwAtlasBaseX, &m_dwAtlasBaseY);

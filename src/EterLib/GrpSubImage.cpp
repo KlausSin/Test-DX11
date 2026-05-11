@@ -18,7 +18,7 @@ CGraphicSubImage::CGraphicSubImage(const char* c_szFileName) : CGraphicImage(c_s
 
 CGraphicSubImage::~CGraphicSubImage()
 {
-	m_roImage = NULL;
+	m_roImage = nullptr;
 }
 
 bool CGraphicSubImage::CreateDeviceObjects()
@@ -134,7 +134,7 @@ bool CGraphicSubImage::OnLoad(int iSize, const void* c_pvBuf)
 
 void CGraphicSubImage::OnClear()
 {
-	m_roImage = NULL;
+	m_roImage = nullptr;
 	memset(&m_rect, 0, sizeof(m_rect));
 }
 

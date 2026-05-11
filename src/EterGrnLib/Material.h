@@ -2,6 +2,7 @@
 
 #include <granny.h>
 #include <windows.h>
+#include <vector>
 
 #include "Eterlib/ReferenceObject.h"
 #include "Eterlib/Ref.h"
@@ -10,117 +11,117 @@
 
 class CGrannyMaterial : public CReferenceObject
 {
-	public:
-		typedef CRef<CGrannyMaterial> TRef;
+public:
+    typedef CRef<CGrannyMaterial> TRef;
 
-		static void CreateSphereMap(UINT uMapIndex, const char* c_szSphereMapImageFileName);
-		static void DestroySphereMap();
+    enum EType
+    {
+        TYPE_DIFFUSE_PNT,
+        TYPE_BLEND_PNT,
+        TYPE_MAX_NUM
+    };
 
-	public:
-		enum EType
-		{
-			TYPE_DIFFUSE_PNT,
-			TYPE_BLEND_PNT,
-			TYPE_MAX_NUM
-		};
+    struct TMaterialState
+    {
+        granny_material* pgrnMaterial = nullptr;
+        CGraphicImage::TRef images[2];
+        EType type = TYPE_DIFFUSE_PNT;
+        float specularPower = 0.0f;
+        BOOL specularEnable = FALSE;
+        bool twoSideRender = false;
+        bool isSkinned = false;
+        BYTE sphereMapIndex = 0;
+    };
 
-	public:
-		static void TranslateSpecularMatrix(float fAddX, float fAddY, float fAddZ);
+public:
+    static void CreateSphereMap(UINT uMapIndex, const char* c_szSphereMapImageFileName);
+    static void DestroySphereMap();
+    static void TranslateSpecularMatrix(float fAddX, float fAddY, float fAddZ);
 
-	private:
-		static D3DXMATRIX ms_matSpecular;
-		static D3DXVECTOR3 ms_v3SpecularTrans;
+public:
+    CGrannyMaterial();
+    virtual ~CGrannyMaterial();
 
-	public:
-		CGrannyMaterial();
-		virtual ~CGrannyMaterial();
+    void Destroy();
+    void Copy(const CGrannyMaterial& rkMtrl);
 
-		void					Destroy();
-		void					Copy(CGrannyMaterial& rkMtrl);
-		bool					IsEqual(granny_material * pgrnMaterial) const;
-		bool					IsIn(const char* c_szImageName, int* iStage);
-		void					SetSpecularInfo(BOOL bFlag, float fPower, BYTE uSphereMapIndex);
+    bool IsEqual(granny_material* pgrnMaterial) const;
+    bool IsIn(const char* c_szImageName, int* iStage);
 
-		void					ApplyRenderState();
-		void					RestoreRenderState();
+    void SetSpecularInfo(BOOL bFlag, float fPower, BYTE uSphereMapIndex);
+    void SetImagePointer(int iStage, CGraphicImage* pImage);
+    void SetSkinned(bool bSkinned);
 
-	protected:
-		void					Initialize();
+    bool CreateFromGrannyMaterialPointer(granny_material* pgrnMaterial);
 
-	public:
-		bool					CreateFromGrannyMaterialPointer(granny_material* pgrnMaterial);
-		void					SetImagePointer(int iStage, CGraphicImage* pImage);
+    void ApplyRenderState();
+    void RestoreRenderState();
 
-		CGrannyMaterial::EType	GetType() const;		
-		CGraphicImage *			GetImagePointer(int iStage) const;
+    CGrannyMaterial::TRef CloneWithImage(int iStage, CGraphicImage* pImage) const;
+    CGrannyMaterial::TRef CloneWithMaterialData(int iStage, const SMaterialData& c_rkMaterialData) const;
 
-		const CGraphicTexture * GetDiffuseTexture() const;
-		const CGraphicTexture * GetOpacityTexture() const;
+    CGrannyMaterial::EType GetType() const;
+    CGraphicImage* GetImagePointer(int iStage) const;
 
-		ID3D11ShaderResourceView*	GetSRV(int iStage) const;
+    const CGraphicTexture* GetDiffuseTexture() const;
+    const CGraphicTexture* GetOpacityTexture() const;
 
-		// MR-12: Fix specular isolation issue
-		float					GetSpecularPower() const;
-		bool					IsSpecularEnabled() const { return m_bSpecularEnable; }
-		BYTE					GetSphereMapIndex() const { return m_bSphereMapIndex; }
-		// MR-12: -- END OF -- Fix specular isolation issue
+    ID3D11ShaderResourceView* GetSRV(int iStage) const;
 
-		bool					IsTwoSided() const		{ return m_bTwoSideRender; }
-		bool m_bIsSkinned = false;
+    float GetSpecularPower() const;
+    bool IsSpecularEnabled() const;
+    BYTE GetSphereMapIndex() const;
+    bool IsTwoSided() const;
 
-		void SetSkinned(bool bSkinned) { m_bIsSkinned = bSkinned; }
-		
-	protected:
-		CGraphicImage *			__GetImagePointer(const char * c_szFileName);
+protected:
+    void Initialize();
 
-		BOOL					__IsSpecularEnable() const;
+    CGraphicImage* __GetImagePointer(const char* c_szFileName);
 
-		void					__ApplyDiffuseRenderState();
-		void					__RestoreDiffuseRenderState();
-		void					__ApplySpecularRenderState();
-		void					__RestoreSpecularRenderState();
+    BOOL __IsSpecularEnable() const;
 
-	protected:
-		granny_material *		m_pgrnMaterial;
-		CGraphicImage::TRef		m_roImage[2];
-		EType					m_eType;
+    void __ApplyDiffuseRenderState();
+    void __RestoreDiffuseRenderState();
+    void __ApplySpecularRenderState();
+    void __RestoreSpecularRenderState();
 
-		float					m_fSpecularPower;
-		BOOL					m_bSpecularEnable;
-		bool					m_bTwoSideRender;
-		DWORD					m_dwLastCullRenderStateForTwoSideRendering;
-		BYTE					m_bSphereMapIndex;
-		
+protected:
+    TMaterialState m_state;
+    DWORD m_dwLastCullRenderStateForTwoSideRendering = D3D11_CULL_FRONT;
 
-		void (CGrannyMaterial::*m_pfnApplyRenderState)();
-		void (CGrannyMaterial::*m_pfnRestoreRenderState)();
+    void (CGrannyMaterial::* m_pfnApplyRenderState)() = nullptr;
+    void (CGrannyMaterial::* m_pfnRestoreRenderState)() = nullptr;
 
-	private:
-		enum
-		{
-			SPHEREMAP_NUM = 10,
-		};
-		static CGraphicImageInstance ms_akSphereMapInstance[SPHEREMAP_NUM];
+private:
+    enum
+    {
+        SPHEREMAP_NUM = 10,
+    };
+
+    static D3DXMATRIX ms_matSpecular;
+    static D3DXVECTOR3 ms_v3SpecularTrans;
+    static CGraphicImageInstance ms_akSphereMapInstance[SPHEREMAP_NUM];
 };
 
 class CGrannyMaterialPalette
 {
-	public:
-		CGrannyMaterialPalette();
-		virtual ~CGrannyMaterialPalette();
+public:
+    CGrannyMaterialPalette();
+    virtual ~CGrannyMaterialPalette();
 
-		void	Clear();
-		void	Copy(const CGrannyMaterialPalette& rkMtrlPalSrc);
+    void Clear();
+    void Copy(const CGrannyMaterialPalette& rkMtrlPalSrc);
 
-		DWORD	RegisterMaterial(granny_material* pgrnMaterial);
-		void	SetMaterialImagePointer(const char* c_szMtrlName, CGraphicImage* pImage);
-		void	SetMaterialData(const char* c_szMtrlName, const SMaterialData& c_rkMaterialData);
-		void	SetSpecularInfo(const char* c_szMtrlName, BOOL bEnable, float fPower);
+    DWORD RegisterMaterial(granny_material* pgrnMaterial);
 
-		CGrannyMaterial& GetMaterialRef(DWORD mtrlIndex);
+    void SetMaterialImagePointer(const char* c_szMtrlName, CGraphicImage* pImage);
+    void SetMaterialData(const char* c_szMtrlName, const SMaterialData& c_rkMaterialData);
+    void SetSpecularInfo(const char* c_szMtrlName, BOOL bEnable, float fPower);
 
-		DWORD	GetMaterialCount() const;
+    CGrannyMaterial& GetMaterialRef(DWORD mtrlIndex);
 
-	protected:
-		std::vector<CGrannyMaterial::TRef> m_mtrlVector;
+    DWORD GetMaterialCount() const;
+
+protected:
+    std::vector<CGrannyMaterial::TRef> m_mtrlVector;
 };

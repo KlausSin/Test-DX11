@@ -1289,7 +1289,7 @@ namespace UI
 			if (!CResourceManager::Instance().IsFileExist(strImageFileName.c_str()))
 				continue;
 
-			CGraphicImage * pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer(strImageFileName.c_str());
+			CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(strImageFileName.c_str());
 
 			CGraphicImageInstance * pInstance = CGraphicImageInstance::New();
 			pInstance->SetImagePointer(pImage);

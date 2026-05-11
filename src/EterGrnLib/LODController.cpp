@@ -247,47 +247,6 @@ void CGrannyLODController::DestroyDeviceObjects()
 		CGrannyModelInstance::FDestroyDeviceObjects());
 }
 
-void CGrannyLODController::RenderWithOneTexture()
-{
-	assert(m_pCurrentModelInstance != nullptr);
-
-	//#define CHECK_LOD
-#ifdef CHECK_LOD
-	if (m_que_pkModelInst.size() > 0 && m_pCurrentModelInstance == m_que_pkModelInst[0])
-		m_pCurrentModelInstance->RenderWithoutTexture();
-
-	if (m_que_pkModelInst.size() > 1 && m_pCurrentModelInstance == m_que_pkModelInst[1])
-		m_pCurrentModelInstance->RenderWithOneTexture();
-
-	if (m_que_pkModelInst.size() > 2 && m_pCurrentModelInstance == m_que_pkModelInst[2])
-		m_pCurrentModelInstance->RenderWithOneTexture();
-
-	if (m_que_pkModelInst.size() > 3 && m_pCurrentModelInstance == m_que_pkModelInst[3])
-		m_pCurrentModelInstance->RenderWithOneTexture();
-
-#else
-	m_pCurrentModelInstance->RenderWithOneTexture();
-#endif
-}
-
-void CGrannyLODController::BlendRenderWithOneTexture()
-{
-	assert(m_pCurrentModelInstance != nullptr);
-	m_pCurrentModelInstance->BlendRenderWithOneTexture();
-}
-
-void CGrannyLODController::RenderWithTwoTexture()
-{
-	assert(m_pCurrentModelInstance != nullptr);
-	m_pCurrentModelInstance->RenderWithTwoTexture();
-}
-
-void CGrannyLODController::BlendRenderWithTwoTexture()
-{
-	assert(m_pCurrentModelInstance != nullptr);
-	m_pCurrentModelInstance->BlendRenderWithTwoTexture();
-}
-
 void CGrannyLODController::Update(float fElapsedTime, float fDistanceFromCenter, float fDistanceFromCamera)
 {
 	UpdateLODLevel(fDistanceFromCenter, fDistanceFromCamera);
@@ -462,18 +421,6 @@ void CGrannyLODController::Deform(const D3DXMATRIX* c_pWorldMatrix)
 		m_pCurrentModelInstance->Deform(c_pWorldMatrix);
 }
 
-void CGrannyLODController::RenderToShadowMap()
-{
-	if (m_pCurrentModelInstance)
-		m_pCurrentModelInstance->RenderWithoutTexture();
-}
-
-void CGrannyLODController::RenderShadow()
-{
-	if (m_pCurrentModelInstance)
-		m_pCurrentModelInstance->RenderWithOneTexture();
-}
-
 void CGrannyLODController::ReloadTexture()
 {
 	if (m_pCurrentModelInstance)
@@ -540,4 +487,55 @@ CGrannyModelInstance* CGrannyLODController::GetModelInstance()
 bool CGrannyLODController::HaveBlendThing() const
 {
 	return m_pCurrentModelInstance ? m_pCurrentModelInstance->HaveBlendThing() : false;
+}
+
+void CGrannyLODController::RenderWithOneTexture(const RenderFrameContext& ctx)
+{
+	assert(m_pCurrentModelInstance != nullptr);
+
+#ifdef CHECK_LOD
+	if (m_que_pkModelInst.size() > 0 && m_pCurrentModelInstance == m_que_pkModelInst[0])
+		m_pCurrentModelInstance->RenderWithoutTexture(ctx);
+
+	if (m_que_pkModelInst.size() > 1 && m_pCurrentModelInstance == m_que_pkModelInst[1])
+		m_pCurrentModelInstance->RenderWithOneTexture(ctx);
+
+	if (m_que_pkModelInst.size() > 2 && m_pCurrentModelInstance == m_que_pkModelInst[2])
+		m_pCurrentModelInstance->RenderWithOneTexture(ctx);
+
+	if (m_que_pkModelInst.size() > 3 && m_pCurrentModelInstance == m_que_pkModelInst[3])
+		m_pCurrentModelInstance->RenderWithOneTexture(ctx);
+#else
+	m_pCurrentModelInstance->RenderWithOneTexture(ctx);
+#endif
+}
+
+void CGrannyLODController::BlendRenderWithOneTexture(const RenderFrameContext& ctx)
+{
+	assert(m_pCurrentModelInstance != nullptr);
+	m_pCurrentModelInstance->BlendRenderWithOneTexture(ctx);
+}
+
+void CGrannyLODController::RenderWithTwoTexture(const RenderFrameContext& ctx)
+{
+	assert(m_pCurrentModelInstance != nullptr);
+	m_pCurrentModelInstance->RenderWithTwoTexture(ctx);
+}
+
+void CGrannyLODController::BlendRenderWithTwoTexture(const RenderFrameContext& ctx)
+{
+	assert(m_pCurrentModelInstance != nullptr);
+	m_pCurrentModelInstance->BlendRenderWithTwoTexture(ctx);
+}
+
+void CGrannyLODController::RenderToShadowMap(const RenderFrameContext& ctx)
+{
+	if (m_pCurrentModelInstance)
+		m_pCurrentModelInstance->RenderWithoutTexture(ctx);
+}
+
+void CGrannyLODController::RenderShadow(const RenderFrameContext& ctx)
+{
+	if (m_pCurrentModelInstance)
+		m_pCurrentModelInstance->RenderWithOneTexture(ctx);
 }

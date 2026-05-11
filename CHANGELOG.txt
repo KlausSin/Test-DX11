@@ -119,3 +119,17 @@ Multi-thread access		blocking			much better
 Resource destruction	spikes				much reduced
 Large pack loading 		fragmentation 		more stable
 /////////////////////////////             /////////////////////////////
+
+
+//////////////// added RenderFrameContext , remove crc from resource ////////////////
+
+1. Eliminates global dependencies
+ All rendering systems (terrain, skybox, characters, effects) 
+ get the same snapshot of view/projection, camera, fog, shadow, and time. 
+ No more scattered ms_matView, CCameraManager, or mc_pEnvironmentData.
+ 
+2. Deterministic and frame-consistent rendering 
+ Delta time, frame time, fog, and shadow are fixed per frame,
+ making animations, water, wind, and effects consistent across all systems.
+
+/////////////////////////////             /////////////////////////////

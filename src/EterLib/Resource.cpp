@@ -21,6 +21,7 @@ namespace
 CResource::CResource(const char* c_szFileName)
 {
     SetFileName(c_szFileName);
+    m_assetId = MakeAssetId(m_stFileName);
 }
 
 void CResource::SetDeleteImmediately(bool isSet) noexcept
@@ -31,7 +32,44 @@ void CResource::SetDeleteImmediately(bool isSet) noexcept
 void CResource::OnConstruct()
 {
     CReferenceObject::OnConstruct();
-    Load();
+
+    if (me_state == STATE_EMPTY)
+        Load();
+}
+
+bool CResource::LoadFromMemory(const void* data, size_t size)
+{
+    if (me_state == STATE_LOAD)
+        return false;
+
+    if (!data || size == 0 || size > static_cast<size_t>(INT_MAX))
+    {
+        me_state = STATE_ERROR;
+        m_memorySize = 0;
+        return false;
+    }
+
+    me_state = STATE_LOAD;
+
+    const DWORD start = NowMS();
+    const bool ok = OnLoad(static_cast<int>(size), data);
+
+    m_dwLoadCostMiliiSecond = NowMS() - start;
+    m_memorySize = ok ? size : 0;
+    me_state = ok ? STATE_EXIST : STATE_ERROR;
+
+    return ok;
+}
+
+void CResource::MarkQueued() noexcept
+{
+    if (me_state == STATE_EMPTY)
+        me_state = STATE_FREE;
+}
+
+void CResource::MarkLoading() noexcept
+{
+    me_state = STATE_LOAD;
 }
 
 void CResource::OnSelfDestruct()
@@ -107,6 +145,8 @@ void CResource::SetFileName(const char* c_szFileName)
 void CResource::Clear()
 {
     OnClear();
+    m_memorySize = 0;
+    m_dwLoadCostMiliiSecond = 0;
     me_state = STATE_EMPTY;
 }
 

@@ -46,55 +46,97 @@ public:
 
 	struct FRenderWithOneTexture
 	{
+		const RenderFrameContext* pCtx = nullptr;
+
+		FRenderWithOneTexture() = default;
+		explicit FRenderWithOneTexture(const RenderFrameContext& ctx) : pCtx(&ctx) {}
+
 		void operator() (CGrannyLODController* pController)
 		{
-			if (pController->isModelInstance())
-				pController->RenderWithOneTexture();
+			if (!pController->isModelInstance())
+				return;
+
+			pController->RenderWithOneTexture(*pCtx);
 		}
 	};
 
 	struct FBlendRenderWithOneTexture
 	{
+		const RenderFrameContext* pCtx = nullptr;
+
+		FBlendRenderWithOneTexture() = default;
+		explicit FBlendRenderWithOneTexture(const RenderFrameContext& ctx) : pCtx(&ctx) {}
+
 		void operator() (CGrannyLODController* pController)
 		{
-			if (pController->isModelInstance())
-				pController->BlendRenderWithOneTexture();
+			if (!pController->isModelInstance())
+				return;
+
+			pController->BlendRenderWithOneTexture(*pCtx);
 		}
 	};
 
 	struct FRenderWithTwoTexture
 	{
+		const RenderFrameContext* pCtx = nullptr;
+
+		FRenderWithTwoTexture() = default;
+		explicit FRenderWithTwoTexture(const RenderFrameContext& ctx) : pCtx(&ctx) {}
+
 		void operator() (CGrannyLODController* pController)
 		{
-			if (pController->isModelInstance())
-				pController->RenderWithTwoTexture();
+			if (!pController->isModelInstance())
+				return;
+
+			pController->RenderWithTwoTexture(*pCtx);
 		}
 	};
 
 	struct FBlendRenderWithTwoTexture
 	{
+		const RenderFrameContext* pCtx = nullptr;
+
+		FBlendRenderWithTwoTexture() = default;
+		explicit FBlendRenderWithTwoTexture(const RenderFrameContext& ctx) : pCtx(&ctx) {}
+
 		void operator() (CGrannyLODController* pController)
 		{
-			if (pController->isModelInstance())
-				pController->BlendRenderWithTwoTexture();
+			if (!pController->isModelInstance())
+				return;
+
+			pController->BlendRenderWithTwoTexture(*pCtx);
 		}
 	};
 
 	struct FRenderToShadowMap
 	{
+		const RenderFrameContext* pCtx = nullptr;
+
+		FRenderToShadowMap() = default;
+		explicit FRenderToShadowMap(const RenderFrameContext& ctx) : pCtx(&ctx) {}
+
 		void operator() (CGrannyLODController* pController)
 		{
-			if (pController->isModelInstance())
-				pController->RenderToShadowMap();
+			if (!pController->isModelInstance())
+				return;
+
+			pController->RenderToShadowMap(*pCtx);
 		}
 	};
 
 	struct FRenderShadow
 	{
+		const RenderFrameContext* pCtx = nullptr;
+
+		FRenderShadow() = default;
+		explicit FRenderShadow(const RenderFrameContext& ctx) : pCtx(&ctx) {}
+
 		void operator() (CGrannyLODController* pController)
 		{
-			if (pController->isModelInstance())
-				pController->RenderShadow();
+			if (!pController->isModelInstance())
+				return;
+
+			pController->RenderShadow(*pCtx);
 		}
 	};
 
@@ -239,10 +281,10 @@ public:
 	void	SetMaterialData(const char* c_szImageName, const SMaterialData& c_rkMaterialData);
 	void	SetSpecularInfo(const char* c_szMtrlName, BOOL bEnable, float fPower);
 
-	void	RenderWithOneTexture();
-	void	RenderWithTwoTexture();
-	void	BlendRenderWithOneTexture();
-	void	BlendRenderWithTwoTexture();
+	void	RenderWithOneTexture(const RenderFrameContext& ctx);
+	void	RenderWithTwoTexture(const RenderFrameContext& ctx);
+	void	BlendRenderWithOneTexture(const RenderFrameContext& ctx);
+	void	BlendRenderWithTwoTexture(const RenderFrameContext& ctx);
 
 	void	Update(float fElapsedTime, float fDistanceFromCenter, float fDistanceFromCamera);
 	void	UpdateLODLevel(float fDistanceFromCenter, float fDistanceFromCamera);
@@ -253,8 +295,8 @@ public:
 	void	DeformNoSkin(const D3DXMATRIX* c_pWorldMatrix);
 	void	DeformAll(const D3DXMATRIX* c_pWorldMatrix);
 
-	void	RenderToShadowMap();
-	void	RenderShadow();
+	void	RenderToShadowMap(const RenderFrameContext& ctx);
+	void	RenderShadow(const RenderFrameContext& ctx);
 	void	ReloadTexture();
 
 	void	GetBoundBox(D3DXVECTOR3* vtMin, D3DXVECTOR3* vtMax);

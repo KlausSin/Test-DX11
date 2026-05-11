@@ -1698,7 +1698,7 @@ void CSlotWindow::__CreateBaseImage(const char * c_szFileName, float fr, float f
 {
 	__DestroyBaseImage();
 
-	CGraphicImage * pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer(c_szFileName);
+	CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(c_szFileName);
 	m_pBaseImageInstance = CGraphicImageInstance::New();
 	m_pBaseImageInstance->SetImagePointer(pImage);
 	m_pBaseImageInstance->SetDiffuseColor(fr, fg, fb, fa);

@@ -119,3 +119,42 @@ struct D3DLIGHT11
 	{
 	}
 };
+
+struct RenderFrameContext
+{
+	ID3D11Device* Device = nullptr;
+	ID3D11DeviceContext* DeviceContext = nullptr;
+
+	D3DXMATRIX View{};
+	D3DXMATRIX Projection{};
+	D3DXMATRIX ViewProjection{};
+	D3DXMATRIX ViewInverse{};
+
+	D3DXVECTOR3 Eye{};
+	D3DXVECTOR3 Target{};
+
+	float DeltaTime = 0.0f;
+	float Time = 0.0f;
+
+	bool FogEnable = false;
+	uint32_t FogColor = 0xffffffffu;
+	float FogStart = 5000.0f;
+	float FogEnd = 10000.0f;
+	bool DensityFog = false;
+
+	bool DrawShadow = false;
+	bool DrawCharacterShadow = false;
+	ID3D11ShaderResourceView* CharacterShadowTexture = nullptr;
+	D3DXMATRIX DynamicShadowMatrix{};
+
+	static RenderFrameContext Default()
+	{
+		RenderFrameContext ctx;
+		D3DXMatrixIdentity(&ctx.View);
+		D3DXMatrixIdentity(&ctx.Projection);
+		D3DXMatrixIdentity(&ctx.ViewProjection);
+		D3DXMatrixIdentity(&ctx.ViewInverse);
+		D3DXMatrixIdentity(&ctx.DynamicShadowMatrix);
+		return ctx;
+	}
+};

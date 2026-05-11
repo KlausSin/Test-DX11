@@ -88,13 +88,14 @@ struct CEffectManager_LessEffectInstancePtrRenderOrder
 
 struct CEffectManager_FEffectInstanceRender
 {
+	const RenderFrameContext& ctx;
 	inline void operator () (CEffectInstance * pkEftInst)
 	{
-		pkEftInst->Render();
+		pkEftInst->Render(ctx);
 	}
 };
 
-void CEffectManager::Render()
+void CEffectManager::Render(const RenderFrameContext& ctx)
 {
 	STATEMANAGER.SetTexture(0, NULL);
 	STATEMANAGER.SetTexture(1, NULL);
@@ -104,7 +105,7 @@ void CEffectManager::Render()
 		for (TEffectInstanceMap::iterator itor = m_kEftInstMap.begin(); itor != m_kEftInstMap.end();)
 		{
 			CEffectInstance * pEffectInstance = itor->second;
-			pEffectInstance->Render();
+			pEffectInstance->Render(ctx);
 			++itor;
 		}
 	}
@@ -119,7 +120,7 @@ void CEffectManager::Render()
 			s_kVct_pkEftInstSort.push_back(i->second);
 
 		std::sort(s_kVct_pkEftInstSort.begin(), s_kVct_pkEftInstSort.end(), CEffectManager_LessEffectInstancePtrRenderOrder());
-		std::for_each(s_kVct_pkEftInstSort.begin(), s_kVct_pkEftInstSort.end(), CEffectManager_FEffectInstanceRender());
+		std::for_each(s_kVct_pkEftInstSort.begin(), s_kVct_pkEftInstSort.end(), CEffectManager_FEffectInstanceRender(ctx));
 	}
 }
 

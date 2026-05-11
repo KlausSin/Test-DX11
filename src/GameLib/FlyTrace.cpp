@@ -29,7 +29,7 @@ CFlyTrace::CFlyTrace()
 
 	/*
 	// Code for texture
-	CGraphicImage * pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer("d:/ray.jpg");
+	CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>("d:/ray.jpg");
 	m_ImageInstance.SetImagePointer(pImage);
 	
 	CGraphicTexture * pTexture = m_ImageInstance.GetTexturePointer();

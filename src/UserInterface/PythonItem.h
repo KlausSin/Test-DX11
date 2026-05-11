@@ -93,7 +93,7 @@ class CPythonItem : public CSingleton<CPythonItem>
 
 		void	DeleteAllItems();
 
-		void	Render();
+		void	Render(const RenderFrameContext& ctx);
 		void	Update(const POINT& c_rkPtMouse);
 
 		void	CreateItem(DWORD dwVirtualID, DWORD dwVirtualNumber, float x, float y, float z, bool bDrop=true);

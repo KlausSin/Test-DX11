@@ -295,7 +295,7 @@ bool CSnowEnvironment::Create()
 	if (!__CreateGeometry())
 		return false;
 
-	CGraphicImage * pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer("d:/ymir work/special/snow.dds");
+	CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>("d:/ymir work/special/snow.dds");
 	m_pImageInstance = CGraphicImageInstance::New();
 	m_pImageInstance->SetImagePointer(pImage);
 

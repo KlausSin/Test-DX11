@@ -28,7 +28,7 @@ class CEffectManager : public CScreen, public CSingleton<CEffectManager>
 
 		void UpdateSound();
 		void Update();
-		void Render();
+		void Render(const RenderFrameContext& ctx);
 
 		void GetInfo(std::string* pstInfo);
 

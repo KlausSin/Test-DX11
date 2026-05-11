@@ -183,7 +183,7 @@ void CEffectMeshInstance::OnSetDataPointer(CEffectElementBase * pElement)
 
 	const char * c_szMeshFileName = pMesh->GetMeshFileName();
 
-	m_pEffectMesh = (CEffectMesh *) CResourceManager::Instance().GetResourcePointer(c_szMeshFileName);
+	m_pEffectMesh = CResourceManager::Instance().GetTyped<CEffectMesh>(c_szMeshFileName);
 
 	if (!m_pEffectMesh)
 		return;

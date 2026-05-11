@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "EffectLib/EffectManager.h"
 #include "PythonCharacterManager.h"
+#include "PythonBackground.h"
 
 PyObject * effectRegisterEffect(PyObject * poSelf, PyObject * poArgs)
 {
@@ -18,10 +19,16 @@ PyObject * effectUpdate(PyObject * poSelf, PyObject * poArgs)
 	return Py_BuildNone();
 }
 
-PyObject * effectRender(PyObject * poSelf, PyObject * poArgs)
+PyObject* effectRender(PyObject* poSelf, PyObject* poArgs)
 {
-	CEffectManager::Instance().Render();
-	return Py_BuildNone();
+	CPythonBackground& rkBG = CPythonBackground::Instance();
+
+	CMapOutdoor& rkMap = rkBG.GetMapOutdoorRef();
+	const RenderFrameContext ctx = rkMap.BuildRenderFrameContext();
+
+	CEffectManager::Instance().Render(ctx);
+
+	Py_RETURN_NONE;
 }
 
 PyObject * effectCreateEffect(PyObject * poSelf, PyObject * poArgs)

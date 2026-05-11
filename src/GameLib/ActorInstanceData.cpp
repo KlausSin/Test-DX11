@@ -135,7 +135,8 @@ void CActorInstance::SetHair(DWORD eHair)
 	{
 		if (!pkHair->m_stModelFileName.empty())
 		{
-			CGraphicThing * pkHairThing = (CGraphicThing *)CResourceManager::Instance().GetResourcePointer(pkHair->m_stModelFileName.c_str());
+			CGraphicThing * pkHairThing = CResourceManager::Instance().GetTyped<CGraphicThing>(pkHair->m_stModelFileName.c_str());
+			
 			RegisterModelThing(CRaceData::PART_HAIR, pkHairThing);
 			SetModelInstance(CRaceData::PART_HAIR, CRaceData::PART_HAIR, 0, CRaceData::PART_MAIN);
 		}

@@ -333,11 +333,8 @@ void CWeaponTrace::UseTexture()
 
 void CWeaponTrace::SetTexture(const char * c_szFileName)
 {
-	CGraphicImage * pImage = (CGraphicImage *)CResourceManager::Instance().GetResourcePointer("lot_ade10-2.tga");
+	CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>("lot_ade10-2.tga");
 	m_ImageInstance.SetImagePointer(pImage);
-
-	//CGraphicTexture * pTexture = m_ImageInstance.GetTexturePointer();
-	//m_lpTexture = pTexture->GetD3DTexture();
 }
 
 bool CWeaponTrace::SetWeaponInstance(CGraphicThingInstance * pInstance, DWORD dwModelIndex, const char * c_szBoneName)

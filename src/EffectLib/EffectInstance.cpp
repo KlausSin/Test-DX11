@@ -89,7 +89,7 @@ void CEffectInstance::OnUpdate()
 	m_fLastTime = CTimer::Instance().GetCurrentSecond();
 }
 
-void CEffectInstance::OnRender()
+void CEffectInstance::OnRender(const RenderFrameContext& ctx)
 {
 	auto cb = _mgr->GetCbMgr();
 

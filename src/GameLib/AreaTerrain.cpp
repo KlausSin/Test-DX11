@@ -70,7 +70,7 @@ bool CTerrain::Initialize()
 void CTerrain::LoadMiniMapTexture(const char * c_pchMiniMapFileName)
 {
 	DWORD dwStart = ELTimer_GetMSec();
-	CGraphicImage * pImage = (CGraphicImage *) CResourceManager::Instance().GetResourcePointer(c_pchMiniMapFileName);
+	CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(c_pchMiniMapFileName);
 	m_MiniMapGraphicImageInstance.SetImagePointer(pImage);
 	
 	if (!m_MiniMapGraphicImageInstance.GetTexturePointer()->IsEmpty())
@@ -88,7 +88,7 @@ void CTerrain::LoadMiniMapTexture(const char * c_pchMiniMapFileName)
 void CTerrain::LoadShadowTexture(const char * ShadowFileName)
 {
 	DWORD dwStart = ELTimer_GetMSec();
-	CGraphicImage * pImage = (CGraphicImage *) CResourceManager::Instance().GetResourcePointer(ShadowFileName);
+	CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(ShadowFileName);
 	m_ShadowGraphicImageInstance.SetImagePointer(pImage);
 
 	if (!m_ShadowGraphicImageInstance.GetTexturePointer()->IsEmpty())

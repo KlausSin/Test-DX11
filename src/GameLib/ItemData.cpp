@@ -123,13 +123,13 @@ void CItemData::__LoadFiles()
 {
 	// Model File Name
 	if (!m_strModelFileName.empty())
-		m_pModelThing = (CGraphicThing *)CResourceManager::Instance().GetResourcePointer(m_strModelFileName.c_str());
+		m_pModelThing = CResourceManager::Instance().GetTyped<CGraphicThing>(m_strModelFileName.c_str());
 
 	if (!m_strSubModelFileName.empty())
-		m_pSubModelThing = (CGraphicThing *)CResourceManager::Instance().GetResourcePointer(m_strSubModelFileName.c_str());
+		m_pSubModelThing = CResourceManager::Instance().GetTyped<CGraphicThing>(m_strSubModelFileName.c_str());
 
 	if (!m_strDropModelFileName.empty())
-		m_pDropModelThing = (CGraphicThing *)CResourceManager::Instance().GetResourcePointer(m_strDropModelFileName.c_str());
+		m_pDropModelThing = CResourceManager::Instance().GetTyped<CGraphicThing>(m_strDropModelFileName.c_str());
 
 
 	if (!m_strLODModelFileNameVector.empty())
@@ -140,7 +140,7 @@ void CItemData::__LoadFiles()
 		for (DWORD i = 0; i < m_strLODModelFileNameVector.size(); ++i)
 		{
 			const std::string & c_rstrLODModelFileName = m_strLODModelFileNameVector[i];
-			m_pLODModelThingVector[i] = (CGraphicThing *)CResourceManager::Instance().GetResourcePointer(c_rstrLODModelFileName.c_str());
+			m_pLODModelThingVector[i] = CResourceManager::Instance().GetTyped<CGraphicThing>(c_rstrLODModelFileName.c_str());
 		}
 	}
 }
@@ -153,7 +153,8 @@ void CItemData::__SetIconImage(const char * c_szFileName)
 		m_pIconImage = NULL;
 	}
 	else if (m_pIconImage == NULL) 
-		m_pIconImage = (CGraphicSubImage *)CResourceManager::Instance().GetResourcePointer(c_szFileName);
+		m_pIconImage = CResourceManager::Instance().GetTyped<CGraphicSubImage>(c_szFileName);
+
 }
 
 void CItemData::SetItemTableData(TItemTable * pItemTable)

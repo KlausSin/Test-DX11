@@ -12,6 +12,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "qMin32Lib/AsyncFileSystem.h"
 
 class CTextureCache;
 
@@ -21,13 +22,22 @@ class CSingleton;
 class CResourceManager : public CSingleton<CResourceManager>
 {
 public:
+    //using TResourcePointerMap = std::unordered_map<DWORD, CResource*>;
+    //using TResourceRequestMap = std::unordered_map<DWORD, std::string>;
+
+    using TResourcePointerMap = std::unordered_map<std::string, CResource*>;
+    using TResourceRequestMap = std::unordered_map<std::string, AssetPriority>;
     using ResourceFactory = CResource * (*)(const char*);
-    using TResourcePointerMap = std::unordered_map<DWORD, CResource*>;
     using TResourceNewFunctionPointerMap = std::unordered_map<std::string, ResourceFactory>;
     using TResourceNewFunctionByTypePointerMap = std::unordered_map<int, ResourceFactory>;
     using TResourceDeletingMap = std::map<CResource*, DWORD>;
-    using TResourceRequestMap = std::unordered_map<DWORD, std::string>;
     using TResourceRefDecreaseWaitingMap = std::multimap<DWORD, CResource*>;
+
+    template<typename T>
+    T* GetTyped(const char* c_szFileName)
+    {
+        return static_cast<T*>(GetResourcePointer(c_szFileName));
+    }
 
 public:
     CResourceManager();
@@ -43,12 +53,12 @@ public:
     void BeginThreadLoading();
     void EndThreadLoading();
 
-    CResource* InsertResourcePointer(DWORD dwFileCRC, CResource* pResource);
-    CResource* FindResourcePointer(DWORD dwFileCRC);
+    CResource* InsertResourcePointer(const std::string& key, CResource* pResource);
+    CResource* FindResourcePointer(const std::string& key);
     CResource* GetResourcePointer(const char* c_szFileName);
     CResource* GetTypeResourcePointer(const char* c_szFileName, int iType = -1);
 
-    bool isResourcePointerData(DWORD dwFileCRC);
+    bool isResourcePointerData(const char* c_szFileName);
 
     void RegisterResourceNewFunctionPointer(const char* c_szFileExt, ResourceFactory pResNewFunc);
     void RegisterResourceNewFunctionByTypePointer(int iType, ResourceFactory pNewFunc);
@@ -69,8 +79,11 @@ protected:
     void __DestroyResourceMap();
     void __DestroyCacheMap();
 
-    DWORD __GetFileCRC(const char* c_szFileName, const char** c_pszLowerFile = nullptr);
+    bool isResourcePointerDataByKey(const std::string& key);
+
     std::string NormalizeFileName(const char* c_szFileName) const;
+    std::string MakeKey(const char* c_szFileName) const;
+
     ResourceFactory FindFactory(const std::string& normalizedFileName, int iType);
 
 protected:
@@ -83,10 +96,17 @@ protected:
     TResourceRequestMap m_WaitingMap;
     TResourceRefDecreaseWaitingMap m_pResRefDecreaseWaitingMap;
 
-    static CFileLoaderThread ms_loadingThread;
     std::unique_ptr<CTextureCache> m_pTextureCache;
 
     mutable std::recursive_mutex m_ResourceMapMutex;
+
+public:
+    void StartupAsync(uint32_t ioThreads = 1);
+    void ShutdownAsync();
+    void PreloadResource(const char* c_szFileName, AssetPriority priority = AssetPriority::Normal);
+
+protected:
+    AsyncFileSystem m_asyncFiles;
 };
 
 extern int g_iLoadingDelayTime;

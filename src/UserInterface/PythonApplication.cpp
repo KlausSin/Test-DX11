@@ -191,7 +191,7 @@ void CPythonApplication::RenderGame()
 	m_pyBackground.Render();
 
 	m_pyBackground.SetCharacterDirLight();
-	m_kChrMgr.Render();
+	m_kChrMgr.Render(m_pyBackground.GetMapOutdoorRef().BuildRenderFrameContext());
 
 	m_pyBackground.SetBackgroundDirLight();
 	m_pyBackground.RenderWater();
@@ -200,8 +200,8 @@ void CPythonApplication::RenderGame()
 
 	m_pyBackground.EndEnvironment();
 
-	m_kEftMgr.Render();
-	m_pyItem.Render();
+	m_kEftMgr.Render(m_pyBackground.GetMapOutdoorRef().BuildRenderFrameContext());
+	m_pyItem.Render(m_pyBackground.GetMapOutdoorRef().BuildRenderFrameContext());
 	m_FlyingManager.Render();
 
 	m_pyBackground.BeginEnvironment();

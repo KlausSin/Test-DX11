@@ -13,14 +13,14 @@
 void Granny_RenderBoxBones(const granny_skeleton* pkGrnSkeleton, const granny_world_pose* pkGrnWorldPose, const D3DXMATRIX& matBase)
 {
 	D3DXMATRIX matWorld;
-	CScreen screen;	
+	CScreen screen;
 	for (int iBone = 0; iBone != pkGrnSkeleton->BoneCount; ++iBone)
 	{
-		const granny_bone& rkGrnBone = pkGrnSkeleton->Bones[iBone];				
-		const D3DXMATRIX* c_matBone=(const D3DXMATRIX*)GrannyGetWorldPose4x4(pkGrnWorldPose, iBone);
-		
+		const granny_bone& rkGrnBone = pkGrnSkeleton->Bones[iBone];
+		const D3DXMATRIX* c_matBone = (const D3DXMATRIX*)GrannyGetWorldPose4x4(pkGrnWorldPose, iBone);
+
 		D3DXMatrixMultiply(&matWorld, c_matBone, &matBase);
-		
+
 		STATEMANAGER.SetTransform(World, &matWorld);
 		screen.RenderBox3d(-5.0f, -5.0f, -5.0f, 5.0f, 5.0f, 5.0f);
 	}
@@ -29,7 +29,7 @@ void Granny_RenderBoxBones(const granny_skeleton* pkGrnSkeleton, const granny_wo
 #endif
 
 
-void CGrannyModelInstance::DeformNoSkin(const D3DXMATRIX * c_pWorldMatrix)
+void CGrannyModelInstance::DeformNoSkin(const D3DXMATRIX* c_pWorldMatrix)
 {
 	if (IsEmpty())
 		return;
@@ -39,15 +39,33 @@ void CGrannyModelInstance::DeformNoSkin(const D3DXMATRIX * c_pWorldMatrix)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+	void ApplyRenderFrameContextToMeshCB(const RenderFrameContext& ctx)
+	{
+		if (!ctx.DeviceContext)
+			return;
+
+		auto cb = _mgr->GetCbMgr();
+		cb->SetFogEnable(ctx.FogEnable);
+		cb->SetFogColor(ctx.FogColor);
+		cb->SetFogStart(ctx.FogStart);
+		cb->SetFogEnd(ctx.FogEnd);
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //// Render
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // With One Texture
-void CGrannyModelInstance::RenderWithOneTexture()
+void CGrannyModelInstance::RenderWithOneTexture(const RenderFrameContext& ctx)
 {
 	if (IsEmpty())
 		return;
+
+	ApplyRenderFrameContextToMeshCB(ctx);
 
 #ifdef _TEST
 	Granny_RenderBoxBones(GrannyGetSourceSkeleton(m_pgrnModelInstance), m_pgrnWorldPose, TEST_matWorld);
@@ -74,10 +92,12 @@ void CGrannyModelInstance::RenderWithOneTexture()
 	}
 }
 
-void CGrannyModelInstance::BlendRenderWithOneTexture()
+void CGrannyModelInstance::BlendRenderWithOneTexture(const RenderFrameContext& ctx)
 {
 	if (IsEmpty())
 		return;
+
+	ApplyRenderFrameContextToMeshCB(ctx);
 
 	auto skinnedVB = m_pModel->GetSkinnedVertexBuffer();
 	auto rigidVB = m_pModel->GetVertexBuffer();
@@ -97,10 +117,12 @@ void CGrannyModelInstance::BlendRenderWithOneTexture()
 	}
 }
 
-void CGrannyModelInstance::RenderWithTwoTexture()
+void CGrannyModelInstance::RenderWithTwoTexture(const RenderFrameContext& ctx)
 {
 	if (IsEmpty())
 		return;
+
+	ApplyRenderFrameContextToMeshCB(ctx);
 
 	auto skinnedVB = m_pModel->GetSkinnedVertexBuffer();
 	auto rigidVB = m_pModel->GetVertexBuffer();
@@ -120,10 +142,12 @@ void CGrannyModelInstance::RenderWithTwoTexture()
 	}
 }
 
-void CGrannyModelInstance::BlendRenderWithTwoTexture()
+void CGrannyModelInstance::BlendRenderWithTwoTexture(const RenderFrameContext& ctx)
 {
 	if (IsEmpty())
 		return;
+	
+	ApplyRenderFrameContextToMeshCB(ctx);
 
 	auto skinnedVB = m_pModel->GetSkinnedVertexBuffer();
 	auto rigidVB = m_pModel->GetVertexBuffer();
@@ -143,10 +167,12 @@ void CGrannyModelInstance::BlendRenderWithTwoTexture()
 	}
 }
 
-void CGrannyModelInstance::RenderWithoutTexture()
+void CGrannyModelInstance::RenderWithoutTexture(const RenderFrameContext& ctx)
 {
 	if (IsEmpty())
 		return;
+	
+	ApplyRenderFrameContextToMeshCB(ctx);
 
 	STATEMANAGER.SetTexture(0, nullptr);
 	STATEMANAGER.SetTexture(1, nullptr);
@@ -209,79 +235,79 @@ bool CGrannyModelInstance::UploadMeshBonePaletteToShader(int iMesh)
 
 namespace
 {
-    void ApplySpecularOverrideIfNeeded(CGrannyMaterial& material, const SMaterialData& data)
-    {
-        if (data.pImage)
-            return;
+	void ApplySpecularOverrideIfNeeded(CGrannyMaterial& material, const SMaterialData& data)
+	{
+		if (data.pImage)
+			return;
 
-        if (std::fabs(material.GetSpecularPower() - data.fSpecularPower) >= std::numeric_limits<float>::epsilon())
-            material.SetSpecularInfo(data.isSpecularEnable, data.fSpecularPower, data.bSphereMapIndex);
-    }
+		if (std::fabs(material.GetSpecularPower() - data.fSpecularPower) >= std::numeric_limits<float>::epsilon())
+			material.SetSpecularInfo(data.isSpecularEnable, data.fSpecularPower, data.bSphereMapIndex);
+	}
 }
 
 void CGrannyModelInstance::RenderMeshNodeList(TextureMode textureMode, CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType)
 {
-    assert(m_pModel != nullptr);
+	assert(m_pModel != nullptr);
 
-    const auto indexBuffer = m_pModel->GetIndexBuffer();
-    assert(indexBuffer != nullptr);
+	const auto indexBuffer = m_pModel->GetIndexBuffer();
+	assert(indexBuffer != nullptr);
 
-    const CGrannyModel::TMeshNode* meshNode = m_pModel->GetMeshNodeList(eMeshType, eMtrlType);
-    _mgr->SetIndexBuffer(indexBuffer);
+	const CGrannyModel::TMeshNode* meshNode = m_pModel->GetMeshNodeList(eMeshType, eMtrlType);
+	_mgr->SetIndexBuffer(indexBuffer);
 
-    while (meshNode)
-    {
-        const CGrannyMesh* mesh = meshNode->pMesh;
-        const int vertexBase = mesh->GetVertexBasePosition();
+	while (meshNode)
+	{
+		const CGrannyMesh* mesh = meshNode->pMesh;
+		const int vertexBase = mesh->GetVertexBasePosition();
 
 		STATEMANAGER.GetTransform().SetWorld(m_meshMatrices[meshNode->iMesh]);
-        if (eMeshType == CGrannyMesh::TYPE_DEFORM)
-            UploadMeshBonePaletteToShader(meshNode->iMesh);
+		if (eMeshType == CGrannyMesh::TYPE_DEFORM)
+			UploadMeshBonePaletteToShader(meshNode->iMesh);
 
-        const CGrannyMesh::TTriGroupNode* triGroup = mesh->GetTriGroupNodeList(eMtrlType);
-        while (triGroup)
-        {
-            ms_faceCount += triGroup->triCount;
+		const CGrannyMesh::TTriGroupNode* triGroup = mesh->GetTriGroupNodeList(eMtrlType);
+		while (triGroup)
+		{
+			ms_faceCount += triGroup->triCount;
 
-            if (textureMode == TextureMode::One)
-            {
-                CGrannyMaterial& material = m_kMtrlPal.GetMaterialRef(triGroup->mtrlIndex);
-                ApplySpecularOverrideIfNeeded(material, material_data_);
+			if (textureMode == TextureMode::One)
+			{
+				CGrannyMaterial& material = m_kMtrlPal.GetMaterialRef(triGroup->mtrlIndex);
+				ApplySpecularOverrideIfNeeded(material, material_data_);
 				material.SetSkinned(eMeshType == CGrannyMesh::TYPE_DEFORM);
-                material.ApplyRenderState();
-                STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, vertexBase, triGroup->idxPos, triGroup->triCount);
-                material.RestoreRenderState();
-            }
-            else if (textureMode == TextureMode::Two)
-            {
-                const CGrannyMaterial& material = m_kMtrlPal.GetMaterialRef(triGroup->mtrlIndex);
-                STATEMANAGER.SetTexture(0, material.GetSRV(0));
-                STATEMANAGER.SetTexture(1, material.GetSRV(1));
-                STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, vertexBase, triGroup->idxPos, triGroup->triCount);
-            }
-            else
-            {
-                STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, vertexBase, triGroup->idxPos, triGroup->triCount);
-            }
+				material.ApplyRenderState();
+				STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, vertexBase, triGroup->idxPos, triGroup->triCount);
+				material.RestoreRenderState();
+			}
+			else if (textureMode == TextureMode::Two)
+			{
+				const CGrannyMaterial& material = m_kMtrlPal.GetMaterialRef(triGroup->mtrlIndex);
+				STATEMANAGER.SetTexture(0, material.GetSRV(0));
+				STATEMANAGER.SetTexture(1, material.GetSRV(1));
+				STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, vertexBase, triGroup->idxPos, triGroup->triCount);
+			}
+			else
+			{
+				STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, vertexBase, triGroup->idxPos, triGroup->triCount);
+			}
 
-            triGroup = triGroup->pNextTriGroupNode;
-        }
+			triGroup = triGroup->pNextTriGroupNode;
+		}
 
-        meshNode = meshNode->pNextMeshNode;
-    }
+		meshNode = meshNode->pNextMeshNode;
+	}
 }
 
 void CGrannyModelInstance::RenderMeshNodeListWithOneTexture(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType)
 {
-    RenderMeshNodeList(TextureMode::One, eMeshType, eMtrlType);
+	RenderMeshNodeList(TextureMode::One, eMeshType, eMtrlType);
 }
 
 void CGrannyModelInstance::RenderMeshNodeListWithTwoTexture(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType)
 {
-    RenderMeshNodeList(TextureMode::Two, eMeshType, eMtrlType);
+	RenderMeshNodeList(TextureMode::Two, eMeshType, eMtrlType);
 }
 
 void CGrannyModelInstance::RenderMeshNodeListWithoutTexture(CGrannyMesh::EType eMeshType, CGrannyMaterial::EType eMtrlType)
 {
-    RenderMeshNodeList(TextureMode::None, eMeshType, eMtrlType);
+	RenderMeshNodeList(TextureMode::None, eMeshType, eMtrlType);
 }

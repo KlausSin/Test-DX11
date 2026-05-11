@@ -220,8 +220,8 @@ class CArea
 		void			Update();
 		void			UpdateAroundAmbience(float fX, float fY, float fZ);
 
-		void			Render();
-		void			RenderEffect();
+		void			Render(const RenderFrameContext& ctx);
+		void			RenderEffect(const RenderFrameContext& ctx);
 		void			RenderCollision();
 		void			RenderAmbience();
 		void			RenderDungeon();

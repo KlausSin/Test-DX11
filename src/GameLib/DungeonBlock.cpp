@@ -96,7 +96,7 @@ struct FRenderShadow
 	}
 };
 
-void CDungeonBlock::OnRenderShadow()
+void CDungeonBlock::OnRenderShadow(const RenderFrameContext& ctx)
 {
 	for_each(m_ModelInstanceContainer.begin(), m_ModelInstanceContainer.end(), FRenderShadow());
 }
@@ -202,7 +202,7 @@ bool CDungeonBlock::Load(const char * c_szFileName)
 {
 	Destroy();
 
-	m_pThing = (CGraphicThing *)CResourceManager::Instance().GetResourcePointer(c_szFileName);
+	m_pThing = CResourceManager::Instance().GetTyped<CGraphicThing>(c_szFileName);
 
 	m_pThing->AddReference();
 	if (m_pThing->GetModelCount() <= 0)

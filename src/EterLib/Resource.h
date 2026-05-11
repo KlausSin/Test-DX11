@@ -10,6 +10,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include "qMin32Lib/AssetTypes.h"
 
 class CResource : public CReferenceObject
 {
@@ -73,4 +74,15 @@ protected:
 
 protected:
     static bool ms_bDeleteImmediately;
+
+public:
+    bool LoadFromMemory(const void* data, size_t size);
+    void MarkQueued() noexcept;
+    void MarkLoading() noexcept;
+    AssetId GetAssetId() const noexcept { return m_assetId; }
+    size_t GetMemorySize() const noexcept { return m_memorySize; }
+
+protected:
+    AssetId m_assetId = 0;
+    size_t m_memorySize = 0;
 };

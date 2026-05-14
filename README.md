@@ -7,5 +7,7 @@ I can log into the game without any problems.
 
 This is just the beginning, don't start with empty words.
 
-I removed ID3D11InputLayout and D3D11_INPUT_ELEMENT_DESC from the code (replaced with ID3D11ShaderReflection), 
-sending them from the shader directly to the code.
+
+Build order:
+Vendor to create .lib 
+Client

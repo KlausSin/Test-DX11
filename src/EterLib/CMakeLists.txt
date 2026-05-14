@@ -2,9 +2,8 @@
 
 add_library(EterLib STATIC ${FILE_SOURCES})
 
-target_link_libraries(EterLib
-	sodium
-	mio
+target_link_libraries(EterLib PRIVATE
+    ${EXTERN_LIBS}
 )
 
 GroupSourcesByFolder(EterLib)

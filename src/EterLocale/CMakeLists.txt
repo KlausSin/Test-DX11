@@ -2,8 +2,8 @@
 
 add_library(EterLocale STATIC ${FILE_SOURCES})
 
-target_link_libraries(EterLocale
-	mio
+target_link_libraries(EterLocale PRIVATE
+    ${EXTERN_LIBS}
 )
 
 GroupSourcesByFolder(EterLocale)

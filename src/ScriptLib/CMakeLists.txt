@@ -2,8 +2,8 @@
 
 add_library(ScriptLib STATIC ${FILE_SOURCES})
 
-target_link_libraries(ScriptLib
-	mio
+target_link_libraries(ScriptLib PRIVATE
+    ${EXTERN_LIBS}
 )
 
 GroupSourcesByFolder(ScriptLib)

@@ -2,8 +2,8 @@
 
 add_library(SpeedTreeLib STATIC ${FILE_SOURCES})
 
-target_link_libraries(SpeedTreeLib
-	mio
+target_link_libraries(SpeedTreeLib PRIVATE
+    ${EXTERN_LIBS}
 )
 
 GroupSourcesByFolder(SpeedTreeLib)

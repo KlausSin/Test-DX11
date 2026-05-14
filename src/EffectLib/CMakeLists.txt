@@ -2,8 +2,8 @@
 
 add_library(EffectLib STATIC ${FILE_SOURCES})
 
-target_link_libraries(EffectLib
-	mio
+target_link_libraries(EffectLib PRIVATE
+    ${EXTERN_LIBS}
 )
 
 GroupSourcesByFolder(EffectLib)

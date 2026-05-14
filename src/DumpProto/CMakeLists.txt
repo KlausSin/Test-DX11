@@ -12,7 +12,9 @@ target_include_directories(DumpProto PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/../EterBase
 )
 
-target_link_libraries(DumpProto
-	lzo2
-	sodium
+target_link_libraries(DumpProto PRIVATE
+    ${EXTERN_LIBS}
+)
+target_compile_definitions(DumpProto PRIVATE
+    SODIUM_STATIC
 )

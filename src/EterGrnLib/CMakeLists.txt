@@ -2,8 +2,8 @@
 
 add_library(EterGrnLib STATIC ${FILE_SOURCES})
 
-target_link_libraries(EterGrnLib
-	mio
+target_link_libraries(EterGrnLib PRIVATE
+    ${EXTERN_LIBS}
 )
 
 GroupSourcesByFolder(EterGrnLib)

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <filesystem>
 
-#include <zstd.h>
+#include <zstd/zstd.h>
 #include <argparse.hpp>
 #include <sodium.h>
 

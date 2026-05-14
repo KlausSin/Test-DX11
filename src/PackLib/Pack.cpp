@@ -1,6 +1,6 @@
 #include "Pack.h"
 #include "EterLib/BufferPool.h"
-#include <zstd.h>
+#include <zstd/zstd.h>
 
 static thread_local ZSTD_DCtx* g_zstdDCtx = nullptr;
 

@@ -2,9 +2,8 @@
 
 add_library(GameLib STATIC ${FILE_SOURCES})
 
-target_link_libraries(GameLib
-	lzo2
-	mio
+target_link_libraries(GameLib PRIVATE
+    ${EXTERN_LIBS}
 )
 
 GroupSourcesByFolder(GameLib)

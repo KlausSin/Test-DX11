@@ -2,10 +2,8 @@
 
 add_library(PackLib STATIC ${FILE_SOURCES})
 
-target_link_libraries(PackLib
-	libzstd_static
-	sodium
-	mio
+target_link_libraries(PackLib PRIVATE
+    ${EXTERN_LIBS}
 )
 
 GroupSourcesByFolder(PackLib)

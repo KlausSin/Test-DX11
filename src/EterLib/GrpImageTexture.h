@@ -2,43 +2,43 @@
 
 #include "GrpTexture.h"
 
-struct TDecodedImageData;
+#include <DirectXTex/DirectXTex.h>
+#include <string>
 
 class CGraphicImageTexture : public CGraphicTexture
 {
-	public:
-		CGraphicImageTexture();
-		virtual ~CGraphicImageTexture();
+public:
+	CGraphicImageTexture();
+	virtual ~CGraphicImageTexture();
 
-		void		Destroy();
+	void Destroy();
 
-		bool		Create(UINT width, UINT height, DXGI_FORMAT d3dFmt, DWORD dwFilter = D3D11_FILTER_MIN_MAG_MIP_LINEAR);
-		bool		CreateDeviceObjects();
+	bool Create(UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_B8G8R8A8_UNORM);
 
-		void		CreateFromTexturePointer(const CGraphicTexture* c_pSrcTexture);
-		bool		CreateFromDiskFile(const char* c_szFileName, DXGI_FORMAT d3dFmt, DWORD dwFilter = D3D11_FILTER_MIN_MAG_MIP_LINEAR);
-		bool		CreateFromMemoryFile(UINT bufSize, const void* c_pvBuf, DXGI_FORMAT d3dFmt, DWORD dwFilter = D3D11_FILTER_MIN_MAG_MIP_LINEAR);
-		bool		CreateFromDDSMemory(UINT bufSize, const void* c_pvBuf);
-		bool		CreateFromSTBMemory(UINT bufSize, const void* c_pvBuf);
-		bool		CreateFromDecodedData(const TDecodedImageData& decodedImage, DXGI_FORMAT d3dFmt, DWORD dwFilter);
+	bool CreateDeviceObjects();
 
-		void		SetFileName(const char * c_szFileName);
+	void CreateFromTexturePointer(const CGraphicTexture* sourceTexture);
+	bool CreateFromDiskFile(const char* fileName, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, DWORD filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR);
+	bool CreateFromMemoryFile(UINT size, const void* data, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, DWORD filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR);
+	bool CreateFromRawPixels(UINT width, UINT height, DXGI_FORMAT format, const void* pixels, UINT pitch);
 
-		bool		Lock(int* pRetPitch, void** ppRetPixels, int level=0);
-		void		Unlock(int level=0);
+	bool Lock(int* pitch, void** pixels, int level = 0);
+	void Unlock(int level = 0);
+	void SetFileName(const char* fileName);
 
-	protected:
-		void		Initialize();
+private:
+	void Initialize();
 
-		// Helper: create D3D11 SRV from BGRA pixel data
-		bool		CreateSRVFromBGRA(UINT width, UINT height, const void* pPixels, UINT pitch);
+	bool CreateFromScratchImage(const DirectX::ScratchImage& image);
+	bool LoadFromMemory(UINT size, const void* data, DirectX::ScratchImage& image);
+	bool LoadFromFile(const wchar_t* fileName, DirectX::ScratchImage& image);
 
-		DXGI_FORMAT	m_d3dFmt;
-		DWORD		m_dwFilter;
+private:
+	DXGI_FORMAT m_d3dFmt;
+	DWORD m_dwFilter;
 
-		std::string m_stFileName;
+	std::string m_fileName;
 
-		// CPU-side pixel copy for Lock/Unlock (font textures)
-		std::vector<uint8_t>	m_lockBuffer;
-		UINT					m_lockPitch;
+	std::vector<uint8_t> m_lockBuffer;
+	UINT m_lockPitch;
 };

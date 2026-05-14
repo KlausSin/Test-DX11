@@ -5,7 +5,6 @@
 #include "PackLib/PackManager.h"
 #include "EterBase/tea.h"
 
-#include <stb_image.h>
 #include <utf8.h>
 
 extern D3DXCOLOR g_fSpecularColor;
@@ -260,13 +259,53 @@ PyObject* appGetImageInfo(PyObject* poSelf, PyObject* poArgs)
 PyObject* appGetImageInfo(PyObject* poSelf, PyObject* poArgs)
 {
 	char* szFileName;
+
 	if (!PyTuple_GetString(poArgs, 0, &szFileName))
 		return Py_BuildException();
 
-	int w = 0, h = 0, comp = 0;
-	int canLoad = stbi_info(szFileName, &w, &h, &comp) ? 1 : 0;
+	wchar_t wideFileName[MAX_PATH] = {};
 
-	return Py_BuildValue("iii", canLoad, w, h);
+	if (MultiByteToWideChar(
+		CP_ACP,
+		0,
+		szFileName,
+		-1,
+		wideFileName,
+		MAX_PATH) <= 0)
+	{
+		return Py_BuildValue("iii", 0, 0, 0);
+	}
+
+	DirectX::TexMetadata metadata;
+
+	HRESULT hr = DirectX::GetMetadataFromDDSFile(
+		wideFileName,
+		DirectX::DDS_FLAGS_NONE,
+		metadata);
+
+	if (FAILED(hr))
+	{
+		hr = DirectX::GetMetadataFromTGAFile(
+			wideFileName,
+			metadata);
+	}
+
+	if (FAILED(hr))
+	{
+		hr = DirectX::GetMetadataFromWICFile(
+			wideFileName,
+			DirectX::WIC_FLAGS_IGNORE_SRGB,
+			metadata);
+	}
+
+	if (FAILED(hr))
+		return Py_BuildValue("iii", 0, 0, 0);
+
+	return Py_BuildValue(
+		"iii",
+		1,
+		static_cast<int>(metadata.width),
+		static_cast<int>(metadata.height));
 }
 #endif
 

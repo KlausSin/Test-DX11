@@ -1,182 +1,195 @@
 #include "StdAfx.h"
 #include "TextBar.h"
-#include "FontManager.h"
-#include "Util.h"
 
 #include <utf8.h>
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
+CTextBar::CTextBar(int fontSize, bool isBold)
+{
+	m_hFont = nullptr;
+	m_textColor = 0x00FFFFFF;
+	m_fontSize = fontSize;
+	m_isBold = isBold;
+	m_lineHeight = fontSize > 0 ? fontSize : 12;
+}
 
-#include <cmath>
+CTextBar::~CTextBar()
+{
+	DestroyFont();
+}
 
-// Gamma LUT matching GrpFontTexture for consistent text sharpness
-static struct STextBarGammaLUT {
-	unsigned char table[256];
-	STextBarGammaLUT() {
-		table[0] = 0;
-		for (int i = 1; i < 256; ++i)
-			table[i] = (unsigned char)(pow(i / 255.0, 0.85) * 255.0 + 0.5);
+void CTextBar::DestroyFont()
+{
+	if (m_hFont)
+	{
+		DeleteObject(m_hFont);
+		m_hFont = nullptr;
 	}
-} s_textBarGammaLUT;
+}
 
 void CTextBar::__SetFont(int fontSize, bool isBold)
 {
-	// Load bold font variant if available, otherwise fall back to regular
-	if (isBold)
+	DestroyFont();
+
+	m_fontSize = fontSize > 0 ? fontSize : 12;
+	m_isBold = isBold;
+
+	m_hFont = CreateFontW(
+		-m_fontSize,
+		0,
+		0,
+		0,
+		m_isBold ? FW_BOLD : FW_NORMAL,
+		FALSE,
+		FALSE,
+		FALSE,
+		DEFAULT_CHARSET,
+		OUT_DEFAULT_PRECIS,
+		CLIP_DEFAULT_PRECIS,
+		CLEARTYPE_QUALITY,
+		DEFAULT_PITCH | FF_DONTCARE,
+		L"Tahoma");
+
+	HDC dc = CreateCompatibleDC(nullptr);
+
+	if (dc)
 	{
-		m_ftFace = CFontManager::Instance().CreateFace("Tahoma Bold");
-		if (!m_ftFace)
-			m_ftFace = CFontManager::Instance().CreateFace("Tahoma");
+		HGDIOBJ oldFont = nullptr;
+
+		if (m_hFont)
+			oldFont = SelectObject(dc, m_hFont);
+
+		TEXTMETRICW tm = {};
+		GetTextMetricsW(dc, &tm);
+
+		m_lineHeight = tm.tmHeight > 0 ? tm.tmHeight : m_fontSize;
+
+		if (oldFont)
+			SelectObject(dc, oldFont);
+
+		DeleteDC(dc);
 	}
-	else
-	{
-		m_ftFace = CFontManager::Instance().CreateFace("Tahoma");
-	}
-	if (!m_ftFace)
-		return;
-
-	int pixelSize = (m_fontSize < 0) ? -m_fontSize : m_fontSize;
-	if (pixelSize == 0)
-		pixelSize = 12;
-
-	FT_Set_Pixel_Sizes(m_ftFace, 0, pixelSize);
-	FT_Set_Transform(m_ftFace, NULL, NULL);
-
-	m_ascender = (int)(m_ftFace->size->metrics.ascender >> 6);
-	m_lineHeight = (int)(m_ftFace->size->metrics.height >> 6);
 }
 
 void CTextBar::SetTextColor(int r, int g, int b)
 {
-	m_textColor = ((DWORD)r) | ((DWORD)g << 8) | ((DWORD)b << 16);
+	m_textColor =
+		(static_cast<DWORD>(r) << 16) |
+		(static_cast<DWORD>(g) << 8) |
+		static_cast<DWORD>(b);
 }
 
-void CTextBar::GetTextExtent(const char* c_szText, SIZE* p_size)
+void CTextBar::GetTextExtent(const char* text, SIZE* size)
 {
-	if (!c_szText || !p_size)
-	{
-		if (p_size)
-		{
-			p_size->cx = 0;
-			p_size->cy = 0;
-		}
+	if (!size)
 		return;
-	}
 
-	if (!m_ftFace)
-	{
-		p_size->cx = 0;
-		p_size->cy = 0;
+	size->cx = 0;
+	size->cy = 0;
+
+	if (!text || !*text || !m_hFont)
 		return;
-	}
 
-	std::wstring wText = Utf8ToWide(c_szText);
+	std::wstring wideText = Utf8ToWide(text);
 
-	bool hasKerning = FT_HAS_KERNING(m_ftFace) != 0;
-	FT_UInt prevIndex = 0;
-	int totalAdvance = 0;
+	HDC dc = CreateCompatibleDC(nullptr);
 
-	for (size_t i = 0; i < wText.size(); ++i)
-	{
-		FT_UInt glyphIndex = FT_Get_Char_Index(m_ftFace, wText[i]);
-		if (glyphIndex == 0)
-			glyphIndex = FT_Get_Char_Index(m_ftFace, L' ');
+	if (!dc)
+		return;
 
-		if (hasKerning && prevIndex && glyphIndex)
-		{
-			FT_Vector delta;
-			if (FT_Get_Kerning(m_ftFace, prevIndex, glyphIndex, FT_KERNING_DEFAULT, &delta) == 0)
-				totalAdvance += (int)(delta.x / 64);
-		}
+	HGDIOBJ oldFont = SelectObject(dc, m_hFont);
 
-		if (FT_Load_Glyph(m_ftFace, glyphIndex, FT_LOAD_DEFAULT) == 0)
-			totalAdvance += (int)ceilf((float)(m_ftFace->glyph->advance.x) / 64.0f) + 1;  // +1px letter spacing
+	GetTextExtentPoint32W(
+		dc,
+		wideText.c_str(),
+		static_cast<int>(wideText.length()),
+		size);
 
-		prevIndex = glyphIndex;
-	}
+	size->cy = m_lineHeight;
 
-	p_size->cx = totalAdvance;
-	p_size->cy = m_lineHeight;
+	SelectObject(dc, oldFont);
+	DeleteDC(dc);
 }
 
-void CTextBar::TextOut(int ix, int iy, const char * c_szText)
+void CTextBar::TextOut(int x, int y, const char* text)
 {
-	if (!c_szText || !*c_szText || !m_ftFace)
+	if (!text || !*text || !m_hFont)
 		return;
 
-	DWORD* pdwBuf = (DWORD*)m_dib.GetPointer();
-	if (!pdwBuf)
+	DWORD* buffer = static_cast<DWORD*>(m_dib.GetPointer());
+
+	if (!buffer)
 		return;
 
-	int bufWidth = m_dib.GetWidth();
-	int bufHeight = m_dib.GetHeight();
+	const int width = m_dib.GetWidth();
+	const int height = m_dib.GetHeight();
 
-	std::wstring wText = Utf8ToWide(c_szText);
+	if (width <= 0 || height <= 0)
+		return;
 
-	int penX = ix;
-	int penY = iy;
+	std::wstring wideText = Utf8ToWide(text);
 
-	DWORD colorRGB = m_textColor;  // 0x00BBGGRR in memory
+	BITMAPINFO bmi = {};
+	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bmi.bmiHeader.biWidth = width;
+	bmi.bmiHeader.biHeight = -height;
+	bmi.bmiHeader.biPlanes = 1;
+	bmi.bmiHeader.biBitCount = 32;
+	bmi.bmiHeader.biCompression = BI_RGB;
 
-	bool hasKerning = FT_HAS_KERNING(m_ftFace) != 0;
-	FT_UInt prevIndex = 0;
+	void* bits = nullptr;
 
-	for (size_t i = 0; i < wText.size(); ++i)
+	HDC dc = CreateCompatibleDC(nullptr);
+
+	if (!dc)
+		return;
+
+	HBITMAP bitmap = CreateDIBSection(
+		dc,
+		&bmi,
+		DIB_RGB_COLORS,
+		&bits,
+		nullptr,
+		0);
+
+	if (!bitmap || !bits)
 	{
-		FT_UInt glyphIndex = FT_Get_Char_Index(m_ftFace, wText[i]);
-		if (glyphIndex == 0)
-			glyphIndex = FT_Get_Char_Index(m_ftFace, L' ');
+		if (bitmap)
+			DeleteObject(bitmap);
 
-		if (hasKerning && prevIndex && glyphIndex)
-		{
-			FT_Vector delta;
-			if (FT_Get_Kerning(m_ftFace, prevIndex, glyphIndex, FT_KERNING_DEFAULT, &delta) == 0)
-				penX += (int)(delta.x / 64);
-		}
-
-		if (FT_Load_Glyph(m_ftFace, glyphIndex, FT_LOAD_DEFAULT) != 0)
-			continue;
-
-		if (FT_Render_Glyph(m_ftFace->glyph, FT_RENDER_MODE_NORMAL) != 0)
-			continue;
-
-		FT_GlyphSlot slot = m_ftFace->glyph;
-		FT_Bitmap& bitmap = slot->bitmap;
-
-		int bmpX = penX + slot->bitmap_left;
-		int bmpY = penY + m_ascender - slot->bitmap_top;
-
-		for (int row = 0; row < (int)bitmap.rows; ++row)
-		{
-			int destY = bmpY + row;
-			if (destY < 0 || destY >= bufHeight)
-				continue;
-
-			unsigned char* srcRow = bitmap.buffer + row * bitmap.pitch;
-			DWORD* dstRow = pdwBuf + destY * bufWidth;
-
-			for (int col = 0; col < (int)bitmap.width; ++col)
-			{
-				int destX = bmpX + col;
-				if (destX < 0 || destX >= bufWidth)
-					continue;
-
-				unsigned char alpha = srcRow[col];
-				if (alpha)
-				{
-					alpha = s_textBarGammaLUT.table[alpha];
-					DWORD r = (colorRGB >> 0) & 0xFF;
-					DWORD g = (colorRGB >> 8) & 0xFF;
-					DWORD b = (colorRGB >> 16) & 0xFF;
-					dstRow[destX] = ((DWORD)alpha << 24) | (r << 16) | (g << 8) | b;
-				}
-			}
-		}
-
-		penX += (int)ceilf((float)(slot->advance.x) / 64.0f) + 1;  // +1px letter spacing
-		prevIndex = glyphIndex;
+		DeleteDC(dc);
+		return;
 	}
+
+	memcpy(bits, buffer, width * height * sizeof(DWORD));
+
+	HGDIOBJ oldBitmap = SelectObject(dc, bitmap);
+	HGDIOBJ oldFont = SelectObject(dc, m_hFont);
+
+	SetBkMode(dc, TRANSPARENT);
+
+	const BYTE r = static_cast<BYTE>((m_textColor >> 16) & 0xff);
+	const BYTE g = static_cast<BYTE>((m_textColor >> 8) & 0xff);
+	const BYTE b = static_cast<BYTE>(m_textColor & 0xff);
+
+	::SetTextColor(dc, RGB(r, g, b));
+
+	ExtTextOutW(
+		dc,
+		x,
+		y,
+		0,
+		nullptr,
+		wideText.c_str(),
+		static_cast<UINT>(wideText.length()),
+		nullptr);
+
+	memcpy(buffer, bits, width * height * sizeof(DWORD));
+
+	SelectObject(dc, oldFont);
+	SelectObject(dc, oldBitmap);
+
+	DeleteObject(bitmap);
+	DeleteDC(dc);
 
 	Invalidate();
 }
@@ -184,23 +197,4 @@ void CTextBar::TextOut(int ix, int iy, const char * c_szText)
 void CTextBar::OnCreate()
 {
 	__SetFont(m_fontSize, m_isBold);
-}
-
-CTextBar::CTextBar(int fontSize, bool isBold)
-{
-	m_ftFace = nullptr;
-	m_textColor = 0x00FFFFFF;  // White (RGB)
-	m_fontSize = fontSize;
-	m_isBold = isBold;
-	m_ascender = 0;
-	m_lineHeight = 0;
-}
-
-CTextBar::~CTextBar()
-{
-	if (m_ftFace)
-	{
-		FT_Done_Face(m_ftFace);
-		m_ftFace = nullptr;
-	}
 }

@@ -2,6 +2,7 @@
 #include "PythonPlayer.h"
 
 #include "InstanceBase.h"
+#include <EterLib/Input.h>
 
 void CPythonPlayer::SetAttackKeyState(bool isPress)
 {

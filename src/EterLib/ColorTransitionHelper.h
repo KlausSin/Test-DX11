@@ -1,4 +1,5 @@
 #pragma once
+#include "D3DXMathCompat.h"
 
 class CColorTransitionHelper
 {

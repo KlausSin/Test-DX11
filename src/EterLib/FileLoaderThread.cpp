@@ -76,7 +76,7 @@ void CFileLoaderThread::ProcessFile(const std::string& fileName)
 	pData->File.clear();
 	pData->stFileName = fileName;
 
-	CPackManager::instance().GetFile(pData->stFileName, pData->File);
+	CPackManager::Instance().GetFile(pData->stFileName, pData->File);
 
 	// Add to completed queue
 	{

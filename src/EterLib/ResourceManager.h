@@ -13,11 +13,9 @@
 #include <unordered_map>
 #include <vector>
 #include "qMin32Lib/AsyncFileSystem.h"
-
+#include "EterBase/Singleton.h"
 class CTextureCache;
 
-template <class T>
-class CSingleton;
 
 class CResourceManager : public CSingleton<CResourceManager>
 {

@@ -79,7 +79,7 @@ bool CGraphicText::OnLoad(int /*iSize*/, const void* /*c_pvBuf*/)
 			strName[nameLen] = '\0';
 		}
 
-		size = 12;
+		size = 8;
 	}
 
 	if (!m_fontTexture.Create(strName, size, bItalic))

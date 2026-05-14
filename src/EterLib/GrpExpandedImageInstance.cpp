@@ -1,13 +1,13 @@
 #include "StdAfx.h"
-#include "EterBase/CRC32.h"
 #include "GrpExpandedImageInstance.h"
 #include "StateManager.h"
+#include "EterBase/CRC32.h"
 
-CDynamicPool<CGraphicExpandedImageInstance>		CGraphicExpandedImageInstance::ms_kPool;
+CDynamicPool<CGraphicExpandedImageInstance> CGraphicExpandedImageInstance::ms_kPool;
 
-void CGraphicExpandedImageInstance::CreateSystem(UINT uCapacity)
+void CGraphicExpandedImageInstance::CreateSystem(UINT capacity)
 {
-	ms_kPool.Create(uCapacity);
+	ms_kPool.Create(capacity);
 }
 
 void CGraphicExpandedImageInstance::DestroySystem()
@@ -20,87 +20,131 @@ CGraphicExpandedImageInstance* CGraphicExpandedImageInstance::New()
 	return ms_kPool.Alloc();
 }
 
-void CGraphicExpandedImageInstance::Delete(CGraphicExpandedImageInstance* pkImgInst)
+void CGraphicExpandedImageInstance::Delete(CGraphicExpandedImageInstance* instance)
 {
-	pkImgInst->Destroy();
-	ms_kPool.Free(pkImgInst);
+	if (!instance)
+		return;
+
+	instance->Destroy();
+	ms_kPool.Free(instance);
+}
+
+CGraphicExpandedImageInstance::CGraphicExpandedImageInstance()
+{
+	Initialize();
+}
+
+CGraphicExpandedImageInstance::~CGraphicExpandedImageInstance()
+{
+	Destroy();
+}
+
+void CGraphicExpandedImageInstance::Initialize()
+{
+	m_fDepth = 0.0f;
+
+	m_v2Origin.x = 0.0f;
+	m_v2Origin.y = 0.0f;
+
+	m_v2Scale.x = 1.0f;
+	m_v2Scale.y = 1.0f;
+
+	m_fRotation = 0.0f;
+
+	ZeroMemory(&m_RenderingRect, sizeof(m_RenderingRect));
+
+	m_iRenderingMode = RENDERING_MODE_NORMAL;
+}
+
+void CGraphicExpandedImageInstance::Destroy()
+{
+	CGraphicImageInstance::Destroy();
+	Initialize();
 }
 
 void CGraphicExpandedImageInstance::OnRender()
 {
-	CGraphicImage * pImage = m_roImage.GetPointer();
-	CGraphicTexture * pTexture = pImage->GetTexturePointer();
+	CGraphicImage* image = m_roImage.GetPointer();
 
-	const RECT& c_rRect = pImage->GetRectReference();
-	float texReverseWidth = 1.0f / float(pTexture->GetWidth());
-	float texReverseHeight = 1.0f / float(pTexture->GetHeight());
-	float su = (c_rRect.left - m_RenderingRect.left) * texReverseWidth;
-	float sv = (c_rRect.top - m_RenderingRect.top) * texReverseHeight;
-	float eu = (c_rRect.left + m_RenderingRect.right + (c_rRect.right-c_rRect.left)) * texReverseWidth;
-	float ev = (c_rRect.top + m_RenderingRect.bottom + (c_rRect.bottom-c_rRect.top)) * texReverseHeight;
+	if (!image)
+		return;
+
+	CGraphicTexture* texture = image->GetTexturePointer();
+
+	if (!texture || !texture->GetSRV())
+		return;
+
+	const RECT& rect = image->GetRectReference();
+
+	const float textureWidth = static_cast<float>(texture->GetWidth());
+	const float textureHeight = static_cast<float>(texture->GetHeight());
+
+	if (textureWidth <= 0.0f || textureHeight <= 0.0f)
+		return;
+
+	const float invTextureWidth = 1.0f / textureWidth;
+	const float invTextureHeight = 1.0f / textureHeight;
+
+	const float imageWidth = static_cast<float>(image->GetWidth()) * m_v2Scale.x;
+	const float imageHeight = static_cast<float>(image->GetHeight()) * m_v2Scale.y;
+
+	const float su = static_cast<float>(rect.left - m_RenderingRect.left) * invTextureWidth;
+	const float sv = static_cast<float>(rect.top - m_RenderingRect.top) * invTextureHeight;
+
+	const float eu = static_cast<float>(
+		rect.left + m_RenderingRect.right + image->GetWidth()) * invTextureWidth;
+
+	const float ev = static_cast<float>(
+		rect.top + m_RenderingRect.bottom + image->GetHeight()) * invTextureHeight;
 
 	TPDTVertex vertices[4];
-	vertices[0].position.x	= m_v2Position.x;
-	vertices[0].position.y	= m_v2Position.y;
-	vertices[0].position.z	= m_fDepth;
-	vertices[0].texCoord	= TTextureCoordinate(su, sv);
-	vertices[0].diffuse		= m_DiffuseColor;
 
-	vertices[1].position.x	= m_v2Position.x;
-	vertices[1].position.y	= m_v2Position.y;
-	vertices[1].position.z	= m_fDepth;
-	vertices[1].texCoord	= TTextureCoordinate(eu, sv);
-	vertices[1].diffuse		= m_DiffuseColor;
+	vertices[0].position = TPosition(m_v2Position.x, m_v2Position.y, m_fDepth);
+	vertices[1].position = TPosition(m_v2Position.x, m_v2Position.y, m_fDepth);
+	vertices[2].position = TPosition(m_v2Position.x, m_v2Position.y, m_fDepth);
+	vertices[3].position = TPosition(m_v2Position.x, m_v2Position.y, m_fDepth);
 
-	vertices[2].position.x	= m_v2Position.x;
-	vertices[2].position.y	= m_v2Position.y;
-	vertices[2].position.z	= m_fDepth;
-	vertices[2].texCoord	= TTextureCoordinate(su, ev);
-	vertices[2].diffuse		= m_DiffuseColor;
+	vertices[0].texCoord = TTextureCoordinate(su, sv);
+	vertices[1].texCoord = TTextureCoordinate(eu, sv);
+	vertices[2].texCoord = TTextureCoordinate(su, ev);
+	vertices[3].texCoord = TTextureCoordinate(eu, ev);
 
-	vertices[3].position.x	= m_v2Position.x;
-	vertices[3].position.y	= m_v2Position.y;
-	vertices[3].position.z	= m_fDepth;
-	vertices[3].texCoord	= TTextureCoordinate(eu, ev);
-	vertices[3].diffuse		= m_DiffuseColor;
+	vertices[0].diffuse = m_DiffuseColor;
+	vertices[1].diffuse = m_DiffuseColor;
+	vertices[2].diffuse = m_DiffuseColor;
+	vertices[3].diffuse = m_DiffuseColor;
 
-	if (0.0f == m_fRotation)
+	if (m_fRotation == 0.0f)
 	{
-		float fimgWidth = float(pImage->GetWidth()) * m_v2Scale.x;
-		float fimgHeight = float(pImage->GetHeight()) * m_v2Scale.y;
+		vertices[0].position.x -= static_cast<float>(m_RenderingRect.left);
+		vertices[0].position.y -= static_cast<float>(m_RenderingRect.top);
 
-		vertices[0].position.x -= m_RenderingRect.left;
-		vertices[0].position.y -= m_RenderingRect.top;
-		vertices[1].position.x += fimgWidth + m_RenderingRect.right;
-		vertices[1].position.y -= m_RenderingRect.top;
-		vertices[2].position.x -= m_RenderingRect.left;
-		vertices[2].position.y += fimgHeight + m_RenderingRect.bottom;
-		vertices[3].position.x += fimgWidth + m_RenderingRect.right;
-		vertices[3].position.y += fimgHeight + m_RenderingRect.bottom;
-		if ((0.0f < m_v2Scale.x && 0.0f > m_v2Scale.y) || (0.0f > m_v2Scale.x && 0.0f < m_v2Scale.y)) {
-			STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_BACK);
-		}
+		vertices[1].position.x += imageWidth + static_cast<float>(m_RenderingRect.right);
+		vertices[1].position.y -= static_cast<float>(m_RenderingRect.top);
+
+		vertices[2].position.x -= static_cast<float>(m_RenderingRect.left);
+		vertices[2].position.y += imageHeight + static_cast<float>(m_RenderingRect.bottom);
+
+		vertices[3].position.x += imageWidth + static_cast<float>(m_RenderingRect.right);
+		vertices[3].position.y += imageHeight + static_cast<float>(m_RenderingRect.bottom);
 	}
 	else
 	{
-		float fimgHalfWidth = float(pImage->GetWidth())/2.0f * m_v2Scale.x;
-		float fimgHalfHeight = float(pImage->GetHeight())/2.0f * m_v2Scale.y;
+		const float halfWidth = imageWidth * 0.5f;
+		const float halfHeight = imageHeight * 0.5f;
+		const float radian = D3DXToRadian(m_fRotation);
+
+		const float cosValue = cosf(radian);
+		const float sinValue = sinf(radian);
+
+		const float localX[4] = { -halfWidth, halfWidth, -halfWidth, halfWidth };
+		const float localY[4] = { -halfHeight, -halfHeight, halfHeight, halfHeight };
 
 		for (int i = 0; i < 4; ++i)
 		{
-			vertices[i].position.x += m_v2Origin.x;
-			vertices[i].position.y += m_v2Origin.y;
+			vertices[i].position.x += m_v2Origin.x + localX[i] * cosValue - localY[i] * sinValue;
+			vertices[i].position.y += m_v2Origin.y + localX[i] * sinValue + localY[i] * cosValue;
 		}
-
-		float fRadian = D3DXToRadian(m_fRotation);
-		vertices[0].position.x += (-fimgHalfWidth*cosf(fRadian)) - (-fimgHalfHeight*sinf(fRadian));
-		vertices[0].position.y += (-fimgHalfWidth*sinf(fRadian)) + (-fimgHalfHeight*cosf(fRadian));
-		vertices[1].position.x += (+fimgHalfWidth*cosf(fRadian)) - (-fimgHalfHeight*sinf(fRadian));
-		vertices[1].position.y += (+fimgHalfWidth*sinf(fRadian)) + (-fimgHalfHeight*cosf(fRadian));
-		vertices[2].position.x += (-fimgHalfWidth*cosf(fRadian)) - (+fimgHalfHeight*sinf(fRadian));
-		vertices[2].position.y += (-fimgHalfWidth*sinf(fRadian)) + (+fimgHalfHeight*cosf(fRadian));
-		vertices[3].position.x += (+fimgHalfWidth*cosf(fRadian)) - (+fimgHalfHeight*sinf(fRadian));
-		vertices[3].position.y += (+fimgHalfWidth*sinf(fRadian)) + (+fimgHalfHeight*cosf(fRadian));
 	}
 
 	switch (m_iRenderingMode)
@@ -119,17 +163,21 @@ void CGraphicExpandedImageInstance::OnRender()
 			break;
 	}
 
-	// 2004.11.18.myevan.ctrl+alt+del 반복 사용시 튕기는 문제 	
 	if (CGraphicBase::SetPDTStream(vertices, 4))
 	{
 		CGraphicBase::SetDefaultIndexBuffer(CGraphicBase::DEFAULT_IB_FILL_RECT);
 
-		STATEMANAGER.SetTexture(0, pTexture->GetSRV());
-		STATEMANAGER.SetTexture(1, NULL);
+		STATEMANAGER.SetTexture(0, texture->GetSRV());
+		STATEMANAGER.SetTexture(1, nullptr);
+
 		_mgr->SetShader(VF_PDT, BLEND_UI_TEX);
-		STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, 0, 0, 2);
+
+		STATEMANAGER.DrawIndexedPrimitive11(
+			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
+			0,
+			0,
+			2);
 	}
-	/////////////////////////////////////////////////////////////
 
 	switch (m_iRenderingMode)
 	{
@@ -139,60 +187,58 @@ void CGraphicExpandedImageInstance::OnRender()
 			STATEMANAGER.GetBlend().Restore();
 			break;
 	}
-
-	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_FRONT);
 }
 
-void CGraphicExpandedImageInstance::SetDepth(float fDepth)
+void CGraphicExpandedImageInstance::SetDepth(float depth)
 {
-	m_fDepth = fDepth;
+	m_fDepth = depth;
 }
 
 void CGraphicExpandedImageInstance::SetOrigin()
 {
-	SetOrigin(float(GetWidth()) / 2.0f, float(GetHeight()) / 2.0f);
+	SetOrigin(
+		static_cast<float>(GetWidth()) * 0.5f,
+		static_cast<float>(GetHeight()) * 0.5f);
 }
 
-void CGraphicExpandedImageInstance::SetOrigin(float fx, float fy)
+void CGraphicExpandedImageInstance::SetOrigin(float x, float y)
 {
-	m_v2Origin.x = fx;
-	m_v2Origin.y = fy;
+	m_v2Origin.x = x;
+	m_v2Origin.y = y;
 }
 
-void CGraphicExpandedImageInstance::SetRotation(float fRotation)
+void CGraphicExpandedImageInstance::SetRotation(float rotation)
 {
-	m_fRotation = fRotation;
+	m_fRotation = rotation;
 }
 
-void CGraphicExpandedImageInstance::SetScale(float fx, float fy)
+void CGraphicExpandedImageInstance::SetScale(float x, float y)
 {
-	m_v2Scale.x = fx;
-	m_v2Scale.y = fy;
+	m_v2Scale.x = x;
+	m_v2Scale.y = y;
 }
 
-void CGraphicExpandedImageInstance::SetRenderingRect(float fLeft, float fTop, float fRight, float fBottom)
+void CGraphicExpandedImageInstance::SetRenderingRect(
+	float left,
+	float top,
+	float right,
+	float bottom)
 {
 	if (IsEmpty())
 		return;
 
-	float fWidth = float(GetWidth());
-	float fHeight = float(GetHeight());
+	const float width = static_cast<float>(GetWidth());
+	const float height = static_cast<float>(GetHeight());
 
-	m_RenderingRect.left = fWidth * fLeft;
-	m_RenderingRect.top = fHeight * fTop;
-	m_RenderingRect.right = fWidth * fRight;
-	m_RenderingRect.bottom = fHeight * fBottom;
+	m_RenderingRect.left = static_cast<LONG>(width * left);
+	m_RenderingRect.top = static_cast<LONG>(height * top);
+	m_RenderingRect.right = static_cast<LONG>(width * right);
+	m_RenderingRect.bottom = static_cast<LONG>(height * bottom);
 }
 
-void CGraphicExpandedImageInstance::SetRenderingMode(int iMode)
+void CGraphicExpandedImageInstance::SetRenderingMode(int mode)
 {
-	m_iRenderingMode = iMode;
-}
-
-DWORD CGraphicExpandedImageInstance::Type()
-{
-	static DWORD s_dwType = GetCRC32("CGraphicExpandedImageInstance", strlen("CGraphicExpandedImageInstance"));
-	return (s_dwType);
+	m_iRenderingMode = mode;
 }
 
 void CGraphicExpandedImageInstance::OnSetImagePointer()
@@ -200,39 +246,22 @@ void CGraphicExpandedImageInstance::OnSetImagePointer()
 	if (IsEmpty())
 		return;
 
-	SetOrigin(float(GetWidth()) / 2.0f, float(GetHeight()) / 2.0f);
+	SetOrigin();
 }
 
-BOOL CGraphicExpandedImageInstance::OnIsType(DWORD dwType)
+BOOL CGraphicExpandedImageInstance::OnIsType(DWORD type)
 {
-	if (CGraphicExpandedImageInstance::Type() == dwType)
+	if (CGraphicExpandedImageInstance::Type() == type)
 		return TRUE;
 
-	return CGraphicImageInstance::IsType(dwType);
+	return CGraphicImageInstance::OnIsType(type);
 }
 
-void CGraphicExpandedImageInstance::Initialize()
+DWORD CGraphicExpandedImageInstance::Type()
 {
-	m_iRenderingMode = RENDERING_MODE_NORMAL;
-	m_fDepth = 0.0f;
-	m_v2Origin.x = m_v2Origin.y = 0.0f;
-	m_v2Scale.x = m_v2Scale.y = 1.0f;
-	m_fRotation = 0.0f;
-	memset(&m_RenderingRect, 0, sizeof(RECT));
-}
+	static DWORD type = GetCRC32(
+		"CGraphicExpandedImageInstance",
+		strlen("CGraphicExpandedImageInstance"));
 
-void CGraphicExpandedImageInstance::Destroy()
-{
-	CGraphicImageInstance::Destroy();
-	Initialize();
-}
-
-CGraphicExpandedImageInstance::CGraphicExpandedImageInstance()
-{
-	Initialize();
-}
-
-CGraphicExpandedImageInstance::~CGraphicExpandedImageInstance()
-{
-	Destroy();
+	return type;
 }

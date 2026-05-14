@@ -20,10 +20,6 @@
 #include <d3dcompiler.h>
 #include <dxgi.h>
 
-#define DIRECTINPUT_VERSION 0x0800
-
-#include <dinput.h>
-
 #pragma warning ( disable : 4201 )
 #include <mmsystem.h>
 #pragma warning ( default : 4201 )

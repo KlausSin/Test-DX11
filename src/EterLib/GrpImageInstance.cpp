@@ -1,14 +1,13 @@
 #include "StdAfx.h"
 #include "GrpImageInstance.h"
 #include "StateManager.h"
-
 #include "EterBase/CRC32.h"
 
-CDynamicPool<CGraphicImageInstance>		CGraphicImageInstance::ms_kPool;
+CDynamicPool<CGraphicImageInstance> CGraphicImageInstance::ms_kPool;
 
-void CGraphicImageInstance::CreateSystem(UINT uCapacity)
+void CGraphicImageInstance::CreateSystem(UINT capacity)
 {
-	ms_kPool.Create(uCapacity);
+	ms_kPool.Create(capacity);
 }
 
 void CGraphicImageInstance::DestroySystem()
@@ -21,10 +20,40 @@ CGraphicImageInstance* CGraphicImageInstance::New()
 	return ms_kPool.Alloc();
 }
 
-void CGraphicImageInstance::Delete(CGraphicImageInstance* pkImgInst)
+void CGraphicImageInstance::Delete(CGraphicImageInstance* instance)
 {
-	pkImgInst->Destroy();
-	ms_kPool.Free(pkImgInst);
+	if (!instance)
+		return;
+
+	instance->Destroy();
+	ms_kPool.Free(instance);
+}
+
+CGraphicImageInstance::CGraphicImageInstance()
+{
+	Initialize();
+}
+
+CGraphicImageInstance::~CGraphicImageInstance()
+{
+	Destroy();
+}
+
+void CGraphicImageInstance::Initialize()
+{
+	m_DiffuseColor.r = 1.0f;
+	m_DiffuseColor.g = 1.0f;
+	m_DiffuseColor.b = 1.0f;
+	m_DiffuseColor.a = 1.0f;
+
+	m_v2Position.x = 0.0f;
+	m_v2Position.y = 0.0f;
+}
+
+void CGraphicImageInstance::Destroy()
+{
+	m_roImage.SetPointer(nullptr);
+	Initialize();
 }
 
 void CGraphicImageInstance::Render()
@@ -32,57 +61,55 @@ void CGraphicImageInstance::Render()
 	if (IsEmpty())
 		return;
 
-	assert(!IsEmpty());
-
 	OnRender();
 }
 
 void CGraphicImageInstance::OnRender()
 {
-	CGraphicImage* pImage = m_roImage.GetPointer();
-	if (!pImage)
+	CGraphicImage* image = m_roImage.GetPointer();
+
+	if (!image)
 		return;
 
-	CGraphicTexture* pTexture = pImage->GetTexturePointer();
-	if (!pTexture || !pTexture->GetSRV())
+	CGraphicTexture* texture = image->GetTexturePointer();
+
+	if (!texture || !texture->GetSRV())
 		return;
 
-	float fimgWidth = (float)pImage->GetWidth();
-	float fimgHeight = (float)pImage->GetHeight();
+	const RECT& rect = image->GetRectReference();
 
-	const RECT& c_rRect = pImage->GetRectReference();
-	float texReverseWidth = 1.0f / float(pTexture->GetWidth());
-	float texReverseHeight = 1.0f / float(pTexture->GetHeight());
+	const float imageWidth = static_cast<float>(image->GetWidth());
+	const float imageHeight = static_cast<float>(image->GetHeight());
 
-	float su = c_rRect.left * texReverseWidth;
-	float sv = c_rRect.top * texReverseHeight;
-	float eu = c_rRect.right * texReverseWidth;
-	float ev = c_rRect.bottom * texReverseHeight;
+	const float textureWidth = static_cast<float>(texture->GetWidth());
+	const float textureHeight = static_cast<float>(texture->GetHeight());
+
+	if (textureWidth <= 0.0f || textureHeight <= 0.0f)
+		return;
+
+	const float invTextureWidth = 1.0f / textureWidth;
+	const float invTextureHeight = 1.0f / textureHeight;
+
+	const float su = static_cast<float>(rect.left) * invTextureWidth;
+	const float sv = static_cast<float>(rect.top) * invTextureHeight;
+	const float eu = static_cast<float>(rect.right) * invTextureWidth;
+	const float ev = static_cast<float>(rect.bottom) * invTextureHeight;
 
 	TPDTVertex vertices[4];
 
-	vertices[0].position.x = m_v2Position.x;
-	vertices[0].position.y = m_v2Position.y;
-	vertices[0].position.z = 0.0f;
+	vertices[0].position = TPosition(m_v2Position.x, m_v2Position.y, 0.0f);
+	vertices[1].position = TPosition(m_v2Position.x + imageWidth, m_v2Position.y, 0.0f);
+	vertices[2].position = TPosition(m_v2Position.x, m_v2Position.y + imageHeight, 0.0f);
+	vertices[3].position = TPosition(m_v2Position.x + imageWidth, m_v2Position.y + imageHeight, 0.0f);
+
 	vertices[0].texCoord = TTextureCoordinate(su, sv);
-	vertices[0].diffuse = m_DiffuseColor;
-
-	vertices[1].position.x = m_v2Position.x + fimgWidth;
-	vertices[1].position.y = m_v2Position.y;
-	vertices[1].position.z = 0.0f;
 	vertices[1].texCoord = TTextureCoordinate(eu, sv);
-	vertices[1].diffuse = m_DiffuseColor;
-
-	vertices[2].position.x = m_v2Position.x;
-	vertices[2].position.y = m_v2Position.y + fimgHeight;
-	vertices[2].position.z = 0.0f;
 	vertices[2].texCoord = TTextureCoordinate(su, ev);
-	vertices[2].diffuse = m_DiffuseColor;
-
-	vertices[3].position.x = m_v2Position.x + fimgWidth;
-	vertices[3].position.y = m_v2Position.y + fimgHeight;
-	vertices[3].position.z = 0.0f;
 	vertices[3].texCoord = TTextureCoordinate(eu, ev);
+
+	vertices[0].diffuse = m_DiffuseColor;
+	vertices[1].diffuse = m_DiffuseColor;
+	vertices[2].diffuse = m_DiffuseColor;
 	vertices[3].diffuse = m_DiffuseColor;
 
 	STATEMANAGER.GetStateCache().Push();
@@ -102,8 +129,8 @@ void CGraphicImageInstance::OnRender()
 	{
 		CGraphicBase::SetDefaultIndexBuffer(CGraphicBase::DEFAULT_IB_FILL_RECT);
 
-		STATEMANAGER.SetTexture(0, pTexture->GetSRV());
-		STATEMANAGER.SetTexture(1, NULL);
+		STATEMANAGER.SetTexture(0, texture->GetSRV());
+		STATEMANAGER.SetTexture(1, nullptr);
 
 		_mgr->SetShader(VF_PDT, BLEND_UI_TEX);
 
@@ -113,99 +140,106 @@ void CGraphicImageInstance::OnRender()
 	STATEMANAGER.GetStateCache().Restore();
 }
 
-const CGraphicTexture & CGraphicImageInstance::GetTextureReference() const
+void CGraphicImageInstance::SetDiffuseColor(float r, float g, float b, float a)
 {
-	return m_roImage->GetTextureReference();
+	m_DiffuseColor.r = r;
+	m_DiffuseColor.g = g;
+	m_DiffuseColor.b = b;
+	m_DiffuseColor.a = a;
 }
 
-CGraphicTexture * CGraphicImageInstance::GetTexturePointer()
+void CGraphicImageInstance::SetPosition(float x, float y)
 {
-	CGraphicImage* pkImage = m_roImage.GetPointer();
-	return pkImage ? pkImage->GetTexturePointer() : NULL;
+	m_v2Position.x = x;
+	m_v2Position.y = y;
 }
 
-CGraphicImage * CGraphicImageInstance::GetGraphicImagePointer()
+void CGraphicImageInstance::SetImagePointer(CGraphicImage* image)
 {
-	return m_roImage.GetPointer();
-}
-
-int CGraphicImageInstance::GetWidth()
-{
-	if (IsEmpty())
-		return 0;
-	
-	return m_roImage->GetWidth();
-}
-
-int CGraphicImageInstance::GetHeight()
-{
-	if (IsEmpty())
-		return 0;
-	
-	return m_roImage->GetHeight();
-}
-
-void CGraphicImageInstance::SetDiffuseColor(float fr, float fg, float fb, float fa)
-{
-	m_DiffuseColor.r = fr;
-	m_DiffuseColor.g = fg;
-	m_DiffuseColor.b = fb;
-	m_DiffuseColor.a = fa;
-}
-void CGraphicImageInstance::SetPosition(float fx, float fy)
-{
-	m_v2Position.x = fx;
-	m_v2Position.y = fy;
-}
-
-void CGraphicImageInstance::SetImagePointer(CGraphicImage * pImage)
-{
-	m_roImage.SetPointer(pImage);
-
+	m_roImage.SetPointer(image);
 	OnSetImagePointer();
 }
 
-void CGraphicImageInstance::ReloadImagePointer(CGraphicImage * pImage)
+void CGraphicImageInstance::ReloadImagePointer(CGraphicImage* image)
 {
 	if (m_roImage.IsNull())
 	{
-		SetImagePointer(pImage);
+		SetImagePointer(image);
 		return;
 	}
 
-	CGraphicImage * pkImage = m_roImage.GetPointer();
+	CGraphicImage* currentImage = m_roImage.GetPointer();
 
-	if (pkImage)
-		pkImage->Reload();
+	if (currentImage)
+		currentImage->Reload();
 }
 
 bool CGraphicImageInstance::IsEmpty() const
 {
-	if (!m_roImage.IsNull() && !m_roImage->IsEmpty())
-		return false;
-
-	return true;
+	return m_roImage.IsNull() || m_roImage->IsEmpty();
 }
 
-bool CGraphicImageInstance::operator == (const CGraphicImageInstance & rhs) const
+int CGraphicImageInstance::GetWidth() const
 {
-	return (m_roImage.GetPointer() == rhs.m_roImage.GetPointer());
+	if (IsEmpty())
+		return 0;
+
+	return m_roImage->GetWidth();
+}
+
+int CGraphicImageInstance::GetHeight() const
+{
+	if (IsEmpty())
+		return 0;
+
+	return m_roImage->GetHeight();
+}
+
+CGraphicTexture* CGraphicImageInstance::GetTexturePointer()
+{
+	CGraphicImage* image = m_roImage.GetPointer();
+
+	if (!image)
+		return nullptr;
+
+	return image->GetTexturePointer();
+}
+
+const CGraphicTexture& CGraphicImageInstance::GetTextureReference() const
+{
+	return m_roImage->GetTextureReference();
+}
+
+CGraphicImage* CGraphicImageInstance::GetGraphicImagePointer()
+{
+	return m_roImage.GetPointer();
+}
+
+const CGraphicImage* CGraphicImageInstance::GetGraphicImagePointer() const
+{
+	return m_roImage.GetPointer();
+}
+
+bool CGraphicImageInstance::operator == (const CGraphicImageInstance& rhs) const
+{
+	return m_roImage.GetPointer() == rhs.m_roImage.GetPointer();
 }
 
 DWORD CGraphicImageInstance::Type()
 {
-	static DWORD s_dwType = GetCRC32("CGraphicImageInstance", strlen("CGraphicImageInstance"));
-	return (s_dwType);
+	static DWORD type = GetCRC32("CGraphicImageInstance", strlen("CGraphicImageInstance"));
+
+	return type;
 }
 
-BOOL CGraphicImageInstance::IsType(DWORD dwType)
+BOOL CGraphicImageInstance::IsType(DWORD type)
 {
-	return OnIsType(dwType);
+	return OnIsType(type);
 }
 
-BOOL CGraphicImageInstance::OnIsType(DWORD dwType)
+BOOL CGraphicImageInstance::OnIsType(DWORD type)
 {
-	if (CGraphicImageInstance::Type() == dwType)
+	if (CGraphicImageInstance::Type() == type)
 		return TRUE;
 
 	return FALSE;
@@ -213,26 +247,4 @@ BOOL CGraphicImageInstance::OnIsType(DWORD dwType)
 
 void CGraphicImageInstance::OnSetImagePointer()
 {
-}
-
-void CGraphicImageInstance::Initialize()
-{
-	m_DiffuseColor.r = m_DiffuseColor.g = m_DiffuseColor.b = m_DiffuseColor.a = 1.0f;
-	m_v2Position.x = m_v2Position.y = 0.0f;
-}
-
-void CGraphicImageInstance::Destroy()
-{
-	m_roImage.SetPointer(NULL); // CRef 에서 레퍼런스 카운트가 떨어져야 함.
-	Initialize();
-}
-
-CGraphicImageInstance::CGraphicImageInstance()
-{
-	Initialize();
-}
-
-CGraphicImageInstance::~CGraphicImageInstance()
-{
-	Destroy();
 }

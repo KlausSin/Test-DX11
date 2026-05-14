@@ -1,48 +1,39 @@
-#ifndef __INC_GRPIMAGE_H__
-#define __INC_GRPIMAGE_H__
+#pragma once
 
-#include "Ref.h"
 #include "Resource.h"
+#include "Ref.h"
 #include "GrpImageTexture.h"
-
-struct TDecodedImageData;
 
 class CGraphicImage : public CResource
 {
-	public:
-		typedef CRef<CGraphicImage> TRef;
+public:
+	typedef CRef<CGraphicImage> TRef;
 
-	public:
-		static TType Type();
+public:
+	static TType Type();
 
-	public:
-		CGraphicImage(const char* c_szFileName, DWORD dwFilter = D3D11_FILTER_MIN_MAG_MIP_LINEAR);
-		virtual ~CGraphicImage();
+public:
+	explicit CGraphicImage(const char* fileName);
+	~CGraphicImage() override;
 
-		virtual bool CreateDeviceObjects();
-		virtual void DestroyDeviceObjects();
+	bool CreateDeviceObjects() override;
+	void DestroyDeviceObjects() override;
 
-		int GetWidth() const;
-		int GetHeight() const;
+	int GetWidth() const;
+	int GetHeight() const;
 
-		const RECT & GetRectReference() const;
+	const RECT& GetRectReference() const;
 
-		const CGraphicTexture & GetTextureReference() const;
-		CGraphicTexture * GetTexturePointer();
+	const CGraphicTexture& GetTextureReference() const;
+	CGraphicTexture* GetTexturePointer();
 
-		bool OnLoadFromDecodedData(const TDecodedImageData& decodedImage);
+protected:
+	bool OnLoad(int size, const void* data) override;
+	void OnClear() override;
+	bool OnIsEmpty() const override;
+	bool OnIsType(TType type) override;
 
-	protected:
-		bool OnLoad(int iSize, const void * c_pvBuf);
-		
-		void OnClear();	
-		bool OnIsEmpty() const;
-		bool OnIsType(TType type);
-
-	protected:
-		CGraphicImageTexture	m_imageTexture;
-		RECT					m_rect;
-		DWORD					m_dwFilter;
+protected:
+	CGraphicImageTexture m_imageTexture;
+	RECT m_rect;
 };
-
-#endif

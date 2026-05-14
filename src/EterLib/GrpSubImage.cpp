@@ -6,41 +6,45 @@
 
 char CGraphicSubImage::m_SearchPath[256] = "D:/Ymir Work/UI/";
 
-CGraphicSubImage::TType CGraphicSubImage::Type()
-{
-	static TType s_type = StringToType("CGraphicSubImage");
-	return s_type;
-}
-
-CGraphicSubImage::CGraphicSubImage(const char* c_szFileName) : CGraphicImage(c_szFileName)
+CGraphicSubImage::CGraphicSubImage(const char* fileName)
+	: CGraphicImage(fileName)
 {
 }
 
 CGraphicSubImage::~CGraphicSubImage()
 {
-	m_roImage = nullptr;
+	OnClear();
+}
+
+CGraphicSubImage::TType CGraphicSubImage::Type()
+{
+	static TType type = StringToType("CGraphicSubImage");
+	return type;
 }
 
 bool CGraphicSubImage::CreateDeviceObjects()
 {
+	if (m_roImage.IsNull())
+		return false;
+
 	m_imageTexture.CreateFromTexturePointer(m_roImage->GetTexturePointer());
 	return true;
 }
 
-void CGraphicSubImage::SetImagePointer(CGraphicImage* pImage)
+void CGraphicSubImage::SetImagePointer(CGraphicImage* image)
 {
-	m_roImage = pImage;
+	m_roImage.SetPointer(image);
 	CreateDeviceObjects();
 }
 
-bool CGraphicSubImage::SetImageFileName(const char* c_szFileName)
+bool CGraphicSubImage::SetImageFileName(const char* fileName)
 {
-	CResource* pResource = CResourceManager::Instance().GetResourcePointer(c_szFileName);
+	CResource* resource = CResourceManager::Instance().GetResourcePointer(fileName);
 
-	if (!pResource->IsType(CGraphicImage::Type()))
+	if (!resource || !resource->IsType(CGraphicImage::Type()))
 		return false;
 
-	SetImagePointer(static_cast<CGraphicImage*>(pResource));
+	SetImagePointer(static_cast<CGraphicImage*>(resource));
 	return true;
 }
 
@@ -52,104 +56,98 @@ void CGraphicSubImage::SetRectPosition(int left, int top, int right, int bottom)
 	m_rect.bottom = bottom;
 }
 
-void CGraphicSubImage::SetRectReference(const RECT& c_rRect)
+void CGraphicSubImage::SetRectReference(const RECT& rect)
 {
-	m_rect = c_rRect;
+	m_rect = rect;
 }
 
-void CGraphicSubImage::SetSearchPath(const char * c_szFileName)
+void CGraphicSubImage::SetSearchPath(const char* fileName)
 {
-	strncpy(m_SearchPath, c_szFileName, sizeof(m_SearchPath)-1);
+	strncpy(m_SearchPath, fileName, sizeof(m_SearchPath) - 1);
+	m_SearchPath[sizeof(m_SearchPath) - 1] = '\0';
 }
 
-bool CGraphicSubImage::OnLoad(int iSize, const void* c_pvBuf)
+bool CGraphicSubImage::OnLoad(int size, const void* data)
 {
-	if (!c_pvBuf)
+	if (!data || size <= 0)
 		return false;
 
-	CTokenVector stTokenVector;
-	std::map<std::string, std::string> stTokenMap;
+	CTokenVector tokenVector;
+	std::map<std::string, std::string> tokenMap;
 
 	CMemoryTextFileLoader textFileLoader;
-
-	textFileLoader.Bind(iSize, c_pvBuf);
+	textFileLoader.Bind(size, data);
 
 	for (DWORD i = 0; i < textFileLoader.GetLineCount(); ++i)
 	{
-		if (!textFileLoader.SplitLine(i, &stTokenVector))
+		if (!textFileLoader.SplitLine(i, &tokenVector))
 			continue;
 
-		if (stTokenVector.size() != 2)
-			return false;
+		if (tokenVector.size() != 2)
+			continue;
 
-		stl_lowers(stTokenVector[0]);
-		stl_lowers(stTokenVector[1]);
+		stl_lowers(tokenVector[0]);
+		stl_lowers(tokenVector[1]);
 
-		stTokenMap[stTokenVector[0]] = stTokenVector[1];
+		tokenMap[tokenVector[0]] = tokenVector[1];
 	}
 
-	const std::string& c_rstTitle = stTokenMap["title"];
-	const std::string& c_rstVersion = stTokenMap["version"];
-	const std::string& c_rstImage = stTokenMap["image"];
-	const std::string& c_rstLeft = stTokenMap["left"];
-	const std::string& c_rstTop = stTokenMap["top"];
-	const std::string& c_rstRight = stTokenMap["right"];
-	const std::string& c_rstBottom = stTokenMap["bottom"];
+	const std::string title = tokenMap["title"];
+	const std::string version = tokenMap["version"];
+	const std::string image = tokenMap["image"];
 
-	if (c_rstTitle != "subimage")
+	if (title != "subimage" || image.empty())
 		return false;
-	
-	char szFileName[256];
-	if ("2.0"==c_rstVersion)
-	{	
-		const std::string& c_rstSubFileName=GetFileNameString();
-		int nPos=c_rstSubFileName.find_last_of('\\', -1);
-		if (nPos>=0)
+
+	char imageFileName[MAX_PATH] = {};
+
+	if (version == "2.0")
+	{
+		const std::string& subFileName = GetFileNameString();
+		const size_t pos = subFileName.find_last_of("\\/");
+
+		if (pos != std::string::npos)
 		{
-			nPos++;
-			memcpy(szFileName, c_rstSubFileName.c_str(), nPos);
-			szFileName[nPos]='\0';
-			memcpy(szFileName+nPos, c_rstImage.c_str(), c_rstImage.length());
-			szFileName[nPos+c_rstImage.length()]='\0';
+			const std::string path = subFileName.substr(0, pos + 1);
+			_snprintf(imageFileName, sizeof(imageFileName), "%s%s", path.c_str(), image.c_str());
 		}
 		else
 		{
-			memcpy(szFileName, c_rstImage.c_str(), c_rstImage.length());
+			_snprintf(imageFileName, sizeof(imageFileName), "%s", image.c_str());
 		}
 	}
 	else
 	{
-		_snprintf(szFileName, sizeof(szFileName), "%s%s", m_SearchPath, c_rstImage.c_str());
+		_snprintf(imageFileName, sizeof(imageFileName), "%s%s", m_SearchPath, image.c_str());
 	}
 
-	SetImageFileName(szFileName);
+	if (!SetImageFileName(imageFileName))
+		return false;
 
-	SetRectPosition(atoi(c_rstLeft.c_str()),
-					atoi(c_rstTop.c_str()),
-					atoi(c_rstRight.c_str()),
-					atoi(c_rstBottom.c_str()));
+	SetRectPosition(
+		atoi(tokenMap["left"].c_str()),
+		atoi(tokenMap["top"].c_str()),
+		atoi(tokenMap["right"].c_str()),
+		atoi(tokenMap["bottom"].c_str()));
 
 	return true;
 }
 
 void CGraphicSubImage::OnClear()
 {
-	m_roImage = nullptr;
-	memset(&m_rect, 0, sizeof(m_rect));
+	m_roImage.SetPointer(nullptr);
+	m_imageTexture.Destroy();
+	ZeroMemory(&m_rect, sizeof(m_rect));
 }
 
 bool CGraphicSubImage::OnIsEmpty() const
 {
-	if (!m_roImage.IsNull())		
-		if (!m_roImage->IsEmpty())
-			return false;
-
-	return true;
+	return m_roImage.IsNull() || m_roImage->IsEmpty();
 }
 
 bool CGraphicSubImage::OnIsType(TType type)
 {
-	if (CGraphicSubImage::Type() == type)
+	if (type == CGraphicSubImage::Type())
 		return true;
 
 	return CGraphicImage::OnIsType(type);

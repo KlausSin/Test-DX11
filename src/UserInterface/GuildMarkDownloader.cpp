@@ -133,7 +133,7 @@ void CGuildMarkDownloader::__CompleteState_Set()
 		}
 	}
 
-	CPackManager::instance().SetPackLoadMode();
+	CPackManager::Instance().SetPackLoadMode();
 	m_setUpdatedImageIndices.clear();
 
 	// Refresh all mark instances to use the updated textures

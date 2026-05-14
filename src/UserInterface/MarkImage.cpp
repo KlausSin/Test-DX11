@@ -2,8 +2,7 @@
 #include "MarkImage.h"
 #include "EterBase/lzo.h"
 
-#include <stb_image.h>
-#include <stb_image_write.h>
+#include <DirectXTex/DirectXTex.h>
 
 #if !defined(_MSC_VER)
 #include <IL/il.h>
@@ -48,11 +47,27 @@ void CGuildMarkImage::Create()
 	memset(m_apxImage, 0, sizeof(m_apxImage));
 }
 
-bool CGuildMarkImage::Save(const char* c_szFileName) 
+bool CGuildMarkImage::Save(const char* c_szFileName)
 {
-	if (stbi_write_tga(c_szFileName, WIDTH, HEIGHT, 4, m_apxImage) == 0)
+	if (!c_szFileName || !c_szFileName[0])
 		return false;
-	return true;
+
+	wchar_t fileName[MAX_PATH] = {};
+
+	if (MultiByteToWideChar(CP_ACP, 0, c_szFileName, -1, fileName, MAX_PATH) <= 0)
+		return false;
+
+	DirectX::Image image = {};
+	image.width = WIDTH;
+	image.height = HEIGHT;
+	image.format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	image.rowPitch = WIDTH * sizeof(Pixel);
+	image.slicePitch = image.rowPitch * HEIGHT;
+	image.pixels = reinterpret_cast<uint8_t*>(m_apxImage);
+
+	HRESULT hr = DirectX::SaveToTGAFile(image, fileName);
+
+	return SUCCEEDED(hr);
 }
 
 bool CGuildMarkImage::Build(const char * c_szFileName)
@@ -65,23 +80,83 @@ bool CGuildMarkImage::Build(const char * c_szFileName)
 	return true;
 }
 
-bool CGuildMarkImage::Load(const char * c_szFileName) 
+bool CGuildMarkImage::Load(const char* c_szFileName)
 {
-	int w, h, channels;
-	unsigned char* data = stbi_load(c_szFileName, &w, &h, &channels, 4);
-	if (!data) {
+	if (!c_szFileName || !c_szFileName[0])
+		return false;
+
+	wchar_t fileName[MAX_PATH] = {};
+
+	if (MultiByteToWideChar(CP_ACP, 0, c_szFileName, -1, fileName, MAX_PATH) <= 0)
+		return false;
+
+	DirectX::TexMetadata metadata;
+	DirectX::ScratchImage image;
+
+	HRESULT hr = DirectX::LoadFromTGAFile(
+		fileName,
+		&metadata,
+		image);
+
+	if (FAILED(hr))
+	{
+		hr = DirectX::LoadFromWICFile(
+			fileName,
+			DirectX::WIC_FLAGS_IGNORE_SRGB,
+			&metadata,
+			image);
+	}
+
+	if (FAILED(hr))
+	{
 		sys_err("GuildMarkImage: %s cannot open file.", c_szFileName);
 		return false;
 	}
 
-	if (w != WIDTH || h != HEIGHT) {
-		sys_err("GuildMarkImage: %s wrong dimensions (%d x %d)", c_szFileName, w, h);
-		stbi_image_free(data);
+	if (metadata.width != WIDTH || metadata.height != HEIGHT)
+	{
+		sys_err(
+			"GuildMarkImage: %s wrong dimensions (%u x %u)",
+			c_szFileName,
+			static_cast<unsigned int>(metadata.width),
+			static_cast<unsigned int>(metadata.height));
+
 		return false;
 	}
 
-	memcpy(m_apxImage, data, WIDTH * HEIGHT * 4);
-	stbi_image_free(data);
+	const DirectX::Image* sourceImage = image.GetImage(0, 0, 0);
+
+	if (!sourceImage || !sourceImage->pixels)
+		return false;
+
+	DirectX::ScratchImage convertedImage;
+	const DirectX::Image* finalImage = sourceImage;
+
+	if (sourceImage->format != DXGI_FORMAT_B8G8R8A8_UNORM)
+	{
+		hr = DirectX::Convert(
+			*sourceImage,
+			DXGI_FORMAT_B8G8R8A8_UNORM,
+			DirectX::TEX_FILTER_DEFAULT,
+			DirectX::TEX_THRESHOLD_DEFAULT,
+			convertedImage);
+
+		if (FAILED(hr))
+		{
+			sys_err("GuildMarkImage: %s cannot convert image.", c_szFileName);
+			return false;
+		}
+
+		finalImage = convertedImage.GetImage(0, 0, 0);
+	}
+
+	for (UINT y = 0; y < HEIGHT; ++y)
+	{
+		const uint8_t* src = finalImage->pixels + y * finalImage->rowPitch;
+		Pixel* dst = m_apxImage + y * WIDTH;
+
+		memcpy(dst, src, WIDTH * sizeof(Pixel));
+	}
 
 	BuildAllBlocks();
 	return true;

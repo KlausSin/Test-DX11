@@ -4,30 +4,28 @@
 
 class CGraphicTexture : public CGraphicBase
 {
-	public:
-		virtual bool IsEmpty() const;
+public:
+    CGraphicTexture();
+    virtual ~CGraphicTexture();
 
-		int GetWidth() const;
-		int GetHeight() const;
+    bool IsEmpty() const;
 
-		void SetTextureStage(int stage) const;
+    int GetWidth() const;
+    int GetHeight() const;
 
-		ID3D11ShaderResourceView* GetSRV() const;
+    ID3D11ShaderResourceView* GetSRV() const;
+    void SetTextureStage(int stage) const;
+    void DestroyDeviceObjects();
 
-		void DestroyDeviceObjects();
+protected:
+    void Initialize();
+    void Destroy();
 
-	protected:
-		CGraphicTexture();
-		virtual	~CGraphicTexture();
+protected:
+    bool m_bEmpty;
 
-		void Destroy();
-		void Initialize();
+    int m_width;
+    int m_height;
 
-	protected:
-		bool m_bEmpty;
-
-		int m_width;
-		int m_height;
-
-		ID3D11ShaderResourceView* m_lpSRV;
+    ID3D11ShaderResourceView* m_lpSRV;
 };

@@ -4,58 +4,58 @@
 
 class CGraphicExpandedImageInstance : public CGraphicImageInstance
 {
-	public:
-		static DWORD Type();
-		static void DeleteExpandedImageInstance(CGraphicExpandedImageInstance * pkInstance)
-		{
-			pkInstance->Destroy();
-			ms_kPool.Free(pkInstance);
-		}
+public:
+	static DWORD Type();
 
-		enum ERenderingMode
-		{
-			RENDERING_MODE_NORMAL,
-			RENDERING_MODE_SCREEN,
-			RENDERING_MODE_COLOR_DODGE,
-			RENDERING_MODE_MODULATE,
-		};
+	static void DeleteExpandedImageInstance(CGraphicExpandedImageInstance* instance)
+	{
+		Delete(instance);
+	}
 
-	public:
-		CGraphicExpandedImageInstance();
-		virtual ~CGraphicExpandedImageInstance();
+	enum ERenderingMode
+	{
+		RENDERING_MODE_NORMAL,
+		RENDERING_MODE_SCREEN,
+		RENDERING_MODE_COLOR_DODGE,
+		RENDERING_MODE_MODULATE,
+	};
 
-		void Destroy();
+public:
+	CGraphicExpandedImageInstance();
+	virtual ~CGraphicExpandedImageInstance();
 
-		void SetDepth(float fDepth);
-		void SetOrigin();
-		void SetOrigin(float fx, float fy);
-		void SetRotation(float fRotation);
-		void SetScale(float fx, float fy);
-		void SetRenderingRect(float fLeft, float fTop, float fRight, float fBottom);
-		void SetRenderingMode(int iMode);
+	void Destroy();
 
-	protected:
-		void Initialize();
+	void SetDepth(float depth);
+	void SetOrigin();
+	void SetOrigin(float x, float y);
+	void SetRotation(float rotation);
+	void SetScale(float x, float y);
+	void SetRenderingRect(float left, float top, float right, float bottom);
+	void SetRenderingMode(int mode);
 
-		void OnRender();
-		void OnSetImagePointer();
+protected:
+	void Initialize();
 
-		BOOL OnIsType(DWORD dwType);
+	void OnRender() override;
+	void OnSetImagePointer() override;
 
-	protected:
-		float m_fDepth;
-		D3DXVECTOR2 m_v2Origin;
-		D3DXVECTOR2 m_v2Scale;
-		float m_fRotation;
-		RECT m_RenderingRect;
-		int m_iRenderingMode;
-		
-	public:
-		static void CreateSystem(UINT uCapacity);
-		static void DestroySystem();
+	BOOL OnIsType(DWORD type) override;
 
-		static CGraphicExpandedImageInstance* New();
-		static void Delete(CGraphicExpandedImageInstance* pkImgInst);
+protected:
+	float m_fDepth;
+	D3DXVECTOR2 m_v2Origin;
+	D3DXVECTOR2 m_v2Scale;
+	float m_fRotation;
+	RECT m_RenderingRect;
+	int m_iRenderingMode;
 
-		static CDynamicPool<CGraphicExpandedImageInstance>		ms_kPool;
+public:
+	static void CreateSystem(UINT capacity);
+	static void DestroySystem();
+
+	static CGraphicExpandedImageInstance* New();
+	static void Delete(CGraphicExpandedImageInstance* instance);
+
+	static CDynamicPool<CGraphicExpandedImageInstance> ms_kPool;
 };

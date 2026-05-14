@@ -154,7 +154,7 @@ bool PackInitialize(const char * c_pszFolder)
 
 	Tracef("PackInitialize: Loading root.pck\n");
 	DWORD dwStartTime = GetTickCount();
-	if (!CPackManager::instance().AddPack(std::format("{}/root.pck", c_pszFolder)))
+	if (!CPackManager::Instance().AddPack(std::format("{}/root.pck", c_pszFolder)))
 	{
 		TraceError("Failed to load root.pck");
 		return false;
@@ -163,7 +163,7 @@ bool PackInitialize(const char * c_pszFolder)
 	Tracef("PackInitialize: Loading %d pack files...", packFiles.size());
 	for (const std::string& packFileName : packFiles) {
 		Tracef("PackInitialize: Loading %s.pck\n", packFileName.c_str());
-		CPackManager::instance().AddPack(std::format("{}/{}.pck", c_pszFolder, packFileName));
+		CPackManager::Instance().AddPack(std::format("{}/{}.pck", c_pszFolder, packFileName));
 	}
 	Tracef("PackInitialize: done. Time taken: %d ms\n", GetTickCount() - dwStartTime);
 	return true;

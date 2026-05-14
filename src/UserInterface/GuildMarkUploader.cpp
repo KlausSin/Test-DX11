@@ -2,11 +2,63 @@
 #include "GuildMarkUploader.h"
 #include "Packet.h"
 
-#include "stb_image.h"
-#include "stb_image_write.h"
+#include <DirectXTex/DirectXTex.h>
 
 #ifdef __VTUNE__
 #else
+
+static bool LoadImageBGRA32(
+	const char* fileName,
+	DirectX::ScratchImage& outImage,
+	DirectX::TexMetadata& outMetadata)
+{
+	if (!fileName || !fileName[0])
+		return false;
+
+	wchar_t wideFileName[MAX_PATH] = {};
+
+	if (MultiByteToWideChar(CP_ACP, 0, fileName, -1, wideFileName, MAX_PATH) <= 0)
+		return false;
+
+	HRESULT hr = DirectX::LoadFromTGAFile(
+		wideFileName,
+		&outMetadata,
+		outImage);
+
+	if (FAILED(hr))
+	{
+		hr = DirectX::LoadFromWICFile(
+			wideFileName,
+			DirectX::WIC_FLAGS_IGNORE_SRGB,
+			&outMetadata,
+			outImage);
+	}
+
+	if (FAILED(hr))
+		return false;
+
+	if (outMetadata.format == DXGI_FORMAT_B8G8R8A8_UNORM)
+		return true;
+
+	DirectX::ScratchImage convertedImage;
+
+	hr = DirectX::Convert(
+		outImage.GetImages(),
+		outImage.GetImageCount(),
+		outMetadata,
+		DXGI_FORMAT_B8G8R8A8_UNORM,
+		DirectX::TEX_FILTER_DEFAULT,
+		DirectX::TEX_THRESHOLD_DEFAULT,
+		convertedImage);
+
+	if (FAILED(hr))
+		return false;
+
+	outImage = std::move(convertedImage);
+	outMetadata = outImage.GetMetadata();
+
+	return true;
+}
 
 CGuildMarkUploader::CGuildMarkUploader()
 {
@@ -56,67 +108,87 @@ bool CGuildMarkUploader::__Save(const char* c_szFileName)
 
 bool CGuildMarkUploader::__Load(const char* c_szFileName, UINT* peError)
 {
-	int width, height, channels;
-	unsigned char* data = stbi_load(c_szFileName, &width, &height, &channels, 4); // force RGBA
+	DirectX::ScratchImage image;
+	DirectX::TexMetadata metadata;
 
-	if (!data) {
+	if (!LoadImageBGRA32(c_szFileName, image, metadata))
+	{
 		*peError = ERROR_LOAD;
 		return false;
 	}
 
-	if (width != SGuildMark::WIDTH) {
-		stbi_image_free(data);
+	if (metadata.width != SGuildMark::WIDTH)
+	{
 		*peError = ERROR_WIDTH;
 		return false;
 	}
 
-	if (height != SGuildMark::HEIGHT) {
-		stbi_image_free(data);
+	if (metadata.height != SGuildMark::HEIGHT)
+	{
 		*peError = ERROR_HEIGHT;
 		return false;
 	}
 
-	// Copy into our mark buffer (native RGBA format)
-	memcpy(m_kMark.m_apxBuf, data, SGuildMark::SIZE * 4);
+	const DirectX::Image* source = image.GetImage(0, 0, 0);
 
-	stbi_image_free(data);
+	if (!source || !source->pixels)
+	{
+		*peError = ERROR_LOAD;
+		return false;
+	}
+
+	for (UINT y = 0; y < SGuildMark::HEIGHT; ++y)
+	{
+		const uint8_t* src = source->pixels + y * source->rowPitch;
+		uint8_t* dst = reinterpret_cast<uint8_t*>(m_kMark.m_apxBuf) + y * SGuildMark::WIDTH * 4;
+
+		memcpy(dst, src, SGuildMark::WIDTH * 4);
+	}
+
 	return true;
 }
 
 bool CGuildMarkUploader::__LoadSymbol(const char* c_szFileName, UINT* peError)
 {
-	int width, height, channels;
-	unsigned char* data = stbi_load(c_szFileName, &width, &height, &channels, 4);
+	DirectX::ScratchImage image;
+	DirectX::TexMetadata metadata;
 
-	if (!data) {
+	if (!LoadImageBGRA32(c_szFileName, image, metadata))
+	{
 		*peError = ERROR_LOAD;
 		return false;
 	}
 
-	if (width != 64) {
-		stbi_image_free(data);
+	if (metadata.width != 64)
+	{
 		*peError = ERROR_WIDTH;
 		return false;
 	}
 
-	if (height != 128) {
-		stbi_image_free(data);
+	if (metadata.height != 128)
+	{
 		*peError = ERROR_HEIGHT;
 		return false;
 	}
 
-	stbi_image_free(data);
-
-	// Read raw file into m_symbolBuf
 	FILE* file = fopen(c_szFileName, "rb");
-	if (!file) {
+
+	if (!file)
+	{
 		*peError = ERROR_LOAD;
 		return false;
 	}
 
 	fseek(file, 0, SEEK_END);
-	long fileSize = ftell(file);
+	const long fileSize = ftell(file);
 	fseek(file, 0, SEEK_SET);
+
+	if (fileSize <= 0)
+	{
+		fclose(file);
+		*peError = ERROR_LOAD;
+		return false;
+	}
 
 	m_symbolBuf.resize(static_cast<size_t>(fileSize));
 	fread(m_symbolBuf.data(), m_symbolBuf.size(), 1, file);

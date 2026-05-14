@@ -143,3 +143,14 @@ Fixed character shadow
 Fixed dungeon
 
 /////////////////////////////             /////////////////////////////
+
+
+
+//////////////// Cleaning 3 ////////////////
+D3D9 D3DX9 library removed
+ddraw,Dinput8,dShow removed 
+freetype removed
+stb removed
+
+added DirectXTex
+/////////////////////////////             /////////////////////////////

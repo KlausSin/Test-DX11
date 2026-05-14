@@ -1,10 +1,8 @@
 #include "StdAfx.h"
 #include "EterLib/StateManager.h"
 #include "PythonGraphic.h"
-#include <stb_image_write.h>
-#include <thread>
 #include <string>
-#include <memory>
+#include <DirectXTex/DirectXTex.h>
 
 void CPythonGraphic::Destroy()
 {	
@@ -130,81 +128,65 @@ bool CPythonGraphic::SaveScreenShot()
 	if (!ms_lpd3d11Device || !ms_lpd3d11Context || !ms_lpd3d11SwapChain)
 		return false;
 
-	// Get back buffer
-	ID3D11Texture2D* pBackBuffer = nullptr;
-	if (FAILED(ms_lpd3d11SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer)))
+	ID3D11Texture2D* backBuffer = nullptr;
+
+	HRESULT hr = ms_lpd3d11SwapChain->GetBuffer(
+		0,
+		__uuidof(ID3D11Texture2D),
+		reinterpret_cast<void**>(&backBuffer));
+
+	if (FAILED(hr) || !backBuffer)
 	{
-		TraceError("CPythonGraphic::SaveScreenShot() - Failed to get back buffer");
+		TraceError("CPythonGraphic::SaveScreenShot - GetBuffer failed");
 		return false;
 	}
 
-	D3D11_TEXTURE2D_DESC desc;
-	pBackBuffer->GetDesc(&desc);
+	DirectX::ScratchImage image;
 
-	// Create staging texture for CPU readback
-	D3D11_TEXTURE2D_DESC stagingDesc = desc;
-	stagingDesc.Usage = D3D11_USAGE_STAGING;
-	stagingDesc.BindFlags = 0;
-	stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-	stagingDesc.MiscFlags = 0;
+	hr = DirectX::CaptureTexture(
+		ms_lpd3d11Device,
+		ms_lpd3d11Context,
+		backBuffer,
+		image);
 
-	ID3D11Texture2D* pStaging = nullptr;
-	if (FAILED(ms_lpd3d11Device->CreateTexture2D(&stagingDesc, nullptr, &pStaging)))
+	backBuffer->Release();
+
+	if (FAILED(hr))
 	{
-		TraceError("CPythonGraphic::SaveScreenShot() - Failed to create staging texture");
-		pBackBuffer->Release();
+		TraceError("CPythonGraphic::SaveScreenShot - CaptureTexture failed");
 		return false;
 	}
 
-	ms_lpd3d11Context->CopyResource(pStaging, pBackBuffer);
-	pBackBuffer->Release();
-
-	D3D11_MAPPED_SUBRESOURCE mapped;
-	if (FAILED(ms_lpd3d11Context->Map(pStaging, 0, D3D11_MAP_READ, 0, &mapped)))
-	{
-		TraceError("CPythonGraphic::SaveScreenShot() - Failed to map staging texture");
-		pStaging->Release();
-		return false;
-	}
-
-	// Copy pixel data to a plain buffer (BGRA -> RGB)
-	uint32_t width = desc.Width;
-	uint32_t height = desc.Height;
-	auto pixels = std::make_shared<std::vector<uint8_t>>(width * height * 3);
-	uint8_t* dst = pixels->data();
-	auto* src = static_cast<uint8_t*>(mapped.pData);
-
-	for (uint32_t y = 0; y < height; ++y)
-	{
-		uint8_t* row = src + y * mapped.RowPitch;
-		for (uint32_t x = 0; x < width; ++x)
-		{
-			dst[0] = row[2]; // R
-			dst[1] = row[1]; // G
-			dst[2] = row[0]; // B
-			dst += 3;
-			row += 4;
-		}
-	}
-
-	ms_lpd3d11Context->Unmap(pStaging, 0);
-	pStaging->Release();
-
-	if (!CreateDirectoryA("screenshot", NULL) && ERROR_ALREADY_EXISTS != GetLastError())
+	if (!CreateDirectoryA("screenshot", nullptr) && GetLastError() != ERROR_ALREADY_EXISTS)
 		return false;
 
-	SYSTEMTIME st;
-	GetSystemTime(&st);
+	SYSTEMTIME time;
+	GetLocalTime(&time);
 
-	char szFileName[MAX_PATH];
-	sprintf_s(szFileName, "screenshot/%04d%02d%02d_%02d%02d%02d.png",
-		st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
+	wchar_t fileName[MAX_PATH] = {};
 
-	// PNG encode + file write on background thread (no D3D dependency)
-	std::thread([pixels, w = width, h = height, fileName = std::string(szFileName)]()
+	swprintf_s(
+		fileName,
+		L"screenshot/%04d%02d%02d_%02d%02d%02d.png",
+		time.wYear,
+		time.wMonth,
+		time.wDay,
+		time.wHour,
+		time.wMinute,
+		time.wSecond);
+
+	hr = DirectX::SaveToWICFile(
+		image.GetImages(),
+		image.GetImageCount(),
+		DirectX::WIC_FLAGS_NONE,
+		DirectX::GetWICCodec(DirectX::WIC_CODEC_PNG),
+		fileName);
+
+	if (FAILED(hr))
 	{
-		stbi_write_png(fileName.c_str(), w, h, 3, pixels->data(), w * 3);
-	}).detach();
+		TraceError("CPythonGraphic::SaveScreenShot - SaveToWICFile failed");
+		return false;
+	}
 
 	return true;
 }

@@ -29,8 +29,10 @@ target_link_libraries(UserInterface
 	lzo2
 	libzstd_static
 	mio
-	
-	DirectX
+
+	${CMAKE_SOURCE_DIR}/extern/library/DirectXTex.lib
+	${CMAKE_SOURCE_DIR}/extern/library/Jolt.lib
+
 	Granny
 	SpeedTree
 	Python
@@ -40,7 +42,6 @@ target_link_libraries(UserInterface
 	strmiids
 	amstrmid
 	dmoguids
-	ddraw
 	version
 	Dbghelp
 )

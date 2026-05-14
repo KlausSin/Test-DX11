@@ -106,7 +106,6 @@ public:
 	BOOL		GetBoneMatrix(DWORD dwModelInstanceIndex, DWORD dwBoneIndex, D3DXMATRIX** ppMatrix);
 	BOOL		GetCompositeBoneMatrix(DWORD dwModelInstanceIndex, DWORD dwBoneIndex, D3DXMATRIX** ppMatrix);
 	void		UpdateTransform(D3DXMATRIX* pMatrix, float fSecondsElapsed = 0.0f, int iModelInstanceIndex = 0);
-	void		ProjectShadow(const CGraphicShadowTexture& c_rShadowTexture);
 
 public:
 	void			BuildBoundingSphere();

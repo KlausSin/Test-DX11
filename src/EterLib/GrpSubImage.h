@@ -4,35 +4,33 @@
 
 class CGraphicSubImage : public CGraphicImage
 {
-	public:
-		typedef CRef<CGraphicImage> TRef;
+public:
+	typedef CRef<CGraphicImage> TRef;
 
-	public:
-		static TType Type();
-		static char m_SearchPath[256];
+public:
+	static TType Type();
+	static char m_SearchPath[256];
 
-	public:
-		CGraphicSubImage(const char* c_szFileName);
-		virtual ~CGraphicSubImage();
+public:
+	explicit CGraphicSubImage(const char* fileName);
+	~CGraphicSubImage() override;
 
-		bool CreateDeviceObjects();
+	bool CreateDeviceObjects() override;
 
-		bool SetImageFileName(const char* c_szFileName);
+	void SetImagePointer(CGraphicImage* image);
+	bool SetImageFileName(const char* fileName);
 
-		void SetRectPosition(int left, int top, int right, int bottom);
+	void SetRectPosition(int left, int top, int right, int bottom);
+	void SetRectReference(const RECT& rect);
 
-		void SetRectReference(const RECT& c_rRect);
+	static void SetSearchPath(const char* fileName);
 
-		static void SetSearchPath(const char * c_szFileName);
+protected:
+	bool OnLoad(int size, const void* data) override;
+	void OnClear() override;
+	bool OnIsEmpty() const override;
+	bool OnIsType(TType type) override;
 
-	protected:
-		void SetImagePointer(CGraphicImage* pImage);
-
-		bool OnLoad(int iSize, const void* c_pvBuf);
-		void OnClear();		
-		bool OnIsEmpty() const;
-		bool OnIsType(TType type);
-		
-	protected:
-		CGraphicImage::TRef m_roImage;
+protected:
+	CGraphicImage::TRef m_roImage;
 };

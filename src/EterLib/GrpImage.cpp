@@ -1,16 +1,20 @@
 #include "StdAfx.h"
 #include "GrpImage.h"
-#include "DecodedImageData.h"
 
-CGraphicImage::CGraphicImage(const char * c_szFileName, DWORD dwFilter) : 
-CResource(c_szFileName),
-m_dwFilter(dwFilter)
+CGraphicImage::CGraphicImage(const char* fileName)
+	: CResource(fileName)
 {
-	m_rect.bottom = m_rect.right = m_rect.top = m_rect.left = 0;
+	ZeroMemory(&m_rect, sizeof(m_rect));
 }
 
 CGraphicImage::~CGraphicImage()
 {
+}
+
+CGraphicImage::TType CGraphicImage::Type()
+{
+	static TType type = StringToType("CGraphicImage");
+	return type;
 }
 
 bool CGraphicImage::CreateDeviceObjects()
@@ -23,20 +27,6 @@ void CGraphicImage::DestroyDeviceObjects()
 	m_imageTexture.DestroyDeviceObjects();
 }
 
-CGraphicImage::TType CGraphicImage::Type()
-{
-	static TType s_type = StringToType("CGraphicImage");
-	return s_type;
-}
-
-bool CGraphicImage::OnIsType(TType type)
-{
-	if (CGraphicImage::Type() == type)
-		return true;
-
-	return CResource::OnIsType(type);
-}
-
 int CGraphicImage::GetWidth() const
 {
 	return m_rect.right - m_rect.left;
@@ -45,6 +35,11 @@ int CGraphicImage::GetWidth() const
 int CGraphicImage::GetHeight() const
 {
 	return m_rect.bottom - m_rect.top;
+}
+
+const RECT& CGraphicImage::GetRectReference() const
+{
+	return m_rect;
 }
 
 const CGraphicTexture& CGraphicImage::GetTextureReference() const
@@ -57,62 +52,37 @@ CGraphicTexture* CGraphicImage::GetTexturePointer()
 	return &m_imageTexture;
 }
 
-const RECT& CGraphicImage::GetRectReference() const
+bool CGraphicImage::OnLoad(int size, const void* data)
 {
-	return m_rect;
-}
-
-bool CGraphicImage::OnLoad(int iSize, const void * c_pvBuf)
-{
-	if (!c_pvBuf)
-	{
-		Tracenf("CGraphicImage::OnLoad NULL buf for %s", CResource::GetFileName());
-		return false;
-	}
-
-	m_imageTexture.SetFileName(CResource::GetFileName());
-
-	// 특정 컴퓨터에서 Unknown으로 '안'하면 튕기는 현상이 있음-_-; -비엽
-	if (!m_imageTexture.CreateFromMemoryFile(iSize, c_pvBuf, DXGI_FORMAT_UNKNOWN, m_dwFilter))
-	{
-		Tracenf("CGraphicImage::OnLoad CreateFromMemoryFile FAILED for %s (size=%d)", CResource::GetFileName(), iSize);
-		return false;
-	}
-
-	m_rect.left = 0;
-	m_rect.top = 0;
-	m_rect.right = m_imageTexture.GetWidth();
-	m_rect.bottom = m_imageTexture.GetHeight();
-	return true;
-}
-
-bool CGraphicImage::OnLoadFromDecodedData(const TDecodedImageData& decodedImage)
-{
-	if (!decodedImage.IsValid())
+	if (!data || size <= 0)
 		return false;
 
-	m_imageTexture.SetFileName(CResource::GetFileName());
-
-	if (!m_imageTexture.CreateFromDecodedData(decodedImage, DXGI_FORMAT_UNKNOWN, m_dwFilter))
+	if (!m_imageTexture.CreateFromMemoryFile(size, data))
 		return false;
 
 	m_rect.left = 0;
 	m_rect.top = 0;
 	m_rect.right = m_imageTexture.GetWidth();
 	m_rect.bottom = m_imageTexture.GetHeight();
+
 	return true;
 }
 
 void CGraphicImage::OnClear()
 {
-	static int s_clearCount = 0;
-	if ((s_clearCount++ % 50) == 0)
-		Tracenf("CGraphicImage::OnClear count=%d file=%s", s_clearCount, GetFileName());
 	m_imageTexture.Destroy();
-	memset(&m_rect, 0, sizeof(m_rect));
+	ZeroMemory(&m_rect, sizeof(m_rect));
 }
 
 bool CGraphicImage::OnIsEmpty() const
 {
 	return m_imageTexture.IsEmpty();
+}
+
+bool CGraphicImage::OnIsType(TType type)
+{
+	if (type == CGraphicImage::Type())
+		return true;
+
+	return CResource::OnIsType(type);
 }

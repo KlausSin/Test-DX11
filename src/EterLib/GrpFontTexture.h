@@ -1,87 +1,92 @@
 #pragma once
 
-#include "GrpTexture.h"
 #include "GrpImageTexture.h"
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-
-#include <vector>
 #include <map>
+#include <vector>
+#include <string>
 
-class CGraphicFontTexture : public CGraphicTexture
+class CGraphicFontTexture
 {
-	public:
-		typedef wchar_t TCharacterKey;
+public:
+	typedef wchar_t TCharacterKey;
 
-		typedef struct SCharacterInfomation
-		{
-			short index;
-			short width;
-			short height;
-			float left;
-			float top;
-			float right;
-			float bottom;
-			float advance;
-			float bearingX;
-		} TCharacterInfomation;
+	struct TCharacterInfomation
+	{
+		short index;
+		short width;
+		short height;
+		float left;
+		float top;
+		float right;
+		float bottom;
+		float advance;
+		float bearingX;
+	};
 
-		typedef std::vector<TCharacterInfomation*> TPCharacterInfomationVector;
+	typedef std::vector<TCharacterInfomation*> TPCharacterInfomationVector;
 
-	public:
-		CGraphicFontTexture();
-		virtual ~CGraphicFontTexture();
+public:
+	CGraphicFontTexture();
+	~CGraphicFontTexture();
 
-		void Destroy();
-		bool Create(const char* c_szFontName, int fontSize, bool bItalic);
+	void Destroy();
 
-		bool CreateDeviceObjects();
-		void DestroyDeviceObjects();
+	bool Create(const char* fontName, int fontSize, bool italic = false);
+	bool CreateDeviceObjects();
+	void DestroyDeviceObjects();
 
-		bool CheckTextureIndex(DWORD dwTexture);
-		void SelectTexture(DWORD dwTexture);
+	bool IsEmpty() const;
 
-		bool UpdateTexture();
+	bool CheckTextureIndex(DWORD textureIndex) const;
+	void SelectTexture(DWORD textureIndex);
 
-		TCharacterInfomation* GetCharacterInfomation(wchar_t keyValue);
-		TCharacterInfomation* UpdateCharacterInfomation(TCharacterKey keyValue);
+	bool UpdateTexture();
 
-		float GetKerning(wchar_t prev, wchar_t cur);
+	TCharacterInfomation* GetCharacterInfomation(wchar_t keyValue);
+	TCharacterInfomation* UpdateCharacterInfomation(TCharacterKey keyValue);
 
-		bool IsEmpty() const;
+	float GetKerning(wchar_t prev, wchar_t cur) const;
 
-	protected:
-		void Initialize();
+	ID3D11ShaderResourceView* GetSRV() const;
 
-		bool AppendTexture();
+private:
+	void Initialize();
 
-	protected:
-		typedef std::vector<CGraphicImageTexture*> TGraphicImageTexturePointerVector;
-		typedef std::map<TCharacterKey, TCharacterInfomation> TCharacterInfomationMap;
+	bool AppendTexture();
+	bool RenderGlyphToAtlas(TCharacterKey keyValue, TCharacterInfomation& outInfo);
+	void MoveToNextRow(int rowHeight);
 
-	protected:
-		FT_Face m_ftFace;
+private:
+	typedef std::vector<CGraphicImageTexture*> TGraphicImageTexturePointerVector;
+	typedef std::map<TCharacterKey, TCharacterInfomation> TCharacterInfomationMap;
 
-		// CPU-side atlas buffer (replaces CGraphicDib)
-		DWORD* m_pAtlasBuffer;
-		int m_atlasWidth;
-		int m_atlasHeight;
+private:
+	TGraphicImageTexturePointerVector m_pFontTextureVector;
+	TCharacterInfomationMap m_charInfoMap;
 
-		TGraphicImageTexturePointerVector m_pFontTextureVector;
+	std::vector<DWORD> m_atlasBuffer;
 
-		TCharacterInfomationMap m_charInfoMap;
+	std::string m_fontName;
 
-		int m_x;
-		int m_y;
-		int m_step;
-		bool m_isDirty;
+	HFONT m_hFont;
+	HDC m_hDC;
+	HBITMAP m_hBitmap;
+	void* m_bitmapBits;
 
-		LONG m_fontSize;
-		bool m_bItalic;
+	int m_fontSize;
+	bool m_italic;
 
-		// FreeType metrics cached per-font
-		int m_ascender;
-		int m_lineHeight;
-		bool m_hasKerning;
+	int m_atlasWidth;
+	int m_atlasHeight;
+
+	int m_x;
+	int m_y;
+	int m_step;
+
+	bool m_isDirty;
+	short m_selectedTexture;
+
+	int m_lineHeight;
+	int m_ascent;
 };

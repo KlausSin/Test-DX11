@@ -1397,9 +1397,9 @@ namespace UI
 
 	BOOL CImageBox::LoadImageFromFile(const char* c_szFileName)
 	{
-		CPackManager::instance().SetFileLoadMode();
+		CPackManager::Instance().SetFileLoadMode();
 		BOOL r = LoadImage(c_szFileName);
-		CPackManager::instance().SetPackLoadMode();
+		CPackManager::Instance().SetPackLoadMode();
 
 		return r;
 	}

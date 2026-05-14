@@ -272,6 +272,10 @@ struct D3DXMATRIX
 // D3DXCOLOR — float4 color with DWORD conversion
 // D3DCOLORVALUE comes from <dxgitype.h> included above.
 //////////////////////////////////////////////////////////////////////////////
+#ifndef D3DCOLOR_DEFINED
+#define D3DCOLOR_DEFINED
+typedef DWORD D3DCOLOR;
+#endif
 struct D3DXCOLOR
 {
 	float r, g, b, a;

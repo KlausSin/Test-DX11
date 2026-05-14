@@ -6,28 +6,29 @@ class CBlockTexture;
 
 class CDibBar
 {
-	public:
-		CDibBar();
-		virtual ~CDibBar();
+public:
+	CDibBar();
+	virtual ~CDibBar();
 
-		bool Create(DWORD dwWidth, DWORD dwHeight);
-		void Invalidate();
-		void SetClipRect(const RECT & c_rRect);
-		void ClearBar();
-		void Render(int ix, int iy);
+	bool Create(DWORD width, DWORD height);
+	void Destroy();
 
-	protected:
-		DWORD __NearTextureSize(DWORD dwSize);
-		void __DivideTextureSize(DWORD dwSize, DWORD dwMax, DWORD * pdwxStep, DWORD * pdwxCount, DWORD * pdwxRest);
-		CBlockTexture * __BuildTextureBlock(DWORD dwxPos, DWORD dwyPos, DWORD dwImageWidth, DWORD dwImageHeight, DWORD dwTextureWidth, DWORD dwTextureHeight);
-		void __BuildTextureBlockList(DWORD dwWidth, DWORD dwHeight, DWORD dwMax=256);
+	void Invalidate();
+	void SetClipRect(const RECT& rect);
+	void ClearBar();
+	void Render(int x, int y);
 
-		virtual void OnCreate(){}
+protected:
+	DWORD GetNearTextureSize(DWORD size) const;
+	void BuildTextureBlockList(DWORD width, DWORD height, DWORD maxSize = 256);
+	CBlockTexture* BuildTextureBlock(DWORD x, DWORD y, DWORD imageWidth, DWORD imageHeight, DWORD textureWidth, DWORD textureHeight);
 
-	protected:
-		CGraphicDib m_dib;
-		std::vector<CBlockTexture *> m_kVec_pkBlockTexture;
+	virtual void OnCreate() {}
 
-		DWORD m_dwWidth;
-		DWORD m_dwHeight;
+protected:
+	CGraphicDib m_dib;
+	std::vector<CBlockTexture*> m_kVec_pkBlockTexture;
+
+	DWORD m_dwWidth;
+	DWORD m_dwHeight;
 };

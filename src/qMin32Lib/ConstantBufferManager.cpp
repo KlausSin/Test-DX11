@@ -14,25 +14,25 @@ CBManager::CBManager(DxManager* manager) : m_manager(manager)
 	manager->CreateConstantBuffer(m_pCBSpeedTree, sizeof(CBSpeedTree)); // b7
 }
 
-void CBManager::SetWorldMatrix(const D3DXMATRIX& mat)
+void CBManager::SetWorldMatrix(const XMFLOAT4X4& mat)
 {
 	m_cbMatrix.frame.matWorld = mat;
 	m_bMatrixDirty = true;
 }
 
-void CBManager::SetViewMatrix(const D3DXMATRIX& mat)
+void CBManager::SetViewMatrix(const XMFLOAT4X4& mat)
 {
 	m_cbMatrix.frame.matView = mat;
 	m_bMatrixDirty = true;
 }
 
-void CBManager::SetProjMatrix(const D3DXMATRIX& mat)
+void CBManager::SetProjMatrix(const XMFLOAT4X4& mat)
 {
 	m_cbMatrix.frame.matProj = mat;
 	m_bMatrixDirty = true;
 }
 
-void CBManager::SetTexTransform(DWORD dwStage, const D3DXMATRIX& mat)
+void CBManager::SetTexTransform(DWORD dwStage, const XMFLOAT4X4& mat)
 {
 	if (dwStage == 0)
 		m_cbMatrix.texTransform.tex0 = mat;
@@ -93,15 +93,15 @@ void CBManager::SetLight(DWORD index, const D3DLIGHT11* pLight)
 	m_cbLighting.lightDir[2] = light.Direction.z;
 	m_cbLighting.lightDir[3] = 0.0f;
 
-	m_cbLighting.lightDiffuse[0] = light.Diffuse.r;
-	m_cbLighting.lightDiffuse[1] = light.Diffuse.g;
-	m_cbLighting.lightDiffuse[2] = light.Diffuse.b;
-	m_cbLighting.lightDiffuse[3] = light.Diffuse.a;
+	m_cbLighting.lightDiffuse[0] = light.Diffuse.x;
+	m_cbLighting.lightDiffuse[1] = light.Diffuse.y;
+	m_cbLighting.lightDiffuse[2] = light.Diffuse.z;
+	m_cbLighting.lightDiffuse[3] = light.Diffuse.w;
 
-	m_cbLighting.lightAmbient[0] = light.Ambient.r;
-	m_cbLighting.lightAmbient[1] = light.Ambient.g;
-	m_cbLighting.lightAmbient[2] = light.Ambient.b;
-	m_cbLighting.lightAmbient[3] = light.Ambient.a;
+	m_cbLighting.lightAmbient[0] = light.Ambient.x;
+	m_cbLighting.lightAmbient[1] = light.Ambient.y;
+	m_cbLighting.lightAmbient[2] = light.Ambient.z;
+	m_cbLighting.lightAmbient[3] = light.Ambient.w;
 
 	m_cbLighting.lightAttenuation[0] = light.Attenuation0;
 	m_cbLighting.lightAttenuation[1] = light.Attenuation1;
@@ -118,20 +118,20 @@ void CBManager::SetLight(DWORD index, const D3DLIGHT11* pLight)
 
 void CBManager::SetMaterial(const D3DMATERIAL11* pMaterial)
 {
-	m_cbLighting.matDiffuse[0] = pMaterial->Diffuse.r;
-	m_cbLighting.matDiffuse[1] = pMaterial->Diffuse.g;
-	m_cbLighting.matDiffuse[2] = pMaterial->Diffuse.b;
-	m_cbLighting.matDiffuse[3] = pMaterial->Diffuse.a;
+	m_cbLighting.matDiffuse[0] = pMaterial->Diffuse.x;
+	m_cbLighting.matDiffuse[1] = pMaterial->Diffuse.y;
+	m_cbLighting.matDiffuse[2] = pMaterial->Diffuse.z;
+	m_cbLighting.matDiffuse[3] = pMaterial->Diffuse.w;
 
-	m_cbLighting.matAmbient[0] = pMaterial->Ambient.r;
-	m_cbLighting.matAmbient[1] = pMaterial->Ambient.g;
-	m_cbLighting.matAmbient[2] = pMaterial->Ambient.b;
-	m_cbLighting.matAmbient[3] = pMaterial->Ambient.a;
+	m_cbLighting.matAmbient[0] = pMaterial->Ambient.x;
+	m_cbLighting.matAmbient[1] = pMaterial->Ambient.y;
+	m_cbLighting.matAmbient[2] = pMaterial->Ambient.z;
+	m_cbLighting.matAmbient[3] = pMaterial->Ambient.w;
 
-	m_cbLighting.matEmissive[0] = pMaterial->Emissive.r;
-	m_cbLighting.matEmissive[1] = pMaterial->Emissive.g;
-	m_cbLighting.matEmissive[2] = pMaterial->Emissive.b;
-	m_cbLighting.matEmissive[3] = pMaterial->Emissive.a;
+	m_cbLighting.matEmissive[0] = pMaterial->Emissive.x;
+	m_cbLighting.matEmissive[1] = pMaterial->Emissive.y;
+	m_cbLighting.matEmissive[2] = pMaterial->Emissive.z;
+	m_cbLighting.matEmissive[3] = pMaterial->Emissive.w;
 
 	m_bLightingDirty = true;
 }
@@ -242,11 +242,11 @@ bool CBManager::UploadBonePalette(const DirectX::XMFLOAT4X4* bones, unsigned int
 	return true;
 }
 
-void CBManager::SetSpecularPower(float power, const D3DXCOLOR& color)
+void CBManager::SetSpecularPower(float power, const XMFLOAT4& color)
 {
-	m_cbLighting.specularColor[0] = color.r;
-	m_cbLighting.specularColor[1] = color.g;
-	m_cbLighting.specularColor[2] = color.b;
+	m_cbLighting.specularColor[0] = color.x;
+	m_cbLighting.specularColor[1] = color.y;
+	m_cbLighting.specularColor[2] = color.z;
 	m_cbLighting.specularColor[3] = power;
 	m_bLightingDirty = true;
 }
@@ -271,13 +271,13 @@ void CBManager::SetAllBuffers()
 	m_manager->SetConstantBuffer(m_pCBSpeedTree, 7);
 }
 
-void CBManager::SetSpeedTreeCompoundMatrix(const D3DXMATRIX& mat)
+void CBManager::SetSpeedTreeCompoundMatrix(const XMFLOAT4X4& mat)
 {
 	m_cbSpeedTree.matCompound = mat;
 	m_bSpeedTreeDirty = true;
 }
 
-void CBManager::SetSpeedTreeTreePosition(const D3DXVECTOR4& pos)
+void CBManager::SetSpeedTreeTreePosition(const XMFLOAT4& pos)
 {
 	m_cbSpeedTree.treePos[0] = pos.x;
 	m_cbSpeedTree.treePos[1] = pos.y;

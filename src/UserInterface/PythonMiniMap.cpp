@@ -315,7 +315,7 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 
 	if (m_fScale >= 2.0f)
 	{
-		_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_MOB));
+		_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_MOB)));
 
 		aIterator = m_MonsterPositionVector.begin();
 		while (aIterator != m_MonsterPositionVector.end())
@@ -330,7 +330,7 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 		while (aIterator != m_OtherPCPositionVector.end())
 		{
 			TMarkPosition& rPosition = *aIterator;
-			_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(rPosition.m_eNameColor));
+			_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(CInstanceBase::GetIndexedNameColor(rPosition.m_eNameColor)));
 			m_WhiteMark.SetPosition(rPosition.m_fX, rPosition.m_fY);
 			m_WhiteMark.Render();
 			++aIterator;
@@ -339,24 +339,31 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 		if (!m_PartyPCPositionVector.empty())
 		{
 			float v = (1 + sinf(CTimer::Instance().GetCurrentSecond() * 6)) / 5 + 0.6f;
-			D3DXCOLOR c(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_PARTY));
-			D3DXCOLOR d(v, v, v, 1);
-			D3DXColorModulate(&c, &c, &d);
 
-			_mgr->GetCbMgr()->SetTextureFactor((DWORD)c);
+			XMFLOAT4 base = CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_PARTY);
 
-			aIterator = m_PartyPCPositionVector.begin();
-			while (aIterator != m_PartyPCPositionVector.end())
+			XMFLOAT4 mod(v, v, v, 1.0f);
+
+			XMFLOAT4 c;
+			c.x = base.x * mod.x;
+			c.y = base.y * mod.y;
+			c.z = base.z * mod.z;
+			c.w = base.w * mod.w;
+
+			_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(c));
+
+			for (auto it = m_PartyPCPositionVector.begin();
+				it != m_PartyPCPositionVector.end();
+				++it)
 			{
-				TMarkPosition& rPosition = *aIterator;
+				const TMarkPosition& rPosition = *it;
 				m_WhiteMark.SetPosition(rPosition.m_fX, rPosition.m_fY);
 				m_WhiteMark.Render();
-				++aIterator;
 			}
 		}
 	}
 
-	_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_NPC));
+	_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_NPC)));
 
 	aIterator = m_NPCPositionVector.begin();
 	while (aIterator != m_NPCPositionVector.end())
@@ -367,7 +374,7 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 		++aIterator;
 	}
 
-	_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WARP));
+	_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WARP)));
 
 	aIterator = m_WarpPositionVector.begin();
 	while (aIterator != m_WarpPositionVector.end())
@@ -863,14 +870,14 @@ void CPythonMiniMap::RenderAtlas(float fScreenX, float fScreenY)
 
 	_mgr->SetShader(VF_PT, MINIMAP_MARK);
 
-	_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_NPC));
+	_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_NPC)));
 	for (auto& rAtlasMarkInfo : m_AtlasNPCInfoVector)
 	{
 		m_WhiteMark.SetPosition(rAtlasMarkInfo.m_fScreenX, rAtlasMarkInfo.m_fScreenY);
 		m_WhiteMark.Render();
 	}
 
-	_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WARP));
+	_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WARP)));
 	for (auto& rAtlasMarkInfo : m_AtlasWarpInfoVector)
 	{
 		m_WhiteMark.SetPosition(rAtlasMarkInfo.m_fScreenX, rAtlasMarkInfo.m_fScreenY);
@@ -879,7 +886,7 @@ void CPythonMiniMap::RenderAtlas(float fScreenX, float fScreenY)
 
 	STATEMANAGER.GetSampler().SetFilter(0, D3D11_FILTER_MIN_MAG_MIP_LINEAR);
 
-	_mgr->GetCbMgr()->SetTextureFactor(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WAYPOINT));
+	_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WAYPOINT)));
 	for (auto& rAtlasMarkInfo : m_AtlasWayPointInfoVector)
 	{
 		if (rAtlasMarkInfo.m_fScreenX <= 0.0f || rAtlasMarkInfo.m_fScreenY <= 0.0f)
@@ -946,7 +953,7 @@ bool CPythonMiniMap::GetPickedInstanceInfo(float fScreenX, float fScreenY, std::
 			rReturnName = pkInst->GetNameString();
 			*pReturnPosX = kInstPos.x;
 			*pReturnPosY = kInstPos.y;
-			*pdwTextColor = pkInst->GetNameColor();
+			*pdwTextColor = ColorToUint(pkInst->GetNameColor());
 			return true;
 		}
 	}
@@ -972,7 +979,7 @@ bool CPythonMiniMap::GetPickedInstanceInfo(float fScreenX, float fScreenY, std::
 			rReturnName = pkInstEach->GetNameString();
 			*pReturnPosX = kInstancePosition.x;
 			*pReturnPosY = kInstancePosition.y;
-			*pdwTextColor = pkInstEach->GetNameColor();
+			*pdwTextColor = ColorToUint(pkInstEach->GetNameColor());
 			return true;
 		}
 	}
@@ -1013,7 +1020,7 @@ bool CPythonMiniMap::GetAtlasInfo(float fScreenX, float fScreenY, std::string & 
 			rReturnString = pkInst->GetNameString();
 			*pReturnPosX = kInstPos.x;
 			*pReturnPosY = kInstPos.y;
-			*pdwTextColor = pkInst->GetNameColor();
+			*pdwTextColor = ColorToUint(pkInst->GetNameColor());
 			return true;		
 		}
 	}
@@ -1029,7 +1036,7 @@ bool CPythonMiniMap::GetAtlasInfo(float fScreenX, float fScreenY, std::string & 
 			rReturnString = rAtlasMarkInfo.m_strText;
 			*pReturnPosX = rAtlasMarkInfo.m_fX;
 			*pReturnPosY = rAtlasMarkInfo.m_fY;
-			*pdwTextColor = CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_NPC);//m_MarkTypeToColorMap[rAtlasMarkInfo.m_byType];
+			*pdwTextColor = ColorToUint(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_NPC));//m_MarkTypeToColorMap[rAtlasMarkInfo.m_byType];
 			return true;
 		}
 		++m_AtlasMarkInfoVectorIterator;
@@ -1045,7 +1052,7 @@ bool CPythonMiniMap::GetAtlasInfo(float fScreenX, float fScreenY, std::string & 
 			rReturnString = rAtlasMarkInfo.m_strText;
 			*pReturnPosX = rAtlasMarkInfo.m_fX;
 			*pReturnPosY = rAtlasMarkInfo.m_fY;
-			*pdwTextColor = CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WARP);//m_MarkTypeToColorMap[rAtlasMarkInfo.m_byType];
+			*pdwTextColor =	ColorToUint(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WARP));//m_MarkTypeToColorMap[rAtlasMarkInfo.m_byType];
 			return true;
 		}
 		++m_AtlasMarkInfoVectorIterator;
@@ -1063,7 +1070,7 @@ bool CPythonMiniMap::GetAtlasInfo(float fScreenX, float fScreenY, std::string & 
 			rReturnString = rAtlasMarkInfo.m_strText;
 			*pReturnPosX = rAtlasMarkInfo.m_fX;
 			*pReturnPosY = rAtlasMarkInfo.m_fY;
-			*pdwTextColor = CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WAYPOINT);//m_MarkTypeToColorMap[rAtlasMarkInfo.m_byType];
+			*pdwTextColor = ColorToUint(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WAYPOINT));//m_MarkTypeToColorMap[rAtlasMarkInfo.m_byType];
 			return true;
 		}
 		++m_AtlasMarkInfoVectorIterator;
@@ -1089,7 +1096,7 @@ bool CPythonMiniMap::GetAtlasInfo(float fScreenX, float fScreenY, std::string & 
 
 			*pReturnPosX = rInfo.lx + rInfo.lwidth/2;
 			*pReturnPosY = rInfo.ly + rInfo.lheight/2;
-			*pdwTextColor = CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_PARTY);
+			*pdwTextColor = ColorToUint(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_PARTY));
 			return true;
 		}
 	}
@@ -1333,10 +1340,10 @@ void CPythonMiniMap::__Initialize()
 	m_bShow = false;
 	m_bShowAtlas = false;
 
-	D3DXMatrixIdentity(&m_matIdentity);
-	D3DXMatrixIdentity(&m_matWorld);
-	D3DXMatrixIdentity(&m_matMiniMapCover);
-	D3DXMatrixIdentity(&m_matWorldAtlas);
+	XMStoreFloat4x4(&m_matIdentity, XMMatrixIdentity());
+	XMStoreFloat4x4(&m_matWorld, XMMatrixIdentity());
+	XMStoreFloat4x4(&m_matMiniMapCover, XMMatrixIdentity());
+	XMStoreFloat4x4(&m_matWorldAtlas, XMMatrixIdentity());
 }
 
 void CPythonMiniMap::Destroy()

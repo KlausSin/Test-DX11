@@ -43,7 +43,7 @@ class CMapManager : public CScreen, public IPhysicsWorld
 		float					GetTerrainHeight(float fx, float fy);
 		bool					GetWaterHeight(int iX, int iY, long * plWaterHeight);
 		
-		bool					GetNormal(int ix, int iy, D3DXVECTOR3 * pv3Normal);
+		bool					GetNormal(int ix, int iy, XMFLOAT3* pv3Normal);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Environment
@@ -75,7 +75,7 @@ class CMapManager : public CScreen, public IPhysicsWorld
 		DWORD					GetShadowMapColor(float fx, float fy);
 
 		// VICITM_COLLISION_TEST
-		virtual bool isPhysicalCollision(const D3DXVECTOR3 & c_rvCheckPosition);
+		virtual bool isPhysicalCollision(const XMFLOAT3& c_rvCheckPosition);
 		// VICITM_COLLISION_TEST_END
 		
 		bool					isAttrOn(float fX, float fY, BYTE byAttr);

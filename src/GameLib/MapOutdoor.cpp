@@ -37,21 +37,27 @@ struct FGetObjectHeight
 
 struct FGetPickingPoint
 {
-	D3DXVECTOR3 m_v3Start;
-	D3DXVECTOR3 m_v3Dir;
-	D3DXVECTOR3 m_v3PickingPoint;
-	bool		m_bPicked;
+	XMFLOAT3 m_v3Start;
+	XMFLOAT3 m_v3Dir;
+	XMFLOAT3 m_v3PickingPoint;
+	bool m_bPicked;
 
-	FGetPickingPoint(D3DXVECTOR3& v3Start, D3DXVECTOR3& v3Dir) : m_v3Start(v3Start), m_v3Dir(v3Dir), m_bPicked(false) {}
-	void operator() (CGraphicObjectInstance* pInstance)
+	FGetPickingPoint(const XMFLOAT3& v3Start, const XMFLOAT3& v3Dir)
+		: m_v3Start(v3Start), m_v3Dir(v3Dir), m_bPicked(false)
+	{
+	}
+
+	void operator()(CGraphicObjectInstance* pInstance)
 	{
 		if (pInstance && pInstance->GetType() == CGraphicThingInstance::ID)
 		{
 			CGraphicThingInstance* pThing = (CGraphicThingInstance*)pInstance;
+
 			if (!pThing->IsObjectHeight())
 				return;
 
 			float fX, fY, fZ;
+
 			if (pThing->Picking(m_v3Start, m_v3Dir, fX, fY))
 			{
 				if (pThing->GetObjectHeight(fX, -fY, &fZ))
@@ -159,7 +165,7 @@ bool CMapOutdoor::Initialize()
 	//m_bBGLoadingEnable = false;
 	m_eTerrainRenderSort = DISTANCE_SORT;
 
-	D3DXMatrixIdentity(&m_matWorldForCommonUse);
+	XMStoreFloat4x4(&m_matWorldForCommonUse, XMMatrixIdentity());
 
 	InitializeVisibleParts();
 
@@ -414,23 +420,26 @@ bool CMapOutdoor::GetTerrainNum(float fx, float fy, BYTE* pbyTerrainNum)
 	return GetTerrainNumFromCoord(wTerrainNumX, wTerrainNumY, pbyTerrainNum);
 }
 
-bool CMapOutdoor::GetPickingPoint(D3DXVECTOR3* v3IntersectPt)
+bool CMapOutdoor::GetPickingPoint(XMFLOAT3* v3IntersectPt)
 {
 	return GetPickingPointWithRay(ms_Ray, v3IntersectPt);
 }
 
-bool CMapOutdoor::__PickTerrainHeight(float& fPos, const D3DXVECTOR3& v3Start, const D3DXVECTOR3& v3End, float fStep, float fRayRange, float fLimitRange, D3DXVECTOR3* pv3Pick)
+bool CMapOutdoor::__PickTerrainHeight(float& fPos, const XMFLOAT3& v3Start, const XMFLOAT3& v3End, float fStep, float fRayRange, float fLimitRange, XMFLOAT3* pv3Pick)
 {
 	CTerrain* pTerrain;
-
-	D3DXVECTOR3 v3CurPos;
+	XMFLOAT3 v3CurPos;
 
 	float fRayRangeInv = 1.0f / fRayRange;
+
 	while (fPos < fRayRange && fPos < fLimitRange)
 	{
-		D3DXVec3Lerp(&v3CurPos, &v3Start, &v3End, fPos * fRayRangeInv);
+		XMStoreFloat3(&v3CurPos,
+			XMVectorLerp(XMLoadFloat3(&v3Start), XMLoadFloat3(&v3End), fPos * fRayRangeInv));
+
 		BYTE byTerrainNum;
 		float fMultiplier = 1.0f;
+
 		if (GetTerrainNum(v3CurPos.x, v3CurPos.y, &byTerrainNum))
 		{
 			if (GetTerrainPointer(byTerrainNum, &pTerrain))
@@ -438,7 +447,9 @@ bool CMapOutdoor::__PickTerrainHeight(float& fPos, const D3DXVECTOR3& v3Start, c
 				int ix, iy;
 				PR_FLOAT_TO_INT(v3CurPos.x, ix);
 				PR_FLOAT_TO_INT(fabs(v3CurPos.y), iy);
+
 				float fMapHeight = pTerrain->GetHeight(ix, iy);
+
 				if (fMapHeight >= v3CurPos.z)
 				{
 					*pv3Pick = v3CurPos;
@@ -450,19 +461,23 @@ bool CMapOutdoor::__PickTerrainHeight(float& fPos, const D3DXVECTOR3& v3Start, c
 				}
 			}
 		}
+
 		fPos += fStep * fMultiplier;
 	}
 
 	return false;
 }
-bool CMapOutdoor::GetPickingPointWithRay(const CRay& rRay, D3DXVECTOR3* v3IntersectPt)
+
+bool CMapOutdoor::GetPickingPointWithRay(const CRay& rRay, XMFLOAT3* v3IntersectPt)
 {
 	bool bObjectPick = false;
 	bool bTerrainPick = false;
-	D3DXVECTOR3 v3ObjectPick, v3TerrainPick;
 
-	D3DXVECTOR3 v3Start, v3End, v3Dir, v3CurPos;
+	XMFLOAT3 v3ObjectPick, v3TerrainPick;
+
+	XMFLOAT3 v3Start, v3End, v3Dir, v3CurPos;
 	float fRayRange;
+
 	rRay.GetStartPoint(&v3Start);
 	rRay.GetDirection(&v3Dir, &fRayRange);
 	rRay.GetEndPoint(&v3End);
@@ -473,7 +488,6 @@ bool CMapOutdoor::GetPickingPointWithRay(const CRay& rRay, D3DXVECTOR3* v3Inters
 
 	if (!m_bEnableTerrainOnlyForHeight)
 	{
-		//DWORD baseTime = timeGetTime();
 		CCullingManager& rkCullingMgr = CCullingManager::Instance();
 		FGetPickingPoint kGetPickingPoint(v3Start, v3Dir);
 		rkCullingMgr.ForInRange2d(v3dStart, &kGetPickingPoint);
@@ -486,24 +500,29 @@ bool CMapOutdoor::GetPickingPointWithRay(const CRay& rRay, D3DXVECTOR3* v3Inters
 	}
 
 	float fPos = 0.0f;
-	//float fStep = 1.0f;
-	//float fRayRangeInv=1.0f/fRayRange;
 
 	bTerrainPick = true;
+
 	if (!__PickTerrainHeight(fPos, v3Start, v3End, 5.0f, fRayRange, 5000.0f, &v3TerrainPick))
 		if (!__PickTerrainHeight(fPos, v3Start, v3End, 10.0f, fRayRange, 10000.0f, &v3TerrainPick))
 			if (!__PickTerrainHeight(fPos, v3Start, v3End, 100.0f, fRayRange, 100000.0f, &v3TerrainPick))
 				bTerrainPick = false;
 
-
 	if (bObjectPick && bTerrainPick)
 	{
-		const auto vv = (v3TerrainPick - v3Start);
-		const auto vv2 = (v3ObjectPick - v3Start);
-		if (D3DXVec3Length(&vv2) >= D3DXVec3Length(&vv))
+		XMFLOAT3 vv, vv2;
+
+		XMStoreFloat3(&vv,
+			XMVector3Length(XMLoadFloat3(&v3TerrainPick) - XMLoadFloat3(&v3Start)));
+
+		XMStoreFloat3(&vv2,
+			XMVector3Length(XMLoadFloat3(&v3ObjectPick) - XMLoadFloat3(&v3Start)));
+
+		if (vv2.x >= vv.x)
 			*v3IntersectPt = v3TerrainPick;
 		else
 			*v3IntersectPt = v3ObjectPick;
+
 		return true;
 	}
 	else if (bObjectPick)
@@ -520,13 +539,14 @@ bool CMapOutdoor::GetPickingPointWithRay(const CRay& rRay, D3DXVECTOR3* v3Inters
 	return false;
 }
 
-bool CMapOutdoor::GetPickingPointWithRayOnlyTerrain(const CRay& rRay, D3DXVECTOR3* v3IntersectPt)
+bool CMapOutdoor::GetPickingPointWithRayOnlyTerrain(const CRay& rRay, XMFLOAT3* v3IntersectPt)
 {
 	bool bTerrainPick = false;
-	D3DXVECTOR3 v3TerrainPick;
+	XMFLOAT3 v3TerrainPick;
 
-	D3DXVECTOR3 v3Start, v3End, v3Dir, v3CurPos;
+	XMFLOAT3 v3Start, v3End, v3Dir, v3CurPos;
 	float fRayRange;
+
 	rRay.GetStartPoint(&v3Start);
 	rRay.GetDirection(&v3Dir, &fRayRange);
 	rRay.GetEndPoint(&v3End);
@@ -535,10 +555,10 @@ bool CMapOutdoor::GetPickingPointWithRayOnlyTerrain(const CRay& rRay, D3DXVECTOR
 	v3dStart.Set(v3Start.x, v3Start.y, v3Start.z);
 	v3dEnd.Set(v3End.x - v3Start.x, v3End.y - v3Start.y, v3End.z - v3Start.z);
 
-
-
 	float fPos = 0.0f;
+
 	bTerrainPick = true;
+
 	if (!__PickTerrainHeight(fPos, v3Start, v3End, 5.0f, fRayRange, 5000.0f, &v3TerrainPick))
 		if (!__PickTerrainHeight(fPos, v3Start, v3End, 10.0f, fRayRange, 10000.0f, &v3TerrainPick))
 			if (!__PickTerrainHeight(fPos, v3Start, v3End, 100.0f, fRayRange, 100000.0f, &v3TerrainPick))
@@ -634,18 +654,21 @@ bool CMapOutdoor::GetTerrainNumFromCoord(WORD wCoordX, WORD wCoordY, BYTE* pbyTe
 	return true;
 }
 
-void CMapOutdoor::BuildViewFrustum(D3DXMATRIX& mat)
+void CMapOutdoor::BuildViewFrustum(XMFLOAT4X4& mat)
 {
-	//m_plane[0] = D3DXPLANE(mat._14 + mat._13, mat._24 + mat._23, mat._34 + mat._33, mat._44 + mat._43);
-	m_plane[0] = D3DXPLANE(mat._13, mat._23, mat._33, mat._43);		// Near
-	m_plane[1] = D3DXPLANE(mat._14 - mat._13, mat._24 - mat._23, mat._34 - mat._33, mat._44 - mat._43);		// Far
-	m_plane[2] = D3DXPLANE(mat._14 + mat._11, mat._24 + mat._21, mat._34 + mat._31, mat._44 + mat._41);		// Left
-	m_plane[3] = D3DXPLANE(mat._14 - mat._11, mat._24 - mat._21, mat._34 - mat._31, mat._44 - mat._41);		// Right
-	m_plane[4] = D3DXPLANE(mat._14 + mat._12, mat._24 + mat._22, mat._34 + mat._32, mat._44 + mat._42);		// Bottom
-	m_plane[5] = D3DXPLANE(mat._14 - mat._12, mat._24 - mat._22, mat._34 - mat._32, mat._44 - mat._42);		// Top
+	m_plane[0] = XMFLOAT4(mat._13, mat._23, mat._33, mat._43);
+
+	m_plane[1] = XMFLOAT4(mat._14 - mat._13, mat._24 - mat._23, mat._34 - mat._33, mat._44 - mat._43);
+	m_plane[2] = XMFLOAT4(mat._14 + mat._11, mat._24 + mat._21, mat._34 + mat._31, mat._44 + mat._41);
+	m_plane[3] = XMFLOAT4(mat._14 - mat._11, mat._24 - mat._21, mat._34 - mat._31, mat._44 - mat._41);
+	m_plane[4] = XMFLOAT4(mat._14 + mat._12, mat._24 + mat._22, mat._34 + mat._32, mat._44 + mat._42);
+	m_plane[5] = XMFLOAT4(mat._14 - mat._12, mat._24 - mat._22, mat._34 - mat._32, mat._44 - mat._42);
 
 	for (int i = 0; i < 6; ++i)
-		D3DXPlaneNormalize(&m_plane[i], &m_plane[i]);
+	{
+		XMStoreFloat4(&m_plane[i],
+			XMPlaneNormalize(XMLoadFloat4(&m_plane[i])));
+	}
 }
 
 bool MAPOUTDOOR_GET_HEIGHT_USE2D = true;
@@ -819,7 +842,7 @@ float CMapOutdoor::GetCacheHeight(float fx, float fy)
 	return fHeight;
 }
 
-bool CMapOutdoor::GetNormal(int ix, int iy, D3DXVECTOR3* pv3Normal)
+bool CMapOutdoor::GetNormal(int ix, int iy, XMFLOAT3* pv3Normal)
 {
 	if (ix <= 0)
 		ix = 0;
@@ -1263,8 +1286,8 @@ void CMapOutdoor::__XMasTree_Create(float x, float y, float z, const char* c_szT
 	CEffectManager& rkEffMgr = CEffectManager::Instance();
 	rkEffMgr.RegisterEffect(c_szEffName);
 	m_kXMas.m_iEffectID = rkEffMgr.CreateEffect(c_szEffName,
-		D3DXVECTOR3(x, y, z),
-		D3DXVECTOR3(0.0f, 0.0f, 0.0f));
+		XMFLOAT3(x, y, z),
+		XMFLOAT3(0.0f, 0.0f, 0.0f));
 }
 
 void CMapOutdoor::XMasTree_Set(float x, float y, float z, const char* c_szTreeName, const char* c_szEffName)
@@ -1281,13 +1304,16 @@ void CMapOutdoor::SpecialEffect_Create(DWORD dwID, float x, float y, float z, co
 	if (m_kMap_dwID_iEffectID.end() != itor)
 	{
 		DWORD dwEffectID = itor->second;
+
 		if (rkEffMgr.SelectEffectInstance(dwEffectID))
 		{
-			D3DXMATRIX mat;
-			D3DXMatrixIdentity(&mat);
+			XMFLOAT4X4 mat;
+			XMStoreFloat4x4(&mat, XMMatrixIdentity());
+
 			mat._41 = x;
 			mat._42 = y;
 			mat._43 = z;
+
 			rkEffMgr.SetEffectInstanceGlobalMatrix(mat);
 			return;
 		}
@@ -1295,8 +1321,8 @@ void CMapOutdoor::SpecialEffect_Create(DWORD dwID, float x, float y, float z, co
 
 	rkEffMgr.RegisterEffect(c_szEffName);
 	DWORD dwEffectID = rkEffMgr.CreateEffect(c_szEffName,
-		D3DXVECTOR3(x, y, z),
-		D3DXVECTOR3(0.0f, 0.0f, 0.0f));
+		XMFLOAT3(x, y, z),
+		XMFLOAT3(0.0f, 0.0f, 0.0f));
 	m_kMap_dwID_iEffectID.insert(std::make_pair(dwID, dwEffectID));
 }
 

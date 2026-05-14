@@ -1182,7 +1182,12 @@ void CGraphicTextInstance::SetColor(DWORD color)
 
 void CGraphicTextInstance::SetColor(float r, float g, float b, float a)
 {
-	SetColor(D3DXCOLOR(r, g, b, a));
+	SetColor(
+		(DWORD(a * 255.0f) << 24) |
+		(DWORD(r * 255.0f) << 16) |
+		(DWORD(g * 255.0f) << 8) |
+		(DWORD(b * 255.0f))
+	);
 }
 
 void CGraphicTextInstance::SetOutLineColor(DWORD color)
@@ -1192,7 +1197,7 @@ void CGraphicTextInstance::SetOutLineColor(DWORD color)
 
 void CGraphicTextInstance::SetOutLineColor(float r, float g, float b, float a)
 {
-	m_dwOutLineColor=D3DXCOLOR(r, g, b, a);
+	m_dwOutLineColor= ColorToUint(XMFLOAT4(r, g, b, a));
 }
 
 void CGraphicTextInstance::SetSecret(bool Value)

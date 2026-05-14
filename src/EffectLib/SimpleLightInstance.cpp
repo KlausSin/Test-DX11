@@ -70,38 +70,20 @@ bool CLightInstance::OnUpdate(float fElapsedTime)
 
 	if (pLight)
 	{
-		pLight->SetAmbientColor(m_pData->m_cAmbient.r, m_pData->m_cAmbient.g, m_pData->m_cAmbient.b, m_pData->m_cAmbient.a);
-		pLight->SetDiffuseColor(m_pData->m_cDiffuse.r, m_pData->m_cDiffuse.g, m_pData->m_cDiffuse.b, m_pData->m_cDiffuse.a);
-
-		/*if (m_pData->m_TimeEventTableRange.size()
-			&& m_fLocalTime>=m_pData->GetDuration()*m_pData->m_TimeEventTableRange[m_dwRangeIndex].m_fTime)
-		{
-			while(m_dwRangeIndex<m_pData->m_TimeEventTableRange.size() 
-				&& m_fLocalTime>=m_pData->GetDuration()*m_pData->m_TimeEventTableRange[m_dwRangeIndex].m_fTime)
-				m_dwRangeIndex++;
-			float fLastTime;
-			float fLastRange=m_pData->m_TimeEventTableRange[m_pData->m_TimeEventTableRange.size()-1].m_Value;
-			if (m_dwRangeIndex == m_pData->m_TimeEventTableRange.size())
-				fLastTime = 1.0f;
-			else
-			{
-				fLastTime = m_pData->m_TimeEventTableRange[m_dwRangeIndex].m_fTime;
-				fLastRange = m_pData->m_TimeEventTableRange[m_dwRangeIndex].m_Value;
-			}
-			m_dwRangeIndex--;
-			pLight->BlendRange(fLastRange*m_pData->m_fMaxRange, 
-				(fLastTime-m_pData->m_TimeEventTableRange[m_dwRangeIndex].m_fTime)*m_pData->GetDuration());
-			m_dwRangeIndex++;
-		}*/
+		pLight->SetAmbientColor(m_pData->m_cAmbient.x, m_pData->m_cAmbient.y, m_pData->m_cAmbient.z, m_pData->m_cAmbient.w);
+		pLight->SetDiffuseColor(m_pData->m_cDiffuse.x, m_pData->m_cDiffuse.y, m_pData->m_cDiffuse.z, m_pData->m_cDiffuse.w);
 
 		float fRange;
 		m_pData->GetRange(m_fLocalTime, fRange);
 		pLight->SetRange(fRange);
 		
-		D3DXVECTOR3 pos;
-		m_pData->GetPosition(m_fLocalTime,pos);
-		D3DXVec3TransformCoord(&pos,&pos,mc_pmatLocal);
-		pLight->SetPosition(pos.x,pos.y,pos.z);
+		XMFLOAT3 pos;
+
+		m_pData->GetPosition(m_fLocalTime, pos);
+
+		XMStoreFloat3(&pos, XMVector3TransformCoord(XMLoadFloat3(&pos), XMLoadFloat4x4(mc_pmatLocal)));
+
+		pLight->SetPosition(pos.x, pos.y, pos.z);
 
 	}
 

@@ -44,8 +44,8 @@ protected:
 	virtual BOOL OnIsType(DWORD type);
 
 protected:
-	D3DXCOLOR m_DiffuseColor;
-	D3DXVECTOR2 m_v2Position;
+	XMFLOAT4 m_DiffuseColor;
+	XMFLOAT2 m_v2Position;
 
 	CGraphicImage::TRef m_roImage;
 

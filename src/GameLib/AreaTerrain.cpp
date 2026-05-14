@@ -338,27 +338,28 @@ WORD CTerrain::WE_GetHeightMapValue(short sX, short sY)
 	}
 }
 
-bool CTerrain::GetNormal(int ix, int iy, D3DXVECTOR3 * pv3Normal)
+bool CTerrain::GetNormal(int ix, int iy, XMFLOAT3* pv3Normal)
 {
 	long lMapWidth = XSIZE * CELLSCALE;
 	long lMapHeight = YSIZE * CELLSCALE;
+
 	while (ix < 0)
 		ix += lMapWidth;
-	
+
 	while (iy < 0)
 		iy += lMapHeight;
-	
+
 	while (ix > lMapWidth)
 		ix -= lMapWidth;
-	
+
 	while (iy > lMapHeight)
 		iy -= lMapHeight;
 
 	ix /= CELLSCALE;
 	iy /= CELLSCALE;
 
-	D3DXVECTOR3 v3Noraml;
-	char * n = (char*) &m_acNormalMap[(iy * NORMALMAP_XSIZE + ix)*3];
+	char* n = (char*)&m_acNormalMap[(iy * NORMALMAP_XSIZE + ix) * 3];
+
 	pv3Normal->x = -((float)*n++) * 0.007874016f;
 	pv3Normal->y = ((float)*n++) * 0.007874016f;
 	pv3Normal->z = ((float)*n++) * 0.007874016f;
@@ -437,24 +438,25 @@ float CTerrain::GetHeight(int x, int y)
 
 void CTerrain::CalculateNormal(long x, long y)
 {
-	D3DXVECTOR3 normal;
+	XMFLOAT3 normal;
 
-	normal.x = -m_fHeightScale * ((float)GetHeightMapValue((x-1),y)-(float)GetHeightMapValue((x+1),y));
-	normal.y = -m_fHeightScale * ((float)GetHeightMapValue(x,(y-1))-(float)GetHeightMapValue(x,(y+1)));
-
+	normal.x = -m_fHeightScale * ((float)GetHeightMapValue((x - 1), y) - (float)GetHeightMapValue((x + 1), y));
+	normal.y = -m_fHeightScale * ((float)GetHeightMapValue(x, (y - 1)) - (float)GetHeightMapValue(x, (y + 1)));
 	normal.z = 2.0f * static_cast<float>(CELLSCALE);
-	normal *= 127.0f / D3DXVec3Length(&normal);
+
+	float len = XMVectorGetX(XMVector3Length(XMLoadFloat3(&normal)));
+	XMStoreFloat3(&normal, XMLoadFloat3(&normal) * (127.0f / len));
 
 	int ix, iy, iz;
 	PR_FLOAT_TO_INT(normal.x, ix);
 	PR_FLOAT_TO_INT(normal.y, iy);
 	PR_FLOAT_TO_INT(normal.z, iz);
-	
-	char * n = (char*) &m_acNormalMap[(y * NORMALMAP_XSIZE + x)*3];
-	
-	*n++ = (char) ix;
-	*n++ = (char) iy;
-	*n++ = (char) iz;
+
+	char* n = (char*)&m_acNormalMap[(y * NORMALMAP_XSIZE + x) * 3];
+
+	*n++ = (char)ix;
+	*n++ = (char)iy;
+	*n++ = (char)iz;
 }
 
 bool CTerrain::RAW_LoadTileMap(const char * c_pszFileName, bool bBGLoading)
@@ -983,8 +985,8 @@ void CTerrain::_CalculateTerrainPatch(BYTE byPatchNumX, BYTE byPatchNumY)
 	HardwareTransformPatch_SSourceVertex*	lpTerrainVertex=akSrcTerrainVertex;	
 	UINT uTerrainVertexCount=0;
 
-	D3DXVECTOR3 kNormal;
-	D3DXVECTOR3 kPosition;
+	XMFLOAT3 kNormal;
+	XMFLOAT3 kPosition;
 	for (DWORD dwY = dwStartY; dwY <= dwStartY + PATCH_YSIZE; ++dwY)
     {
 		WORD * pwRawHeight	= wOrigRawHeightPtr;

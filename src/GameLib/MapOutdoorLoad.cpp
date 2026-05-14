@@ -405,26 +405,43 @@ bool CMapOutdoor::LoadSetting(const char * c_szFileName)
 
 	m_fWaterTexCoordBase = 1.0f / (float)(CTerrainImpl::CELLSCALE * 4);
 
-	D3DXMatrixScaling(&m_matSplatAlpha, 
-		+m_fTerrainTexCoordBase * 2.0f * (float)(CTerrainImpl::PATCH_XSIZE) / (float)(CTerrainImpl::SPLATALPHA_RAW_XSIZE-2), 
-		-m_fTerrainTexCoordBase * 2.0f * (float)(CTerrainImpl::PATCH_YSIZE) / (float)(CTerrainImpl::SPLATALPHA_RAW_XSIZE-2), 
-		0.0f);
+	XMStoreFloat4x4(&m_matSplatAlpha,
+		XMMatrixScaling(
+			+m_fTerrainTexCoordBase * 2.0f * (float)CTerrainImpl::PATCH_XSIZE / (float)(CTerrainImpl::SPLATALPHA_RAW_XSIZE - 2),
+			-m_fTerrainTexCoordBase * 2.0f * (float)CTerrainImpl::PATCH_YSIZE / (float)(CTerrainImpl::SPLATALPHA_RAW_XSIZE - 2),
+			0.0f
+		)
+	);
+
 	m_matSplatAlpha._41 = m_fTerrainTexCoordBase * 4.6f;
 	m_matSplatAlpha._42 = m_fTerrainTexCoordBase * 4.6f;
 
-	D3DXMatrixScaling(&m_matStaticShadow, 
-		+m_fTerrainTexCoordBase * ((float) CTerrainImpl::PATCH_XSIZE / static_cast<float>(CTerrainImpl::XSIZE)), 
-		-m_fTerrainTexCoordBase * ((float) CTerrainImpl::PATCH_YSIZE / static_cast<float>(CTerrainImpl::XSIZE)),
-		0.0f);
+
+	XMStoreFloat4x4(&m_matStaticShadow,
+		XMMatrixScaling(
+			+m_fTerrainTexCoordBase * ((float)CTerrainImpl::PATCH_XSIZE / (float)CTerrainImpl::XSIZE),
+			-m_fTerrainTexCoordBase * ((float)CTerrainImpl::PATCH_YSIZE / (float)CTerrainImpl::XSIZE),
+			0.0f
+		)
+	);
+
 	m_matStaticShadow._41 = 0.0f;
 	m_matStaticShadow._42 = 0.0f;
-	
-	D3DXMatrixScaling(&m_matDynamicShadowScale, 1.0f / 2550.0f, -1.0f / 2550.0f, 1.0f);
+
+
+	XMStoreFloat4x4(&m_matDynamicShadowScale,
+		XMMatrixScaling(1.0f / 2550.0f, -1.0f / 2550.0f, 1.0f)
+	);
+
 	m_matDynamicShadowScale._41 = 0.5f;
 	m_matDynamicShadowScale._42 = 0.5f;
 
+
 	// Transform
-	D3DXMatrixScaling(&m_matBuildingTransparent, 1.0f / ((float)ms_iWidth), -1.0f / ((float)ms_iHeight), 1.0f);
+	XMStoreFloat4x4(&m_matBuildingTransparent,
+		XMMatrixScaling(1.0f / (float)ms_iWidth, -1.0f / (float)ms_iHeight, 1.0f)
+	);
+
 	m_matBuildingTransparent._41 = 0.5f;
 	m_matBuildingTransparent._42 = 0.5f;
 	NANOEND

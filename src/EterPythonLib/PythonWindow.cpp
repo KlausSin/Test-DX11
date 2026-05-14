@@ -1004,9 +1004,9 @@ namespace UI
 
 	CBar3D::CBar3D(PyObject * ppyObject) : CWindow(ppyObject)
 	{
-		m_dwLeftColor = D3DXCOLOR(0.2f, 0.2f, 0.2f, 1.0f);
-		m_dwRightColor = D3DXCOLOR(0.7f, 0.7f, 0.7f, 1.0f);
-		m_dwCenterColor = D3DXCOLOR(0.0f, 0.0f, 0.0f, 1.0f);
+		m_dwLeftColor   = ColorToUint(XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
+		m_dwRightColor  = ColorToUint(XMFLOAT4(0.7f, 0.7f, 0.7f, 1.0f));
+		m_dwCenterColor = ColorToUint(XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 	}
 	CBar3D::~CBar3D()
 	{

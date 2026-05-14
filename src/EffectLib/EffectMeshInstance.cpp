@@ -63,61 +63,66 @@ void CEffectMeshInstance::OnRender()
 	if (!isActive())
 		return;
 
-	CEffectMesh * pEffectMesh = m_roMesh.GetPointer();
+	CEffectMesh* pEffectMesh = m_roMesh.GetPointer();
 
 	for (DWORD i = 0; i < pEffectMesh->GetMeshCount(); ++i)
 	{
 		assert(i < m_TextureInstanceVector.size());
 
-		CFrameController & rTextureFrameController = m_TextureInstanceVector[i].TextureFrameController;
+		CFrameController& rTextureFrameController = m_TextureInstanceVector[i].TextureFrameController;
 		if (!rTextureFrameController.isActive(m_MeshFrameController.GetCurrentFrame()))
 			continue;
 
 		int iBillboardType = m_pMeshScript->GetBillboardType(i);
 
-		D3DXMATRIX m_matWorld;
-		D3DXMatrixIdentity(&m_matWorld);
+		XMFLOAT4X4 m_matWorld;
+		XMStoreFloat4x4(&m_matWorld, XMMatrixIdentity());
 
-		switch(iBillboardType)
+		switch (iBillboardType)
 		{
-			case MESH_BILLBOARD_TYPE_ALL:
-				{
-					D3DXMATRIX matTemp;
-					D3DXMatrixRotationX(&matTemp, 90.0f);
-					D3DXMatrixInverse(&m_matWorld, NULL, &CScreen::GetViewMatrix());
+		case MESH_BILLBOARD_TYPE_ALL:
+		{
+			XMVECTOR det;
+			XMMATRIX matTemp = XMMatrixRotationX(XMConvertToRadians(90.0f));
+			XMMATRIX matViewInv = XMMatrixInverse(&det, XMLoadFloat4x4(&CScreen::GetViewMatrix()));
+			XMStoreFloat4x4(&m_matWorld, matTemp * matViewInv);
+		}
+		break;
 
-					m_matWorld = matTemp * m_matWorld;
-				}
-				break;
+		case MESH_BILLBOARD_TYPE_Y:
+		{
+			XMVECTOR det;
+			XMFLOAT4X4 matTemp;
+			XMStoreFloat4x4(&matTemp, XMMatrixInverse(&det, XMLoadFloat4x4(&CScreen::GetViewMatrix())));
 
-			case MESH_BILLBOARD_TYPE_Y:
-				{
-					D3DXMATRIX matTemp;
-					D3DXMatrixIdentity(&matTemp);
+			m_matWorld._11 = matTemp._11;
+			m_matWorld._12 = matTemp._12;
+			m_matWorld._21 = matTemp._21;
+			m_matWorld._22 = matTemp._22;
+		}
+		break;
 
-					D3DXMatrixInverse(&matTemp, NULL, &CScreen::GetViewMatrix());
-					m_matWorld._11 = matTemp._11;
-					m_matWorld._12 = matTemp._12;
-					m_matWorld._21 = matTemp._21;
-					m_matWorld._22 = matTemp._22;
-				}
-				break;
+		case MESH_BILLBOARD_TYPE_MOVE:
+		{
+			XMFLOAT3 Position;
+			XMFLOAT3 LastPosition;
 
-			case MESH_BILLBOARD_TYPE_MOVE:
-				{
-					D3DXVECTOR3 Position;
-					m_pMeshScript->GetPosition(m_fLocalTime, Position);
-					D3DXVECTOR3 LastPosition;
-					m_pMeshScript->GetPosition(m_fLocalTime-CTimer::Instance().GetElapsedSecond(), LastPosition);
-					Position -= LastPosition;
-					if (D3DXVec3LengthSq(&Position)>0.001f)
-					{
-						D3DXVec3Normalize(&Position,&Position);
-						D3DXQUATERNION q = SafeRotationNormalizedArc(D3DXVECTOR3(0.0f,-1.0f,0.0f),Position);
-						D3DXMatrixRotationQuaternion(&m_matWorld,&q);
-					}
-				}
-				break;
+			m_pMeshScript->GetPosition(m_fLocalTime, Position);
+			m_pMeshScript->GetPosition(m_fLocalTime - CTimer::Instance().GetElapsedSecond(), LastPosition);
+
+			Position.x -= LastPosition.x;
+			Position.y -= LastPosition.y;
+			Position.z -= LastPosition.z;
+
+			if (XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&Position))) > 0.001f)
+			{
+				XMVECTOR dir = XMVector3Normalize(XMLoadFloat3(&Position));
+				XMVECTOR from = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
+				XMVECTOR q = XMQuaternionRotationNormal(XMVector3Normalize(XMVector3Cross(from, dir)), acosf(XMVectorGetX(XMVector3Dot(from, dir))));
+				XMStoreFloat4x4(&m_matWorld, XMMatrixRotationQuaternion(q));
+			}
+		}
+		break;
 		}
 
 		auto& state = STATEMANAGER.GetStateCache();
@@ -136,43 +141,47 @@ void CEffectMeshInstance::OnRender()
 			state.Blend.SetDestBlend((D3D11_BLEND)iBlendingDestType);
 		}
 
-		D3DXVECTOR3 Position;
+		XMFLOAT3 Position;
 		m_pMeshScript->GetPosition(m_fLocalTime, Position);
+
 		m_matWorld._41 = Position.x;
 		m_matWorld._42 = Position.y;
 		m_matWorld._43 = Position.z;
-		m_matWorld = m_matWorld * *mc_pmatLocal;
+
+		XMStoreFloat4x4(&m_matWorld, XMLoadFloat4x4(&m_matWorld) * XMLoadFloat4x4(mc_pmatLocal));
 		STATEMANAGER.GetTransform().SetWorld(m_matWorld);
+
 		BYTE byType;
-		D3DXCOLOR Color(1.0f, 1.0f, 1.0f, 1.0f);
+		XMFLOAT4 Color(1.0f, 1.0f, 1.0f, 1.0f);
+
 		m_pMeshScript->GetColorOperationType(i, &byType);
 		m_pMeshScript->GetColorFactor(i, &Color);
 
-		TTimeEventTableFloat * TableAlpha;
+		TTimeEventTableFloat* TableAlpha;
 
 		float fAlpha = 1.0f;
 		if (m_pMeshScript->GetTimeTableAlphaPointer(i, &TableAlpha) && !TableAlpha->empty())
 			fAlpha = GetTimeEventBlendValue(m_fLocalTime, *TableAlpha);
 
-		// Render //
-		CEffectMesh::TEffectMeshData * pMeshData = pEffectMesh->GetMeshDataPointer(i);
+		CEffectMesh::TEffectMeshData* pMeshData = pEffectMesh->GetMeshDataPointer(i);
 
 		assert(m_MeshFrameController.GetCurrentFrame() < pMeshData->EffectFrameDataVector.size());
-		CEffectMesh::TEffectFrameData & rFrameData = pMeshData->EffectFrameDataVector[m_MeshFrameController.GetCurrentFrame()];
+		CEffectMesh::TEffectFrameData& rFrameData = pMeshData->EffectFrameDataVector[m_MeshFrameController.GetCurrentFrame()];
 
 		DWORD dwcurTextureFrame = rTextureFrameController.GetCurrentFrame();
 		if (dwcurTextureFrame < m_TextureInstanceVector[i].TextureInstanceVector.size())
 		{
-			CGraphicImageInstance * pImageInstance = m_TextureInstanceVector[i].TextureInstanceVector[dwcurTextureFrame];
+			CGraphicImageInstance* pImageInstance = m_TextureInstanceVector[i].TextureInstanceVector[dwcurTextureFrame];
 			STATEMANAGER.SetTexture(0, pImageInstance->GetTexturePointer()->GetSRV());
 		}
 
-		Color.a = fAlpha * rFrameData.fVisibility;
+		Color.w = fAlpha * rFrameData.fVisibility;
+
 		auto cb = _mgr->GetCbMgr();
-		cb->SetTextureFactor(DWORD(Color));
+		cb->SetTextureFactor(ColorToUint(Color));
+
 		_mgr->SetShader(VF_EFFECT);
 		STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, rFrameData.dwIndexCount / 3, sizeof(TPTVertex), &rFrameData.PDTVertexVector[0]);
-		// Render //
 	}
 }
 

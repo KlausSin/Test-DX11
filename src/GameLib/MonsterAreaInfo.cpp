@@ -80,44 +80,58 @@ void CMonsterAreaInfo::SetMonsterCount(DWORD dwCount)
 void CMonsterAreaInfo::SetMonsterDirection(EMonsterDir eMonsterDir)
 {
 	m_eMonsterDir = eMonsterDir;
-	D3DXMATRIX matRotation;
-	D3DXVECTOR3 v3Direction(0.0f, 1.0f, 0.0f);
+
 	float fDegree = 0.0f;
-	switch(m_eMonsterDir)
+
+	switch (m_eMonsterDir)
 	{
 	case DIR_RANDOM:
-		fDegree = (float) random_range(0, 7) * 45.0f;
+		fDegree = static_cast<float>(random_range(0, 7)) * 45.0f;
 		break;
+
 	case DIR_NORTH:
 		fDegree = 0.0f;
 		break;
+
 	case DIR_NORTHEAST:
 		fDegree = 45.0f;
 		break;
+
 	case DIR_EAST:
 		fDegree = 90.0f;
 		break;
+
 	case DIR_SOUTHEAST:
 		fDegree = 135.0f;
 		break;
+
 	case DIR_SOUTH:
 		fDegree = 180.0f;
 		break;
+
 	case DIR_SOUTHWEST:
 		fDegree = 225.0f;
 		break;
+
 	case DIR_WEST:
 		fDegree = 270.0f;
 		break;
+
 	case DIR_NORTHWEST:
 		fDegree = 315.0f;
 		break;
 	}
-	D3DXMatrixRotationZ(&matRotation, -D3DXToRadian(fDegree));
-	D3DXVec3TransformCoord(&v3Direction, &v3Direction, &matRotation);
-	m_v2Monsterdirection.x = v3Direction.x;
-	m_v2Monsterdirection.y = v3Direction.y;
-	D3DXVec2Normalize(&m_v2Monsterdirection, &m_v2Monsterdirection);
+
+	const float rad = XMConvertToRadians(fDegree);
+
+	XMFLOAT2 dir(
+		sinf(rad),
+		cosf(rad)
+	);
+
+	XMVECTOR v = XMLoadFloat2(&dir);
+	v = XMVector2Normalize(v);
+	XMStoreFloat2(&m_v2Monsterdirection, v);
 }
 
 void CMonsterAreaInfo::RemoveAllMonsters()
@@ -139,10 +153,10 @@ void CMonsterAreaInfo::RemoveAllMonsters()
 	m_TempMonsterPosVector.clear();
 }
 
-D3DXVECTOR2 CMonsterAreaInfo::GetTempMonsterPos(DWORD dwIndex)
+XMFLOAT2 CMonsterAreaInfo::GetTempMonsterPos(DWORD dwIndex)
 {
 	if (dwIndex >= m_TempMonsterPosVector.size())
-		return D3DXVECTOR2(0.0f, 0.0f);
+		return XMFLOAT2(0.0f, 0.0f);
 	return m_TempMonsterPosVector[dwIndex];
 }
 

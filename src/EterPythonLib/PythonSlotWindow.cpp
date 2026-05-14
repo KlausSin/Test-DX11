@@ -394,7 +394,7 @@ BOOL CSlotWindow::HasSlot(DWORD dwIndex)
 	return TRUE;
 }
 
-void CSlotWindow::SetSlot(DWORD dwIndex, DWORD dwVirtualNumber, BYTE byWidth, BYTE byHeight, CGraphicImage * pImage, D3DXCOLOR& diffuseColor)
+void CSlotWindow::SetSlot(DWORD dwIndex, DWORD dwVirtualNumber, BYTE byWidth, BYTE byHeight, CGraphicImage * pImage, XMFLOAT4& diffuseColor)
 {
 	TSlot * pSlot;
 	if (!GetSlotPointer(dwIndex, &pSlot))
@@ -421,7 +421,7 @@ void CSlotWindow::SetSlot(DWORD dwIndex, DWORD dwVirtualNumber, BYTE byWidth, BY
 	{
 		assert(NULL == pSlot->pInstance);
 		pSlot->pInstance = CGraphicImageInstance::New();
-		pSlot->pInstance->SetDiffuseColor(diffuseColor.r, diffuseColor.g, diffuseColor.b, diffuseColor.a);
+		pSlot->pInstance->SetDiffuseColor(diffuseColor.x, diffuseColor.y, diffuseColor.z, diffuseColor.w);
 		pSlot->pInstance->SetImagePointer(pImage);
 	}
 

@@ -117,20 +117,21 @@ void CGrannyLODController::AddModel(CGraphicThing* pThing, int iSrcModel, CGrann
 	if (!m_pCurrentModelInstance)
 	{
 		m_pCurrentModelInstance = pModelInstance;
+
 		pModelInstance->DeformNoSkin(&ms_matIdentity);
 
-		D3DXVECTOR3 vtMin, vtMax;
+		XMFLOAT3 vtMin, vtMax;
 		pModelInstance->GetBoundBox(&vtMin, &vtMax);
 
 		float fSize = 0.0f;
-		fSize = fMAX(fSize, fabs(vtMin.x - vtMax.x));
-		fSize = fMAX(fSize, fabs(vtMin.y - vtMax.y));
-		fSize = fMAX(fSize, fabs(vtMin.z - vtMax.z));
+
+		fSize = fMAX(fSize, fabsf(vtMin.x - vtMax.x));
+		fSize = fMAX(fSize, fabsf(vtMin.y - vtMax.y));
+		fSize = fMAX(fSize, fabsf(vtMin.z - vtMax.z));
 
 		if (fSize < LODHEIGHT_ACTOR)
 			SetLODLimits(0.0f, LODDISTANCE_ACTOR);
 		else
-			// 
 			SetLODLimits(0.0f, LODDISTANCE_BUILDING);
 	}
 	else
@@ -393,13 +394,13 @@ void CGrannyLODController::RefreshAttachedModelInstance()
 	}
 }
 
-void CGrannyLODController::UpdateSkeleton(const D3DXMATRIX* c_pWorldMatrix, float fElapsedTime)
+void CGrannyLODController::UpdateSkeleton(const XMFLOAT4X4* c_pWorldMatrix, float fElapsedTime)
 {
 	if (m_pCurrentModelInstance)
 		m_pCurrentModelInstance->UpdateSkeleton(c_pWorldMatrix, fElapsedTime);
 }
 
-void CGrannyLODController::DeformAll(const D3DXMATRIX* c_pWorldMatrix)
+void CGrannyLODController::DeformAll(const XMFLOAT4X4* c_pWorldMatrix)
 {
 	std::deque<CGrannyModelInstance*>::iterator i;
 	for (i = m_que_pkModelInst.begin(); i != m_que_pkModelInst.end(); ++i)
@@ -409,13 +410,13 @@ void CGrannyLODController::DeformAll(const D3DXMATRIX* c_pWorldMatrix)
 	}
 }
 
-void CGrannyLODController::DeformNoSkin(const D3DXMATRIX* c_pWorldMatrix)
+void CGrannyLODController::DeformNoSkin(const XMFLOAT4X4* c_pWorldMatrix)
 {
 	if (m_pCurrentModelInstance)
 		m_pCurrentModelInstance->DeformNoSkin(c_pWorldMatrix);
 }
 
-void CGrannyLODController::Deform(const D3DXMATRIX* c_pWorldMatrix)
+void CGrannyLODController::Deform(const XMFLOAT4X4* c_pWorldMatrix)
 {
 	if (m_pCurrentModelInstance)
 		m_pCurrentModelInstance->Deform(c_pWorldMatrix);
@@ -427,13 +428,13 @@ void CGrannyLODController::ReloadTexture()
 		m_pCurrentModelInstance->ReloadTexture();
 }
 
-void CGrannyLODController::GetBoundBox(D3DXVECTOR3* vtMin, D3DXVECTOR3* vtMax)
+void CGrannyLODController::GetBoundBox(XMFLOAT3* vtMin, XMFLOAT3* vtMax)
 {
 	if (m_pCurrentModelInstance)
 		m_pCurrentModelInstance->GetBoundBox(vtMin, vtMax);
 }
 
-bool CGrannyLODController::Intersect(const D3DXMATRIX* c_pMatrix, float* u, float* v, float* t)
+bool CGrannyLODController::Intersect(const XMFLOAT4X4* c_pMatrix, float* u, float* v, float* t)
 {
 	if (!m_pCurrentModelInstance)
 		return false;

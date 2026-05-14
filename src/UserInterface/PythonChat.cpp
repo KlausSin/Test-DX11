@@ -16,15 +16,19 @@ const int c_iMaxLineCount = 5;
 
 CDynamicPool<CPythonChat::SChatLine> CPythonChat::SChatLine::ms_kPool;
 
+
 void CPythonChat::SetChatColor(UINT eType, UINT r, UINT g, UINT b)
 {
-	if (eType>=CHAT_TYPE_MAX_NUM)
+	if (eType >= CHAT_TYPE_MAX_NUM)
 		return;
 
-	DWORD dwColor=(0xff000000)|(r<<16)|(g<<8)|(b);
-	m_akD3DXClrChat[eType]=D3DXCOLOR(dwColor);	
+	m_akD3DXClrChat[eType] = XMFLOAT4(
+		r / 255.0f,
+		g / 255.0f,
+		b / 255.0f,
+		1.0f
+	);
 }
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 CPythonChat::SChatLine* CPythonChat::SChatLine::New()
@@ -50,22 +54,34 @@ void CPythonChat::SChatLine::SetColor(DWORD dwID, DWORD dwColor)
 	if (dwID >= CHAT_LINE_COLOR_ARRAY_MAX_NUM)
 		return;
 
-	aColor[dwID] = dwColor;
+	XMFLOAT4 c;
+	c.x = ((dwColor >> 16) & 0xff) / 255.0f;
+	c.y = ((dwColor >> 8) & 0xff) / 255.0f;
+	c.z = (dwColor & 0xff) / 255.0f;
+	c.w = ((dwColor >> 24) & 0xff) / 255.0f;
+
+	aColor[dwID] = c;
 }
 
 void CPythonChat::SChatLine::SetColorAll(DWORD dwColor)
 {
+	XMFLOAT4 c;
+	c.x = ((dwColor >> 16) & 0xff) / 255.0f;
+	c.y = ((dwColor >> 8) & 0xff) / 255.0f;
+	c.z = (dwColor & 0xff) / 255.0f;
+	c.w = ((dwColor >> 24) & 0xff) / 255.0f;
+
 	for (int i = 0; i < CHAT_LINE_COLOR_ARRAY_MAX_NUM; ++i)
-		aColor[i] = dwColor;
+		aColor[i] = c;
 }
 
-D3DXCOLOR & CPythonChat::SChatLine::GetColorRef(DWORD dwID)
+XMFLOAT4 & CPythonChat::SChatLine::GetColorRef(DWORD dwID)
 {
 	assert(dwID < CHAT_LINE_COLOR_ARRAY_MAX_NUM);
 
 	if (dwID >= CHAT_LINE_COLOR_ARRAY_MAX_NUM)
 	{
-		static D3DXCOLOR color(1.0f, 0.0f, 0.0f, 1.0f);
+		static XMFLOAT4 color(1.0f, 0.0f, 0.0f, 1.0f);
 		return color;
 	}
 
@@ -75,8 +91,9 @@ D3DXCOLOR & CPythonChat::SChatLine::GetColorRef(DWORD dwID)
 CPythonChat::SChatLine::SChatLine()
 {
 	for (int i = 0; i < CHAT_LINE_COLOR_ARRAY_MAX_NUM; ++i)
-		aColor[i] = 0xff0000ff;
+		aColor[i] = XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
 }
+
 CPythonChat::SChatLine::~SChatLine() 
 {
 	Instance.Destroy();
@@ -110,14 +127,14 @@ void CPythonChat::UpdateViewMode(DWORD dwID)
 	{
 		TChatLine * pChatLine = (*itor);
 
-		D3DXCOLOR & rColor = pChatLine->GetColorRef(dwID);
+		XMFLOAT4 & rColor = pChatLine->GetColorRef(dwID);
 
 		float fElapsedTime = (fcurTime - pChatLine->fAppendedTime);
 		if (fElapsedTime >= c_fStartDisappearingTime || iLineIndex >= c_iMaxLineCount)
 		{
-			rColor.a -= rColor.a / 10.0f;
+			rColor.w -= rColor.w / 10.0f;
 
-			if (rColor.a <= 0.1f)
+			if (rColor.w <= 0.1f)
 			{
 				itor = pLineList->erase(itor);
 			}
@@ -137,7 +154,7 @@ void CPythonChat::UpdateViewMode(DWORD dwID)
 		--iLineIndex;
 
 		pChatLine->Instance.SetPosition(pChatSet->m_ix, pChatSet->m_iy + iHeight);
-		pChatLine->Instance.SetColor(pChatLine->GetColorRef(dwID));
+		pChatLine->Instance.SetColor(ColorToUint(pChatLine->GetColorRef(dwID)));
 
 		if (pChatSet->m_iAlign == 1)
 			pChatLine->Instance.SetTextDirection(CGraphicTextInstance::ETextDirection::RTL);
@@ -170,22 +187,22 @@ void CPythonChat::UpdateEditMode(DWORD dwID)
 	{
 		TChatLine * pChatLine = (*itor);
 
-		D3DXCOLOR & rColor = pChatLine->GetColorRef(dwID);
+		XMFLOAT4 & rColor = pChatLine->GetColorRef(dwID);
 
 		if (iLineIndex < c_iAlphaLine)
 		{
-			rColor.a += (fAlpha - rColor.a) / 10.0f;
+			rColor.w += (fAlpha - rColor.w) / 10.0f;
 			fAlpha = fMIN(fAlpha+fAlphaStep, 1.0f);
 		}
 		else
 		{
-			rColor.a = fMIN(rColor.a+0.05f, 1.0f);
+			rColor.w = fMIN(rColor.w+0.05f, 1.0f);
 		}
 
 		iHeight += pChatSet->m_iStep;
 
 		pChatLine->Instance.SetPosition(pChatSet->m_ix, pChatSet->m_iy + iHeight);
-		pChatLine->Instance.SetColor(pChatLine->GetColorRef(dwID));
+		pChatLine->Instance.SetColor(ColorToUint(pChatLine->GetColorRef(dwID)));
 
 		if (pChatSet->m_iAlign == 1)
 			pChatLine->Instance.SetTextDirection(CGraphicTextInstance::ETextDirection::RTL);
@@ -212,7 +229,7 @@ void CPythonChat::UpdateLogMode(DWORD dwID)
 		iHeight -= pChatSet->m_iStep;
 
 		pChatLine->Instance.SetPosition(pChatSet->m_ix, pChatSet->m_iy + iHeight);
-		pChatLine->Instance.SetColor(pChatLine->GetColorRef(dwID));
+		pChatLine->Instance.SetColor(ColorToUint(pChatLine->GetColorRef(dwID)));
 
 		if (pChatSet->m_iAlign == 1)
 			pChatLine->Instance.SetTextDirection(CGraphicTextInstance::ETextDirection::RTL);
@@ -580,10 +597,10 @@ DWORD CPythonChat::GetChatColor(int iType)
 {
 	if (iType<CHAT_TYPE_MAX_NUM)
 	{
-		return m_akD3DXClrChat[iType];
+		return ColorToUint(m_akD3DXClrChat[iType]);
 	}
 
-	return D3DXCOLOR(0.0f, 0.0f, 1.0f, 1.0f);
+	return ColorToUint(XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f));
 }
 
 void CPythonChat::IgnoreCharacter(const char * c_szName)
@@ -711,15 +728,22 @@ void CPythonChat::Destroy()
 
 void CPythonChat::__Initialize()
 {
-	m_akD3DXClrChat[CHAT_TYPE_TALKING]		= D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
-	m_akD3DXClrChat[CHAT_TYPE_INFO]			= D3DXCOLOR(1.0f, 0.785f, 0.785f, 1.0f);
-	m_akD3DXClrChat[CHAT_TYPE_NOTICE]		= D3DXCOLOR(1.0f, 0.902f, 0.730f, 1.0f);
-	m_akD3DXClrChat[CHAT_TYPE_PARTY]		= D3DXCOLOR(0.542f, 1.0f, 0.949f, 1.0f);
-	m_akD3DXClrChat[CHAT_TYPE_GUILD]		= D3DXCOLOR(0.906f, 0.847f, 1.0f, 1.0f);
-	m_akD3DXClrChat[CHAT_TYPE_COMMAND]		= D3DXCOLOR(0.658f, 1.0f, 0.835f, 1.0f);
-	m_akD3DXClrChat[CHAT_TYPE_SHOUT]		= D3DXCOLOR(0.658f, 1.0f, 0.835f, 1.0f);
-	m_akD3DXClrChat[CHAT_TYPE_WHISPER]		= D3DXCOLOR(0xff4AE14A);
-	m_akD3DXClrChat[CHAT_TYPE_BIG_NOTICE]	= D3DXCOLOR(1.0f, 0.902f, 0.730f, 1.0f);
+	m_akD3DXClrChat[CHAT_TYPE_TALKING]		= XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	m_akD3DXClrChat[CHAT_TYPE_INFO]			= XMFLOAT4(1.0f, 0.785f, 0.785f, 1.0f);
+	m_akD3DXClrChat[CHAT_TYPE_NOTICE]		= XMFLOAT4(1.0f, 0.902f, 0.730f, 1.0f);
+	m_akD3DXClrChat[CHAT_TYPE_PARTY]		= XMFLOAT4(0.542f, 1.0f, 0.949f, 1.0f);
+	m_akD3DXClrChat[CHAT_TYPE_GUILD]		= XMFLOAT4(0.906f, 0.847f, 1.0f, 1.0f);
+	m_akD3DXClrChat[CHAT_TYPE_COMMAND]		= XMFLOAT4(0.658f, 1.0f, 0.835f, 1.0f);
+	m_akD3DXClrChat[CHAT_TYPE_SHOUT]		= XMFLOAT4(0.658f, 1.0f, 0.835f, 1.0f);
+	DWORD c = 0xff4AE14A;
+
+	m_akD3DXClrChat[CHAT_TYPE_WHISPER] = XMFLOAT4(
+		((c >> 16) & 0xff) / 255.0f,
+		((c >> 8) & 0xff) / 255.0f,
+		(c & 0xff) / 255.0f,
+		((c >> 24) & 0xff) / 255.0f
+	);
+	m_akD3DXClrChat[CHAT_TYPE_BIG_NOTICE]	= XMFLOAT4(1.0f, 0.902f, 0.730f, 1.0f);
 }
 
 CPythonChat::CPythonChat()
@@ -824,10 +848,10 @@ void CWhisper::AppendChat(int iType, const char * c_szChat)
 	switch(iType)
 	{
 		case CPythonChat::WHISPER_TYPE_SYSTEM:
-			pChatLine->Instance.SetColor(D3DXCOLOR(1.0f, 0.785f, 0.785f, 1.0f));
+			pChatLine->Instance.SetColor(ColorToUint(XMFLOAT4(1.0f, 0.785f, 0.785f, 1.0f)));
 			break;
 		case CPythonChat::WHISPER_TYPE_GM:
-			pChatLine->Instance.SetColor(D3DXCOLOR(1.0f, 0.632f, 0.0f, 1.0f));
+			pChatLine->Instance.SetColor(ColorToUint(XMFLOAT4(1.0f, 0.632f, 0.0f, 1.0f)));
 			break;
 		case CPythonChat::WHISPER_TYPE_CHAT:
 		default:

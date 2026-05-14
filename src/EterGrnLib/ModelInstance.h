@@ -55,11 +55,11 @@ public:
 	// Update & Render
 	void	Update(DWORD dwAniFPS);
 	void	UpdateLocalTime(float fElapsedTime);
-	void	UpdateTransform(D3DXMATRIX* pMatrix, float fSecondsElapsed);
+	void	UpdateTransform(XMFLOAT4X4* pMatrix, float fSecondsElapsed);
 
-	void	UpdateSkeleton(const D3DXMATRIX* c_pWorldMatrix, float fLocalTime);
-	void	DeformNoSkin(const D3DXMATRIX* c_pWorldMatrix);
-	void	Deform(const D3DXMATRIX* c_pWorldMatrix);
+	void	UpdateSkeleton(const XMFLOAT4X4* c_pWorldMatrix, float fLocalTime);
+	void	DeformNoSkin(const XMFLOAT4X4* c_pWorldMatrix);
+	void	Deform(const XMFLOAT4X4* c_pWorldMatrix);
 
 	// FIXME : 현재는 하드웨어의 한계로 2장의 텍스춰로 제한이 되어있는 상태이기에 이런
 	//         불안정한 아키텍춰가 가능하지만, 궁극적인 방향은 (모델 텍스춰 전부) + (효과용 텍스춰)
@@ -105,15 +105,15 @@ public:
 	// Bone & Attaching
 	const float* GetBoneMatrixPointer(int iBone) const;
 	const float* GetCompositeBoneMatrixPointer(int iBone) const;
-	bool			GetMeshMatrixPointer(int iMesh, const D3DXMATRIX** c_ppMatrix) const;
+	bool			GetMeshMatrixPointer(int iMesh, const XMFLOAT4X4** c_ppMatrix) const;
 	bool			GetBoneIndexByName(const char* c_szBoneName, int* pBoneIndex) const;
 	void			SetParentModelInstance(const CGrannyModelInstance* c_pParentModelInstance, const char* c_szBoneName);
 	void			SetParentModelInstance(const CGrannyModelInstance* c_pParentModelInstance, int iBone);
 
 	// Collision Detection
-	bool	Intersect(const D3DXMATRIX* c_pMatrix, float* pu, float* pv, float* pt);
-	void	MakeBoundBox(TBoundBox* pBoundBox, const float* mat, const float* OBBMin, const float* OBBMax, D3DXVECTOR3* vtMin, D3DXVECTOR3* vtMax);
-	void	GetBoundBox(D3DXVECTOR3* vtMin, D3DXVECTOR3* vtMax);
+	bool	Intersect(const XMFLOAT4X4* c_pMatrix, float* pu, float* pv, float* pt);
+	void	MakeBoundBox(TBoundBox* pBoundBox, const float* mat, const float* OBBMin, const float* OBBMax, XMFLOAT3* vtMin, XMFLOAT3* vtMax);
+	void	GetBoundBox(XMFLOAT3* vtMin, XMFLOAT3* vtMax);
 
 	// Reload Texture
 	void	ReloadTexture();
@@ -144,7 +144,7 @@ protected:
 
 
 	void	UpdateWorldPose();
-	void	UpdateWorldMatrices(const D3DXMATRIX* c_pWorldMatrix);
+	void	UpdateWorldMatrices(const XMFLOAT4X4* c_pWorldMatrix);
 
 
 	enum class TextureMode { None, One, Two };
@@ -163,7 +163,7 @@ protected:
 	granny_control* m_pgrnCtrl;
 	granny_animation* m_pgrnAni;
 
-	std::vector<D3DXMATRIX> m_meshMatrices;
+	std::vector<XMFLOAT4X4> m_meshMatrices;
 
 
 	const CGrannyModelInstance* mc_pParentInstance;

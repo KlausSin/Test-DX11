@@ -105,7 +105,7 @@ DWORD dwLightEnable = FALSE;
 
 bool CMapOutdoor::BeginRenderCharacterShadowToTexture()
 {
-	D3DXMATRIX matLightView, matLightProj;
+	XMFLOAT4X4 matLightView, matLightProj;
 
 	CCamera* pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
 	if (!pCurrentCamera)
@@ -123,17 +123,19 @@ bool CMapOutdoor::BeginRenderCharacterShadowToTexture()
 			return false;
 	}
 
-	D3DXVECTOR3 v3Target = pCurrentCamera->GetTarget();
+	XMFLOAT3 v3Target = pCurrentCamera->GetTarget();
 
-	D3DXVECTOR3 v3Eye(
+	XMFLOAT3 v3Eye(
 		v3Target.x - 1.732f * 1250.0f,
 		v3Target.y - 1250.0f,
-		v3Target.z + 2.0f * 1.732f * 1250.0f);
+		v3Target.z + 2.0f * 1.732f * 1250.0f
+	);
 
-	const auto vUp = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
+	XMFLOAT3 vUp(0.0f, 0.0f, 1.0f);
 
-	D3DXMatrixLookAtRH(&matLightView, &v3Eye, &v3Target, &vUp);
-	D3DXMatrixOrthoRH(&matLightProj, 2550.0f, 2550.0f, 1.0f, 15000.0f);
+	XMStoreFloat4x4(&matLightView, XMMatrixLookAtRH(XMLoadFloat3(&v3Eye), XMLoadFloat3(&v3Target), XMLoadFloat3(&vUp)));
+
+	XMStoreFloat4x4(&matLightProj, XMMatrixOrthographicRH(2550.0f, 2550.0f, 1.0f, 15000.0f));
 
 	STATEMANAGER.GetTransform().Push();
 	STATEMANAGER.GetTransform().SetView(matLightView);

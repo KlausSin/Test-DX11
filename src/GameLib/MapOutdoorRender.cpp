@@ -22,7 +22,8 @@ RenderContext CMapOutdoor::BuildRenderFrameContext() const
 	ctx.Frame.DeviceContext = ms_lpd3d11Context;
 	ctx.Frame.View = ms_matView;
 	ctx.Frame.Projection = ms_matProj;
-	ctx.Frame.ViewProjection = ms_matView * ms_matProj;
+	XMMATRIX vp = XMMatrixMultiply(XMLoadFloat4x4(&ms_matView), XMLoadFloat4x4(&ms_matProj) );
+	XMStoreFloat4x4(&ctx.Frame.ViewProjection, vp);
 	ctx.Frame.ViewInverse = m_matViewInverse;
 	ctx.Frame.DrawShadow = m_bDrawShadow;
 	ctx.Frame.DrawCharacterShadow = m_bDrawChrShadow && m_lpCharacterShadowMapTexture != nullptr;
@@ -39,7 +40,7 @@ RenderContext CMapOutdoor::BuildRenderFrameContext() const
 	if (mc_pEnvironmentData)
 	{
 		ctx.Frame.FogEnable = mc_pEnvironmentData->bFogEnable;
-		ctx.Frame.FogColor = mc_pEnvironmentData->FogColor;
+		ctx.Frame.FogColor = ColorToUint(mc_pEnvironmentData->FogColor);
 		ctx.Frame.FogStart = mc_pEnvironmentData->GetFogNearDistance();
 		ctx.Frame.FogEnd = mc_pEnvironmentData->GetFogFarDistance();
 		ctx.Frame.DensityFog = mc_pEnvironmentData->bDensityFog;
@@ -65,7 +66,7 @@ void CMapOutdoor::RenderTerrain(const RenderContext& ctx)
 	if (!IsVisiblePart(PART_TERRAIN) || !m_bSettingTerrainVisible || !m_pTerrainPatchProxyList || !m_pRootNode)
 		return;
 
-	D3DXMATRIX viewProjection = ctx.Frame.ViewProjection;
+	XMFLOAT4X4 viewProjection = ctx.Frame.ViewProjection;
 	BuildViewFrustum(viewProjection);
 
 	m_fXforDistanceCaculation = -ctx.Frame.Eye.x;
@@ -106,7 +107,7 @@ void CMapOutdoor::__RenderTerrain_RecurseRenderQuadTree(CTerrainQuadtreeNode *No
 	
 	if (Node->Size == 1)
 	{
-		D3DXVECTOR3 v3Center = Node->center;
+		XMFLOAT3 v3Center = Node->center;
 		float fDistance = fMAX(fabs(v3Center.x + m_fXforDistanceCaculation), fabs(-v3Center.y + m_fYforDistanceCaculation));
 		__RenderTerrain_AppendPatch(v3Center, fDistance, Node->PatchNum);
 	}
@@ -123,33 +124,36 @@ void CMapOutdoor::__RenderTerrain_RecurseRenderQuadTree(CTerrainQuadtreeNode *No
 	}
 }
 
-int	CMapOutdoor::__RenderTerrain_RecurseRenderQuadTree_CheckBoundingCircle(const D3DXVECTOR3 & c_v3Center, const float & c_fRadius)
+int CMapOutdoor::__RenderTerrain_RecurseRenderQuadTree_CheckBoundingCircle(const XMFLOAT3& c_v3Center, const float& c_fRadius)
 {
 	const int count = 6;
 
-	D3DXVECTOR3 center = c_v3Center;
+	XMFLOAT3 center = c_v3Center;
 	center.y = -center.y;
 
-	int i;
+	XMVECTOR vCenter = XMLoadFloat3(&center);
 
-	float distance[count];
-	for(i = 0; i < count; ++i)
+	float distance[6];
+
+	for (int i = 0; i < count; ++i)
 	{
-		distance[i] = D3DXPlaneDotCoord(&m_plane[i], &center);
-		if (distance[i] <= -c_fRadius) 
+		XMVECTOR plane = XMLoadFloat4(&m_plane[i]);
+		distance[i] = XMVectorGetX(XMPlaneDotCoord(plane, vCenter));
+
+		if (distance[i] <= -c_fRadius)
 			return VIEW_NONE;
 	}
 
-	for(i = 0; i < count;++i)
+	for (int i = 0; i < count; ++i)
 	{
-		if (distance[i] <= c_fRadius) 
+		if (distance[i] <= c_fRadius)
 			return VIEW_PART;
 	}
-	
+
 	return VIEW_ALL;
 }
 
-void CMapOutdoor::__RenderTerrain_AppendPatch(const D3DXVECTOR3& c_rv3Center, float fDistance, long lPatchNum)
+void CMapOutdoor::__RenderTerrain_AppendPatch(const XMFLOAT3& c_rv3Center, float fDistance, long lPatchNum)
 {
 	assert(NULL!=m_pTerrainPatchProxyList && "CMapOutdoor::__RenderTerrain_AppendPatch");
 	if (!m_pTerrainPatchProxyList[lPatchNum].isUsed())
@@ -272,22 +276,23 @@ void CMapOutdoor::RenderTree(const RenderContext& ctx)
 
 void CMapOutdoor::SetInverseViewAndDynamicShaodwMatrices()
 {
-	CCamera * pCamera = CCameraManager::Instance().GetCurrentCamera();
-
-	if (!pCamera)
-		return;
+	CCamera* pCamera = CCameraManager::Instance().GetCurrentCamera();
+	if (!pCamera) return;
 
 	m_matViewInverse = pCamera->GetInverseViewMatrix();
-	
-	D3DXVECTOR3 v3Target = pCamera->GetTarget();
 
-	D3DXVECTOR3 v3LightEye(v3Target.x - 1.732f * 1250.0f,
-						   v3Target.y - 1250.0f,
-						   v3Target.z + 2.0f * 1.732f * 1250.0f);
+	XMFLOAT3 t = pCamera->GetTarget();
+	XMFLOAT3 e(t.x - 1.732f * 1250.0f, t.y - 1250.0f, t.z + 2.0f * 1.732f * 1250.0f);
+	XMFLOAT3 u(0, 0, 1);
 
-	const auto vv = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-	D3DXMatrixLookAtRH(&m_matLightView, &v3LightEye, &v3Target, &vv);
-	m_matDynamicShadow = m_matViewInverse * m_matLightView * m_matDynamicShadowScale;
+	XMStoreFloat4x4(&m_matLightView,
+		XMMatrixLookAtRH(XMLoadFloat3(&e), XMLoadFloat3(&t), XMLoadFloat3(&u)));
+
+	XMStoreFloat4x4(&m_matDynamicShadow,
+		XMMatrixMultiply(
+			XMMatrixMultiply(XMLoadFloat4x4(&m_matViewInverse), XMLoadFloat4x4(&m_matLightView)),
+			XMLoadFloat4x4(&m_matDynamicShadowScale)
+		));
 }
 
 void CMapOutdoor::OnRender()
@@ -395,17 +400,21 @@ void CMapOutdoor::RenderEffect(const RenderContext& ctx)
 
 struct CMapOutdoor_LessThingInstancePtrRenderOrder
 {
-	bool operator() (CGraphicThingInstance* pkLeft, CGraphicThingInstance* pkRight)
+	bool operator()(CGraphicThingInstance* pkLeft, CGraphicThingInstance* pkRight)
 	{
-		//TODO : Camera위치기반으로 소팅
-		CCamera * pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
-		const D3DXVECTOR3 & c_rv3CameraPos = pCurrentCamera->GetEye();
-		const D3DXVECTOR3 & c_v3LeftPos  = pkLeft->GetPosition();
-		const D3DXVECTOR3 & c_v3RightPos = pkRight->GetPosition();
-		const auto vv = D3DXVECTOR3(c_rv3CameraPos - c_v3RightPos);
-		const auto vv2 = D3DXVECTOR3(c_rv3CameraPos - c_v3LeftPos);
-		
-		return D3DXVec3LengthSq(&vv2) < D3DXVec3LengthSq(&vv);
+		CCamera* pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
+		const XMFLOAT3& cam = pCurrentCamera->GetEye();
+		const XMFLOAT3& l = pkLeft->GetPosition();
+		const XMFLOAT3& r = pkRight->GetPosition();
+
+		XMVECTOR vCam = XMLoadFloat3(&cam);
+		XMVECTOR vL = XMLoadFloat3(&l);
+		XMVECTOR vR = XMLoadFloat3(&r);
+
+		float dl = XMVectorGetX(XMVector3LengthSq(vCam - vL));
+		float dr = XMVectorGetX(XMVector3LengthSq(vCam - vR));
+
+		return dl < dr;
 	}
 };
 
@@ -720,9 +729,8 @@ void CMapOutdoor::RenderMarkedArea()
 	D3D11_PRIMITIVE_TOPOLOGY eType;
 	SelectIndexBuffer(0, &wPrimitiveCount, &eType);
 
-	D3DXMATRIX matTexTransform;
-	D3DXMatrixScaling(&matTexTransform, m_fTerrainTexCoordBase * 32.0f, -m_fTerrainTexCoordBase * 32.0f, 0.0f);
-	D3DXMatrixMultiply(&matTexTransform, &m_matViewInverse, &matTexTransform);
+	XMFLOAT4X4 matTexTransform;
+	XMStoreFloat4x4(&matTexTransform, XMMatrixMultiply(XMLoadFloat4x4(&m_matViewInverse), XMMatrixScaling(m_fTerrainTexCoordBase * 32.0f, -m_fTerrainTexCoordBase * 32.0f, 0.0f)));
 
 	STATEMANAGER.GetTransform().Push();
 	STATEMANAGER.GetTransform().SetTexture0(matTexTransform);
@@ -739,7 +747,7 @@ void CMapOutdoor::RenderMarkedArea()
 	float fTime = float((timeGetTime() - lStartTime) % 3000) / 3000.0f;
 	float fAlpha = fabs(fTime - 0.5f) / 2.0f + 0.1f;
 
-	_mgr->GetCbMgr()->SetTextureFactor(D3DXCOLOR(1.0f, 1.0f, 1.0f, fAlpha));
+	_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(XMFLOAT4(1.0f, 1.0f, 1.0f, fAlpha)));
 
 	STATEMANAGER.GetSampler().SetFilter(1, D3D11_FILTER_MIN_MAG_MIP_POINT);
 	STATEMANAGER.GetSampler().SetAddressUV(1, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
@@ -811,9 +819,13 @@ void CMapOutdoor::DrawPatchAttr(long patchnum)
 	m_matWorldForCommonUse._41 = -(float) (wCoordX * CTerrainImpl::XSIZE * CTerrainImpl::CELLSCALE);
 	m_matWorldForCommonUse._42 = (float) (wCoordY * CTerrainImpl::YSIZE * CTerrainImpl::CELLSCALE);
 
-	D3DXMATRIX matTexTransform, matTexTransformTemp;
-	D3DXMatrixMultiply(&matTexTransform, &m_matViewInverse, &m_matWorldForCommonUse);
-	D3DXMatrixMultiply(&matTexTransform, &matTexTransform, &m_matStaticShadow);
+	XMFLOAT4X4 matTexTransform;
+
+	XMStoreFloat4x4(&matTexTransform,
+		XMMatrixMultiply(
+			XMMatrixMultiply(XMLoadFloat4x4(&m_matViewInverse), XMLoadFloat4x4(&m_matWorldForCommonUse)),
+			XMLoadFloat4x4(&m_matStaticShadow)));
+
 	STATEMANAGER.GetTransform().SetTexture1(matTexTransform);
 
 	TTerrainSplatPatch & rAttrSplatPatch = pTerrain->GetMarkedSplatPatch();

@@ -46,8 +46,6 @@ CGraphicDevice::~CGraphicDevice()
 
 void CGraphicDevice::__Initialize()
 {
-	ms_lpd3dMatStack	= NULL;
-
 	ms_dwWavingEndTime = 0;
 	ms_dwFlashingEndTime = 0;
 
@@ -237,17 +235,15 @@ int CGraphicDevice::Create(HWND hWnd, int iHres, int iVres, bool Windowed, int /
 	if (m_pStateManager && m_pD3D11Renderer)
 		m_pStateManager->SetD3D11Renderer(m_pD3D11Renderer);
 
-	D3DXCreateMatrixStack(0, &ms_lpd3dMatStack);
-	ms_lpd3dMatStack->LoadIdentity();
 
-	D3DXMatrixIdentity(&ms_matIdentity);
-	D3DXMatrixIdentity(&ms_matView);
-	D3DXMatrixIdentity(&ms_matProj);
-	D3DXMatrixIdentity(&ms_matInverseView);
-	D3DXMatrixIdentity(&ms_matInverseViewYAxis);
-	D3DXMatrixIdentity(&ms_matScreen0);
-	D3DXMatrixIdentity(&ms_matScreen1);
-	D3DXMatrixIdentity(&ms_matScreen2);
+	XMStoreFloat4x4(&ms_matIdentity, XMMatrixIdentity());
+	XMStoreFloat4x4(&ms_matView, XMMatrixIdentity());
+	XMStoreFloat4x4(&ms_matProj, XMMatrixIdentity());
+	XMStoreFloat4x4(&ms_matInverseView, XMMatrixIdentity());
+	XMStoreFloat4x4(&ms_matInverseViewYAxis, XMMatrixIdentity());
+	XMStoreFloat4x4(&ms_matScreen0, XMMatrixIdentity());
+	XMStoreFloat4x4(&ms_matScreen1, XMMatrixIdentity());
+	XMStoreFloat4x4(&ms_matScreen2, XMMatrixIdentity());
 
 	ms_matScreen0._11 = 1;
 	ms_matScreen0._22 = -1;	
@@ -265,10 +261,6 @@ int CGraphicDevice::Create(HWND hWnd, int iHres, int iVres, bool Windowed, int /
 	ms_Viewport.Height = (float)iVres;
 	ms_Viewport.MinDepth = 0.0f;
 	ms_Viewport.MaxDepth = 1.0f;
-
-	// D3DX mesh objects not available without D3D9 device — set to NULL (debug only)
-	ms_lpSphereMesh = NULL;
-	ms_lpCylinderMesh = NULL;
 
 	// Create default index buffers and PDT vertex buffers on D3D11
 	if (!__CreateDefaultIndexBufferList())
@@ -389,9 +381,6 @@ void CGraphicDevice::Destroy()
 		ms_hDC = NULL;
 	}
 
-	safe_release(ms_lpSphereMesh);
-	safe_release(ms_lpCylinderMesh);
-
 	if (m_pD3D11Renderer)
 	{
 		m_pD3D11Renderer->Destroy();
@@ -400,8 +389,6 @@ void CGraphicDevice::Destroy()
 	}
 
 	DestroyD3D11();
-
-	safe_release(ms_lpd3dMatStack);
 
 	if (m_pStateManager)
 	{

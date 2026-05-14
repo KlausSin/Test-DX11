@@ -54,10 +54,10 @@ class CLight : public CGraphicBase, public CLightBase
 		void		SetRange(float fRange);
 		void		SetPosition(float fx, float fy, float fz);
 
-		const D3DVECTOR & GetPosition() const;
+		const XMFLOAT3& GetPosition() const;
 
-		void		BlendDiffuseColor(const D3DXCOLOR & c_rColor, float fBlendTime, float fDelayTime = 0.0f);
-		void		BlendAmbientColor(const D3DXCOLOR & c_rColor, float fBlendTime, float fDelayTime = 0.0f);
+		void		BlendDiffuseColor(const XMFLOAT4& c_rColor, float fBlendTime, float fDelayTime = 0.0f);
+		void		BlendAmbientColor(const XMFLOAT4& c_rColor, float fBlendTime, float fDelayTime = 0.0f);
 		void		BlendRange(float fRange, float fBlendTime, float fDelayTime = 0.0f);
 
 	private:
@@ -105,7 +105,7 @@ class CLightManager : public CGraphicBase, public CLightBase, public CSingleton<
 		void		DeleteLight(TLightID LightID);
 		/////
 
-		void		SetCenterPosition(const D3DXVECTOR3 & c_rv3Position);
+		void		SetCenterPosition(const XMFLOAT3& c_rv3Position);
 		void		SetLimitLightCount(DWORD dwLightCount);
 		void		SetSkipIndex(DWORD dwSkipIndex);
 
@@ -115,7 +115,7 @@ class CLightManager : public CGraphicBase, public CLightBase, public CSingleton<
 		TLightMap				m_LightMap;
 		TLightSortVector		m_LightSortVector;
 
-		D3DXVECTOR3				m_v3CenterPosition;
+		XMFLOAT3				m_v3CenterPosition;
 		DWORD					m_dwLimitLightCount;
 		DWORD					m_dwSkipIndex;
 

@@ -34,9 +34,9 @@ bool CStateManager::BeginScene()
 {
 	m_bScene = true;
 
-	const D3DXMATRIX& m4World = STATEMANAGER.GetTransform().GetWorld();
-	const D3DXMATRIX& m4Proj = STATEMANAGER.GetTransform().GetProjection();
-	const D3DXMATRIX& m4View = STATEMANAGER.GetTransform().GetView();
+	const XMFLOAT4X4& m4World = STATEMANAGER.GetTransform().GetWorld();
+	const XMFLOAT4X4& m4Proj = STATEMANAGER.GetTransform().GetProjection();
+	const XMFLOAT4X4& m4View = STATEMANAGER.GetTransform().GetView();
 
 	STATEMANAGER.GetTransform().SetWorld(m4World);
 	STATEMANAGER.GetTransform().SetProjection(m4Proj);
@@ -145,8 +145,8 @@ void CStateManager::SetDefaultState()
 	state.ClearStacks();
 	state.ForceDirty();
 
-	D3DXMATRIX matIdentity;
-	D3DXMatrixIdentity(&matIdentity);
+	XMFLOAT4X4 matIdentity;
+	XMStoreFloat4x4(&matIdentity, XMMatrixIdentity());
 
 	GetStateCache().Transform.SetWorld(matIdentity);
 	GetStateCache().Transform.SetView(matIdentity);
@@ -155,15 +155,15 @@ void CStateManager::SetDefaultState()
 	D3DMATERIAL11 DefaultMat;
 	ZeroMemory(&DefaultMat, sizeof(D3DMATERIAL11));
 
-	DefaultMat.Diffuse.r = 1.0f;
-	DefaultMat.Diffuse.g = 1.0f;
-	DefaultMat.Diffuse.b = 1.0f;
-	DefaultMat.Diffuse.a = 1.0f;
+	DefaultMat.Diffuse.x = 1.0f;
+	DefaultMat.Diffuse.y = 1.0f;
+	DefaultMat.Diffuse.z = 1.0f;
+	DefaultMat.Diffuse.w = 1.0f;
 
-	DefaultMat.Ambient.r = 1.0f;
-	DefaultMat.Ambient.g = 1.0f;
-	DefaultMat.Ambient.b = 1.0f;
-	DefaultMat.Ambient.a = 1.0f;
+	DefaultMat.Ambient.x = 1.0f;
+	DefaultMat.Ambient.y = 1.0f;
+	DefaultMat.Ambient.z = 1.0f;
+	DefaultMat.Ambient.w = 1.0f;
 
 	STATEMANAGER.GetLight().SetMaterial(DefaultMat);
 

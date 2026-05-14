@@ -66,7 +66,7 @@
 
 struct SFVFBranchVertex
 {
-	D3DXVECTOR3 m_vPosition;
+	XMFLOAT3 m_vPosition;
 #ifdef WRAPPER_USE_DYNAMIC_LIGHTING
 	D3DXVECTOR3 m_vNormal;
 #else
@@ -84,7 +84,7 @@ struct SFVFBranchVertex
 
 struct SFVFLeafVertex
 {
-	D3DXVECTOR3 m_vPosition;
+	XMFLOAT3 m_vPosition;
 #ifdef WRAPPER_USE_DYNAMIC_LIGHTING
 	D3DXVECTOR3 m_vNormal;
 #else
@@ -116,7 +116,7 @@ protected:
 	virtual bool OnGetObjectHeight(float fX, float fY, float * pfHeight) { return false; }
 	// Bounding Sphere
 public:
-	virtual bool GetBoundingSphere(D3DXVECTOR3 & v3Center, float & fRadius);
+	virtual bool GetBoundingSphere(XMFLOAT3 & v3Center, float & fRadius);
 	
 public:
 	static bool					ms_bSelfShadowOn;

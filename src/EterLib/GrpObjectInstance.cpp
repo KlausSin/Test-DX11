@@ -23,12 +23,14 @@ void CGraphicObjectInstance::Clear()
 	m_v3Scale.x = m_v3Scale.y = m_v3Scale.z = 1.0f;
 	//m_fRotation = 0.0f;
 	m_fYaw = m_fPitch = m_fRoll = 0.0f;
-	D3DXMatrixIdentity(&m_worldMatrix);
+
+	XMStoreFloat4x4(&m_worldMatrix, XMMatrixIdentity());
+
 #ifdef ENABLE_OBJ_SCALLING
 	m_v3ScalePosition.x = m_v3ScalePosition.y = m_v3ScalePosition.z = 0.0f;
-	D3DXMatrixIdentity(&m_ScaleMatrix);
-	D3DXMatrixIdentity(&m_PositionMatrix);
-	D3DXMatrixIdentity(&m_TransformMatrix);
+	XMStoreFloat4x4(&m_ScaleMatrix, XMMatrixIdentity());
+	XMStoreFloat4x4(&m_PositionMatrix, XMMatrixIdentity());
+	XMStoreFloat4x4(&m_TransformMatrix, XMMatrixIdentity());
 #endif
 
 	ZeroMemory(m_abyPortalID, sizeof(m_abyPortalID));
@@ -96,37 +98,62 @@ void CGraphicObjectInstance::Deform()
 void CGraphicObjectInstance::Transform()
 {
 #ifndef ENABLE_OBJ_SCALLING
+
 	m_worldMatrix = m_mRotation;
+
 	m_worldMatrix._41 += m_v3Position.x;
 	m_worldMatrix._42 += m_v3Position.y;
 	m_worldMatrix._43 += m_v3Position.z;
+
 #else
 
-	D3DXMATRIX tmp1;
-	D3DXMatrixMultiply(&tmp1, &m_PositionMatrix, &m_mRotation);
+	XMFLOAT4X4 tmp1;
+	XMStoreFloat4x4(
+		&tmp1,
+		XMMatrixMultiply(
+			XMLoadFloat4x4(&m_PositionMatrix),
+			XMLoadFloat4x4(&m_mRotation)
+		)
+	);
 
 	m_worldMatrix = tmp1;
+
 	m_worldMatrix._41 += m_v3Position.x;
 	m_worldMatrix._42 += m_v3Position.y;
 	m_worldMatrix._43 += m_v3Position.z;
-	D3DXMatrixMultiply(&tmp1, &m_PositionMatrix, &m_ScaleMatrix);
 
-	D3DXMATRIX tmp2;
-	D3DXMatrixMultiply(&tmp2, &tmp1, &m_mRotation);
+	XMStoreFloat4x4(
+		&tmp1,
+		XMMatrixMultiply(
+			XMLoadFloat4x4(&m_PositionMatrix),
+			XMLoadFloat4x4(&m_ScaleMatrix)
+		)
+	);
+
+	XMFLOAT4X4 tmp2;
+	XMStoreFloat4x4(
+		&tmp2,
+		XMMatrixMultiply(
+			XMLoadFloat4x4(&tmp1),
+			XMLoadFloat4x4(&m_mRotation)
+		)
+	);
 
 	m_TransformMatrix = tmp2;
+
 	m_TransformMatrix._41 = m_v3ScalePosition.x + m_v3Position.x + m_TransformMatrix._41;
 	m_TransformMatrix._42 = m_v3ScalePosition.y + m_v3Position.y + m_TransformMatrix._42;
 	m_TransformMatrix._43 = m_v3ScalePosition.z + m_v3Position.z + m_TransformMatrix._43;
+
 #endif
 }
 
-const D3DXVECTOR3 & CGraphicObjectInstance::GetPosition() const
+const XMFLOAT3 & CGraphicObjectInstance::GetPosition() const
 {
 	return m_v3Position;
 }
 
-const D3DXVECTOR3 & CGraphicObjectInstance::GetScale() const
+const XMFLOAT3 & CGraphicObjectInstance::GetScale() const
 {
 	return m_v3Scale;
 }
@@ -151,17 +178,17 @@ float CGraphicObjectInstance::GetRoll()
 	return m_fRoll;
 }
 
-D3DXMATRIX & CGraphicObjectInstance::GetTransform()
+XMFLOAT4X4 & CGraphicObjectInstance::GetTransform()
 {
 	return m_worldMatrix;
 }
 
-void CGraphicObjectInstance::SetRotationQuaternion(const D3DXQUATERNION &q)
+void CGraphicObjectInstance::SetRotationQuaternion(const XMFLOAT4& q)
 {
-	D3DXMatrixRotationQuaternion(&m_mRotation, &q);
+	XMStoreFloat4x4(&m_mRotation, XMMatrixRotationQuaternion(XMLoadFloat4(&q)));
 }
 
-void CGraphicObjectInstance::SetRotationMatrix(const D3DXMATRIX & m)
+void CGraphicObjectInstance::SetRotationMatrix(const XMFLOAT4X4& m)
 {
 	m_mRotation = m;
 }
@@ -172,17 +199,16 @@ void CGraphicObjectInstance::SetRotation(float fRotation)
 	m_fPitch = 0;
 	m_fRoll = fRotation;
 
-	D3DXMatrixRotationZ(&m_mRotation, D3DXToRadian(fRotation));
+	XMStoreFloat4x4(&m_mRotation, XMMatrixRotationZ(XMConvertToRadians(fRotation)));
 }
 
 void CGraphicObjectInstance::SetRotation(float fYaw, float fPitch, float fRoll)
 {
-	//m_fRotation = fRotation;
 	m_fYaw = fYaw;
 	m_fPitch = fPitch;
 	m_fRoll = fRoll;
 
-	D3DXMatrixRotationYawPitchRoll(&m_mRotation, D3DXToRadian(fYaw), D3DXToRadian(fPitch), D3DXToRadian(fRoll));
+	XMStoreFloat4x4(&m_mRotation, XMMatrixRotationRollPitchYaw(XMConvertToRadians(fPitch), XMConvertToRadians(fYaw), XMConvertToRadians(fRoll)));
 }
 
 void CGraphicObjectInstance::SetPosition(float x, float y, float z)
@@ -192,7 +218,7 @@ void CGraphicObjectInstance::SetPosition(float x, float y, float z)
 	m_v3Position.z = z;	
 }
 
-void CGraphicObjectInstance::SetPosition(const D3DXVECTOR3 & newposition)
+void CGraphicObjectInstance::SetPosition(const XMFLOAT3 & newposition)
 {
 	m_v3Position = newposition;
 }
@@ -216,7 +242,7 @@ void CGraphicObjectInstance::SetScale(float x, float y, float z)
 
 #ifdef ENABLE_OBJ_SCALLING
 	if (bScaleNow)
-		D3DXMatrixScaling(&m_ScaleMatrix, m_v3Scale.x, m_v3Scale.y, m_v3Scale.z);
+		XMStoreFloat4x4(&m_ScaleMatrix, XMMatrixScaling(m_v3Scale.x, m_v3Scale.y, m_v3Scale.z)); 
 #endif
 }
 
@@ -247,14 +273,14 @@ bool CGraphicObjectInstance::isShow()
 
 //////////////////////////////////////////////////////////////////////////
 
-D3DXVECTOR4 & CGraphicObjectInstance::GetWTBBoxVertex(const unsigned char & c_rucNumTBBoxVertex)
+XMFLOAT4 & CGraphicObjectInstance::GetWTBBoxVertex(const unsigned char & c_rucNumTBBoxVertex)
 {
 	return m_v4TBBox[c_rucNumTBBoxVertex];
 }
 
 bool CGraphicObjectInstance::isIntersect(const CRay & c_rRay, float * pu, float * pv, float * pt)
 {
-	D3DXVECTOR3 v3Start, v3Dir;
+	XMFLOAT3 v3Start, v3Dir;
 	float fRayRange;
 	c_rRay.GetStartPoint(&v3Start);
 	c_rRay.GetDirection(&v3Dir, &fRayRange);
@@ -307,40 +333,46 @@ void CGraphicObjectInstance::Initialize()
 {
 	if (m_CullingHandle)
 		CCullingManager::Instance().Unregister(m_CullingHandle);
+
 	m_CullingHandle = 0;
 
 	m_pHeightAttributeInstance = NULL;
-	
-	m_isVisible = TRUE;	
+
+	m_isVisible = TRUE;
 
 	m_BlockCamera = false;
 	m_isAlwaysHidden = false;
-	
+
 	m_v3Position.x = m_v3Position.y = m_v3Position.z = 0.0f;
+
 #ifdef ENABLE_OBJ_SCALLING
 	m_v3Scale.x = m_v3Scale.y = m_v3Scale.z = 0.0f;
 #else
 	m_v3Scale.x = m_v3Scale.y = m_v3Scale.z = 1.0f;
 #endif
+
 	m_fYaw = m_fPitch = m_fRoll = 0.0f;
 
-	D3DXMatrixIdentity(&m_worldMatrix);
-	D3DXMatrixIdentity(&m_mRotation);
+	XMStoreFloat4x4(&m_worldMatrix, XMMatrixIdentity());
+	XMStoreFloat4x4(&m_mRotation, XMMatrixIdentity());
+
 #ifdef ENABLE_OBJ_SCALLING
+
 	m_v3ScalePosition.x = m_v3ScalePosition.y = m_v3ScalePosition.z = 0.0f;
 
-	D3DXMatrixIdentity(&m_ScaleMatrix);
-	D3DXMatrixIdentity(&m_PositionMatrix);
-	D3DXMatrixIdentity(&m_TransformMatrix);
+	XMStoreFloat4x4(&m_ScaleMatrix, XMMatrixIdentity());
+	XMStoreFloat4x4(&m_PositionMatrix, XMMatrixIdentity());
+	XMStoreFloat4x4(&m_TransformMatrix, XMMatrixIdentity());
+
 #endif
 
-	m_v3TBBoxMin = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
-	m_v3TBBoxMax = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
-	m_v3BBoxMin = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
-	m_v3BBoxMax = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+	m_v3TBBoxMin = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	m_v3TBBoxMax = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	m_v3BBoxMin = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	m_v3BBoxMax = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 	for (int i = 0; i < 8; ++i)
-		m_v4TBBox[i] = D3DXVECTOR4(0.0f, 0.0f, 0.0f, 0.0f);
+		m_v4TBBox[i] = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	memset(m_abyPortalID, 0, sizeof(m_abyPortalID));
 
@@ -357,13 +389,13 @@ void CGraphicObjectInstance::UpdateBoundingSphere()
 {
 	if (m_CullingHandle)
 	{
-		Vector3d center;
+		XMFLOAT3 center;
 		float radius;
 		GetBoundingSphere(center,radius);
 		if (radius != m_CullingHandle->GetRadius())
-			m_CullingHandle->NewPosRadius(center,radius);
+			m_CullingHandle->NewPosRadius((Vector3d&)center,radius);
 		else
-			m_CullingHandle->NewPos(center);
+			m_CullingHandle->NewPos((Vector3d&)center);
 	}
 }
 
@@ -375,7 +407,7 @@ void CGraphicObjectInstance::RegisterBoundingSphere()
 	m_CullingHandle = CCullingManager::Instance().Register(this);
 }
 
-void CGraphicObjectInstance::AddCollision(const CStaticCollisionData * pscd, const D3DXMATRIX* pMat)
+void CGraphicObjectInstance::AddCollision(const CStaticCollisionData * pscd, const XMFLOAT4X4* pMat)
 {
 	m_StaticCollisionInstanceVector.push_back(CBaseCollisionInstance::BuildCollisionInstance(pscd, pMat));
 }
@@ -412,7 +444,7 @@ bool CGraphicObjectInstance::MovementCollisionDynamicSphere(const CDynamicSphere
 	return false;
 }
 
-D3DXVECTOR3 CGraphicObjectInstance::GetCollisionMovementAdjust(const CDynamicSphereInstance & s) const
+XMFLOAT3 CGraphicObjectInstance::GetCollisionMovementAdjust(const CDynamicSphereInstance & s) const
 {
 	CCollisionInstanceVector::const_iterator it;
 	for(it = m_StaticCollisionInstanceVector.begin();it!=m_StaticCollisionInstanceVector.end();++it)
@@ -421,7 +453,7 @@ D3DXVECTOR3 CGraphicObjectInstance::GetCollisionMovementAdjust(const CDynamicSph
 			return (*it)->GetCollisionMovementAdjust(s);
 	}
 	
-	return D3DXVECTOR3(0.0f,0.0f,0.0f);
+	return XMFLOAT3(0.0f,0.0f,0.0f);
 }
 
 void CGraphicObjectInstance::UpdateCollisionData(const CStaticCollisionDataVector * pscdVector)

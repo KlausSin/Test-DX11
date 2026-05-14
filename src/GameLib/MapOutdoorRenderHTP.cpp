@@ -150,17 +150,26 @@ void CMapOutdoor::__HardwareTransformPatch_RenderPatchSplat(const RenderContext&
 	WORD coordY = 0;
 	pTerrain->GetCoordinate(&coordX, &coordY);
 
-	D3DXMATRIX matTexTransform;
-	D3DXMATRIX matSplatAlphaTexTransform;
-	D3DXMATRIX matSplatColorTexTransform;
-	D3DXMATRIX matShadowTexTransform;
+	XMFLOAT4X4 matTexTransform;
+	XMFLOAT4X4 matSplatAlphaTexTransform;
+	XMFLOAT4X4 matSplatColorTexTransform;
+	XMFLOAT4X4 matShadowTexTransform;
 
 	m_matWorldForCommonUse._41 = -float(coordX * CTerrainImpl::TERRAIN_XSIZE);
 	m_matWorldForCommonUse._42 = float(coordY * CTerrainImpl::TERRAIN_YSIZE);
 
-	D3DXMatrixMultiply(&matTexTransform, &ctx.Frame.ViewInverse, &m_matWorldForCommonUse);
-	D3DXMatrixMultiply(&matSplatAlphaTexTransform, &matTexTransform, &m_matSplatAlpha);
-	D3DXMatrixMultiply(&matShadowTexTransform, &matTexTransform, &m_matStaticShadow);
+	XMMATRIX viewInv = XMLoadFloat4x4(&ctx.Frame.ViewInverse);
+	XMMATRIX world = XMLoadFloat4x4(&m_matWorldForCommonUse);
+
+	XMMATRIX mat = viewInv * world;
+	XMStoreFloat4x4(&matTexTransform, mat);
+
+	XMMATRIX splatAlpha = mat * XMLoadFloat4x4(&m_matSplatAlpha);
+	XMStoreFloat4x4(&matSplatAlphaTexTransform, splatAlpha);
+
+	XMMATRIX shadow = mat * XMLoadFloat4x4(&m_matStaticShadow);
+	XMStoreFloat4x4(&matShadowTexTransform, shadow);
+
 
 	STATEMANAGER.GetTransform().SetTexture1(matSplatAlphaTexTransform);
 	STATEMANAGER.GetTransform().SetTexture2(matShadowTexTransform);
@@ -186,7 +195,13 @@ void CMapOutdoor::__HardwareTransformPatch_RenderPatchSplat(const RenderContext&
 			continue;
 
 		const TTerrainTexture& rTexture = m_TextureSet.GetTexture(j);
-		D3DXMatrixMultiply(&matSplatColorTexTransform, &ctx.Frame.ViewInverse, &rTexture.m_matTransform);
+
+		XMMATRIX viewInv = XMLoadFloat4x4(&ctx.Frame.ViewInverse);
+		XMMATRIX texTrans = XMLoadFloat4x4(&rTexture.m_matTransform);
+
+		XMMATRIX result = viewInv * texTrans;
+
+		XMStoreFloat4x4(&matSplatColorTexTransform, result);
 
 		STATEMANAGER.GetTransform().SetTexture0(matSplatColorTexTransform);
 		STATEMANAGER.SetTexture(0, rTexture.pd3dTexture);

@@ -87,44 +87,52 @@ bool CAttributeData::OnLoad(int /*iSize*/, const void * c_pvBuf)
 
 	for (DWORD i = 0; i < dwCollisionDataCount; ++i)
 	{
-		CStaticCollisionData & rCollisionData = m_StaticCollisionDataVector[i];
+		CStaticCollisionData& rCollisionData = m_StaticCollisionDataVector[i];
+
 		memcpy(&rCollisionData.dwType, c_pbBuf, sizeof(DWORD));
 		c_pbBuf += sizeof(DWORD);
+
 		memcpy(rCollisionData.szName, c_pbBuf, 32);
 		c_pbBuf += 32;
-		memcpy(&rCollisionData.v3Position, c_pbBuf, sizeof(D3DXVECTOR3));
-		c_pbBuf += sizeof(D3DXVECTOR3);
 
-		switch(rCollisionData.dwType)
+		memcpy(&rCollisionData.v3Position, c_pbBuf, sizeof(XMFLOAT3));
+		c_pbBuf += sizeof(XMFLOAT3);
+
+		switch (rCollisionData.dwType)
 		{
-			case COLLISION_TYPE_PLANE:
-				memcpy(rCollisionData.fDimensions, c_pbBuf, 2*sizeof(float));
-				c_pbBuf += 2*sizeof(float);
-				break;
-			case COLLISION_TYPE_BOX:
-				memcpy(rCollisionData.fDimensions, c_pbBuf, 3*sizeof(float));
-				c_pbBuf += 3*sizeof(float);
-				break;
-			case COLLISION_TYPE_SPHERE:
-				memcpy(rCollisionData.fDimensions, c_pbBuf, sizeof(float));
-				c_pbBuf += sizeof(float);
-				break;
-			case COLLISION_TYPE_CYLINDER:
-				memcpy(rCollisionData.fDimensions, c_pbBuf, 2*sizeof(float));
-				c_pbBuf += 2*sizeof(float);
-				break;
-			case COLLISION_TYPE_AABB:
-				memcpy(rCollisionData.fDimensions, c_pbBuf, 3*sizeof(float));
-				c_pbBuf += 3*sizeof(float);
-				break;
-			case COLLISION_TYPE_OBB:
-				memcpy(rCollisionData.fDimensions, c_pbBuf, 3*sizeof(float));
-				c_pbBuf += 3*sizeof(float);
-				break;
+		case COLLISION_TYPE_PLANE:
+			memcpy(rCollisionData.fDimensions, c_pbBuf, 2 * sizeof(float));
+			c_pbBuf += 2 * sizeof(float);
+			break;
+
+		case COLLISION_TYPE_BOX:
+			memcpy(rCollisionData.fDimensions, c_pbBuf, 3 * sizeof(float));
+			c_pbBuf += 3 * sizeof(float);
+			break;
+
+		case COLLISION_TYPE_SPHERE:
+			memcpy(rCollisionData.fDimensions, c_pbBuf, sizeof(float));
+			c_pbBuf += sizeof(float);
+			break;
+
+		case COLLISION_TYPE_CYLINDER:
+			memcpy(rCollisionData.fDimensions, c_pbBuf, 2 * sizeof(float));
+			c_pbBuf += 2 * sizeof(float);
+			break;
+
+		case COLLISION_TYPE_AABB:
+			memcpy(rCollisionData.fDimensions, c_pbBuf, 3 * sizeof(float));
+			c_pbBuf += 3 * sizeof(float);
+			break;
+
+		case COLLISION_TYPE_OBB:
+			memcpy(rCollisionData.fDimensions, c_pbBuf, 3 * sizeof(float));
+			c_pbBuf += 3 * sizeof(float);
+			break;
 		}
 
-		memcpy(rCollisionData.quatRotation, c_pbBuf, sizeof(D3DXQUATERNION));
-		c_pbBuf += sizeof(D3DXQUATERNION);
+		memcpy(&rCollisionData.quatRotation, c_pbBuf, sizeof(XMFLOAT4));
+		c_pbBuf += sizeof(XMFLOAT4);
 	}
 
 	for (DWORD j = 0; j < dwHeightDataCount; ++j)
@@ -139,8 +147,8 @@ bool CAttributeData::OnLoad(int /*iSize*/, const void * c_pvBuf)
 
 		rHeightData.v3VertexVector.clear();
 		rHeightData.v3VertexVector.resize(dwPrimitiveCount);
-		memcpy(&rHeightData.v3VertexVector[0], c_pbBuf, dwPrimitiveCount*sizeof(D3DXVECTOR3));
-		c_pbBuf += dwPrimitiveCount*sizeof(D3DXVECTOR3);
+		memcpy(&rHeightData.v3VertexVector[0], c_pbBuf, dwPrimitiveCount*sizeof(XMFLOAT3));
+		c_pbBuf += dwPrimitiveCount*sizeof(XMFLOAT3);
 
 		// Getting Maximize Radius
 		for (DWORD k = 0; k < rHeightData.v3VertexVector.size(); ++k)

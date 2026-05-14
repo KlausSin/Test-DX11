@@ -109,10 +109,10 @@ void CGraphicExpandedImageInstance::OnRender()
 	vertices[2].texCoord = TTextureCoordinate(su, ev);
 	vertices[3].texCoord = TTextureCoordinate(eu, ev);
 
-	vertices[0].diffuse = m_DiffuseColor;
-	vertices[1].diffuse = m_DiffuseColor;
-	vertices[2].diffuse = m_DiffuseColor;
-	vertices[3].diffuse = m_DiffuseColor;
+	vertices[0].diffuse = ColorToUint(m_DiffuseColor);
+	vertices[1].diffuse = ColorToUint(m_DiffuseColor);
+	vertices[2].diffuse = ColorToUint(m_DiffuseColor);
+	vertices[3].diffuse = ColorToUint(m_DiffuseColor);
 
 	if (m_fRotation == 0.0f)
 	{
@@ -132,7 +132,7 @@ void CGraphicExpandedImageInstance::OnRender()
 	{
 		const float halfWidth = imageWidth * 0.5f;
 		const float halfHeight = imageHeight * 0.5f;
-		const float radian = D3DXToRadian(m_fRotation);
+		const float radian = XMConvertToRadians(m_fRotation);
 
 		const float cosValue = cosf(radian);
 		const float sinValue = sinf(radian);

@@ -255,7 +255,7 @@ DWORD CActorInstance::AttachEffectByName(DWORD dwParentPartIndex, const char * c
 	return AttachEffectByID(dwParentPartIndex, c_pszBoneName, dwCRC);
 }
 
-DWORD CActorInstance::AttachEffectByID(DWORD dwParentPartIndex, const char * c_pszBoneName, DWORD dwEffectID, const D3DXVECTOR3 * c_pv3Position)
+DWORD CActorInstance::AttachEffectByID(DWORD dwParentPartIndex, const char * c_pszBoneName, DWORD dwEffectID, const XMFLOAT3 * c_pv3Position)
 {
 	TAttachingEffect ae;
 	ae.iLifeType = EFFECT_LIFE_INFINITE;
@@ -265,11 +265,11 @@ DWORD CActorInstance::AttachEffectByID(DWORD dwParentPartIndex, const char * c_p
 	ae.isAttaching = TRUE;
 	if (c_pv3Position)
 	{
-		D3DXMatrixTranslation(&ae.matTranslation, c_pv3Position->x, c_pv3Position->y, c_pv3Position->z);
+		XMStoreFloat4x4(&ae.matTranslation, XMMatrixTranslation(c_pv3Position->x, c_pv3Position->y, c_pv3Position->z));
 	}
 	else
 	{
-		D3DXMatrixIdentity(&ae.matTranslation);
+		XMStoreFloat4x4(&ae.matTranslation, XMMatrixIdentity());
 	}
 	CEffectManager& rkEftMgr=CEffectManager::Instance();
 	rkEftMgr.CreateEffectInstance(ae.dwEffectIndex, dwEffectID);
@@ -350,38 +350,6 @@ void CActorInstance::RefreshActorInstance()
 			break;
 
 			case NRaceData::ATTACHING_DATA_TYPE_EFFECT:
-//				if (!m_bEffectInitialized)
-//				{
-//					DWORD dwCRC;
-//					StringPath(c_pAttachingData->pEffectData->strFileName);
-//					dwCRC = GetCaseCRC32(c_pAttachingData->pEffectData->strFileName.c_str(),c_pAttachingData->pEffectData->strFileName.length());
-//
-//					TAttachingEffect ae;
-//					ae.iLifeType = EFFECT_LIFE_INFINITE;
-//					ae.dwEndTime = 0;
-//					ae.dwModelIndex = 0;
-//					ae.dwEffectIndex = CEffectManager::Instance().GetEmptyIndex();
-//					ae.isAttaching = TRUE;
-//					CEffectManager::Instance().CreateEffectInstance(ae.dwEffectIndex, dwCRC);
-//
-//					if (c_pAttachingData->isAttaching)
-//					{
-//						int iBoneIndex;
-//						if (!FindBoneIndex(0,c_pAttachingData->strAttachingBoneName.c_str(), &iBoneIndex))
-//						{
-//							Tracef("Cannot get Bone Index\n");
-//							assert(false/*Cannot get Bone Index*/);
-//						}
-//
-//						ae.iBoneIndex = iBoneIndex;
-//					}
-//					else
-//					{
-//						ae.iBoneIndex = -1;
-//					}
-//
-//					m_AttachingEffectList.push_back(ae);
-//				}
 
 				if (c_pAttachingData->isAttaching)
 				{
@@ -544,26 +512,26 @@ void CActorInstance::UpdateAttachingInstances()
 
 				if (it->iBoneIndex == -1)
 				{
-					D3DXMATRIX matTransform;
-					matTransform = it->matTranslation;
-					matTransform *= m_worldMatrix;
+					XMFLOAT4X4 matTransform;
+
+					XMStoreFloat4x4(&matTransform, XMLoadFloat4x4(&it->matTranslation) * XMLoadFloat4x4(&m_worldMatrix));
+
 					rkEftMgr.SetEffectInstanceGlobalMatrix(matTransform);
 				}
 				else
 				{
-					D3DXMATRIX * pBoneMat;
+					XMFLOAT4X4* pBoneMat;
+
 					if (GetBoneMatrix(it->dwModelIndex, it->iBoneIndex, &pBoneMat))
 					{
-						D3DXMATRIX matTransform;
-						matTransform = *pBoneMat;
-						matTransform *= it->matTranslation;
-						matTransform *= m_worldMatrix;
+						XMFLOAT4X4 matTransform;
+
+						XMStoreFloat4x4(&matTransform, XMLoadFloat4x4(pBoneMat) * XMLoadFloat4x4(&it->matTranslation) * XMLoadFloat4x4(&m_worldMatrix));
+
 						rkEftMgr.SetEffectInstanceGlobalMatrix(matTransform);
 					}
 					else
-					{						
-						//TraceError("GetBoneMatrix(modelIndex(%d), boneIndex(%d)).NOT_FOUND_BONE", 
-						//	it->dwModelIndex, it->iBoneIndex);
+					{
 					}
 				}
 			}

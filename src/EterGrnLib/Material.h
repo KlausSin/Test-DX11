@@ -98,8 +98,8 @@ private:
         SPHEREMAP_NUM = 10,
     };
 
-    static D3DXMATRIX ms_matSpecular;
-    static D3DXVECTOR3 ms_v3SpecularTrans;
+    static XMFLOAT4X4 ms_matSpecular;
+    static XMFLOAT3 ms_v3SpecularTrans;
     static CGraphicImageInstance ms_akSphereMapInstance[SPHEREMAP_NUM];
 };
 

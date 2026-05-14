@@ -27,14 +27,14 @@ void CLightData::OnClear()
 
 	m_TimeEventTableRange.clear();
 
-	m_cAmbient.r = 0.5f;
-	m_cAmbient.g = 0.5f;
-	m_cAmbient.b = 0.5f;
-	m_cAmbient.a = 1.0f;
-	m_cDiffuse.r = 0.0f;
-	m_cDiffuse.g = 0.0f;
-	m_cDiffuse.b = 0.0f;
-	m_cDiffuse.a = 1.0f;
+	m_cAmbient.x = 0.5f;
+	m_cAmbient.y = 0.5f;
+	m_cAmbient.z = 0.5f;
+	m_cAmbient.w = 1.0f;
+	m_cDiffuse.x = 0.0f;
+	m_cDiffuse.y = 0.0f;
+	m_cDiffuse.z = 0.0f;
+	m_cDiffuse.w = 1.0f;
 
 	m_fDuration = 1.0f;
 
@@ -128,7 +128,7 @@ void CLightData::InitializeLight(D3DLIGHT11& light)
 	light.Attenuation2 = m_fAttenuation2;
 
 
-	D3DXVECTOR3 position;
+	XMFLOAT3 position;
 	GetPosition( 0.0f, position);
 	light.Position = position;
 	

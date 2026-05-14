@@ -41,19 +41,25 @@ bool CSpeedTreeForestDirectX::SetRenderingDevice()
 	return true;
 }
 
-void CSpeedTreeForestDirectX::UpdateCompundMatrix(const D3DXVECTOR3& c_rEyeVec, const D3DXMATRIX& c_rmatView, const D3DXMATRIX& c_rmatProj)
+void CSpeedTreeForestDirectX::UpdateCompundMatrix(const XMFLOAT3& eye, const XMFLOAT4X4& view, const XMFLOAT4X4& proj)
 {
-	D3DXMATRIX matBlendShader;
-	D3DXMatrixMultiply(&matBlendShader, &c_rmatView, &c_rmatProj);
+	XMMATRIX matBlendShader =
+		XMMatrixMultiply(XMLoadFloat4x4(&view), XMLoadFloat4x4(&proj));
 
-	float afDirection[3];
-	afDirection[0] = matBlendShader.m[0][2];
-	afDirection[1] = matBlendShader.m[1][2];
-	afDirection[2] = matBlendShader.m[2][2];
-	CSpeedTreeRT::SetCamera(c_rEyeVec, afDirection);
+	XMFLOAT4X4 m;
+	XMStoreFloat4x4(&m, matBlendShader);
+
+	float afDirection[3] =
+	{
+		m._13,
+		m._23,
+		m._33
+	};
+
+	CSpeedTreeRT::SetCamera(reinterpret_cast<const float*>(&eye), afDirection);
 
 	if (_mgr)
-		_mgr->GetCbMgr()->SetSpeedTreeCompoundMatrix(matBlendShader);
+		_mgr->GetCbMgr()->SetSpeedTreeCompoundMatrix(m);
 }
 
 void CSpeedTreeForestDirectX::Render(unsigned long ulRenderBitVector)
@@ -64,7 +70,7 @@ void CSpeedTreeForestDirectX::Render(unsigned long ulRenderBitVector)
 	ctx.Frame.DeviceContext = ms_lpd3d11Context;
 	ctx.Frame.View = ms_matView;
 	ctx.Frame.Projection = ms_matProj;
-	ctx.Frame.ViewProjection = ms_matView * ms_matProj;
+	XMStoreFloat4x4(&ctx.Frame.ViewProjection, XMMatrixMultiply(XMLoadFloat4x4(&ms_matView), XMLoadFloat4x4(&ms_matProj)));
 	ctx.Frame.Time = CTimer::Instance().GetCurrentSecond();
 
 	CCamera* camera = CCameraManager::Instance().GetCurrentCamera();

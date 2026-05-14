@@ -20,7 +20,7 @@ class CColorTransitionHelper
 			const float & c_rfBlue,
 			const float & c_rfAlpha,
 			const DWORD & dwDuration);
-		const D3DCOLOR & GetCurColor();// { return m_dwCurColor; }
+		const XMFLOAT4 & GetCurColor();// { return m_dwCurColor; }
 
 		void StartTransition();
 		bool Update();
@@ -28,7 +28,7 @@ class CColorTransitionHelper
 		bool isTransitionStarted() { return m_bTransitionStarted; }
 
 	private:
- 		D3DCOLOR m_dwCurColor;		// 현재 색
+		XMFLOAT4 m_dwCurColor;		// 현재 색
 
 		DWORD m_dwStartTime;		// 바뀌기 시작하는 시간
 		DWORD m_dwDuration;			// 얼마 동안에 바뀌는가?

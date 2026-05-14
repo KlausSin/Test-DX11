@@ -55,7 +55,7 @@ typedef struct
 	long			DisableShadow;
 	long			ShadowMode;
 	long			OutsideVisible;
-	D3DXVECTOR3		SunLocation;
+	XMFLOAT3		SunLocation;
 } TTerrainGlobals;
 
 /* Converts a floating point number to an integer by truncation, using

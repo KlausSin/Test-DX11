@@ -62,13 +62,15 @@ bool CInstanceBase::NEW_CanMoveToDestPixelPosition(const TPixelPosition& c_rkPPo
 
 float CInstanceBase_GetDegreeFromPosition(float x, float y)
 {
-	D3DXVECTOR3 vtDir(floor(x), floor(y), 0.0f);
-	D3DXVec3Normalize(&vtDir, &vtDir);
+	XMVECTOR vDir = XMVectorSet(floorf(x), floorf(y), 0.0f, 0.0f);
+	vDir = XMVector3Normalize(vDir);
 
-	D3DXVECTOR3 vtStan(0, -1, 0);
-	float ret = D3DXToDegree(acosf(D3DXVec3Dot(&vtDir, &vtStan)));
+	XMVECTOR vStan = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
 
-	if (vtDir.x < 0.0f)
+	float dot = XMVectorGetX(XMVector3Dot(vDir, vStan));
+	float ret = XMConvertToDegrees(acosf(dot));
+
+	if (XMVectorGetX(vDir) < 0.0f)
 		ret = 360.0f - ret;
 
 	return ret;
@@ -89,10 +91,18 @@ float CInstanceBase::NEW_GetAdvancingRotationFromDestPixelPosition(const TPixelP
 	return NEW_GetAdvancingRotationFromPixelPosition(kPPosCur, c_rkPPosDst);
 }
 
-float CInstanceBase::NEW_GetAdvancingRotationFromPixelPosition(const TPixelPosition& c_rkPPosSrc, const TPixelPosition& c_rkPPosDst)
+float CInstanceBase::NEW_GetAdvancingRotationFromPixelPosition(
+	const TPixelPosition& c_rkPPosSrc,
+	const TPixelPosition& c_rkPPosDst)
 {
-	TPixelPosition kPPosDelta;
-	kPPosDelta=c_rkPPosDst-c_rkPPosSrc;
+	XMVECTOR src = XMLoadFloat3(&c_rkPPosSrc);
+	XMVECTOR dst = XMLoadFloat3(&c_rkPPosDst);
+
+	XMVECTOR dir = dst - src;
+
+	XMFLOAT3 kPPosDelta;
+	XMStoreFloat3(&kPPosDelta, dir);
+
 	return NEW_GetAdvancingRotationFromDirPixelPosition(kPPosDelta);
 }
 
@@ -109,10 +119,17 @@ void CInstanceBase::NEW_SetAdvancingRotationFromDirPixelPosition(const TPixelPos
 }
 
 
-void CInstanceBase::NEW_SetAdvancingRotationFromPixelPosition(const TPixelPosition& c_rkPPosSrc, const TPixelPosition& c_rkPPosDst)
+void CInstanceBase::NEW_SetAdvancingRotationFromPixelPosition(
+	const TPixelPosition& c_rkPPosSrc,
+	const TPixelPosition& c_rkPPosDst)
 {
-	TPixelPosition kPPosDelta;
-	kPPosDelta=c_rkPPosDst-c_rkPPosSrc;
+	XMVECTOR src = XMLoadFloat3(&c_rkPPosSrc);
+	XMVECTOR dst = XMLoadFloat3(&c_rkPPosDst);
+
+	XMVECTOR dir = dst - src;
+
+	XMFLOAT3 kPPosDelta;
+	XMStoreFloat3(&kPPosDelta, dir);
 
 	NEW_SetAdvancingRotationFromDirPixelPosition(kPPosDelta);
 }
@@ -315,21 +332,24 @@ void CInstanceBase::NEW_MoveToDirection(float fDirRot)
 
 	TPixelPosition kPPosCur;
 	NEW_GetPixelPosition(&kPPosCur);
-	
-	D3DXVECTOR3 kD3DVt3Cur(kPPosCur.x, -kPPosCur.y, kPPosCur.z);		
-	D3DXVECTOR3 kD3DVt3Dst;
 
-	D3DXVECTOR3 kD3DVt3AdvDir(0.0f, -1.0f, 0.0f);
-	D3DXMATRIX kD3DMatAdv;
-	D3DXMatrixRotationZ(&kD3DMatAdv, D3DXToRadian(fDirRot));
-	D3DXVec3TransformCoord(&kD3DVt3AdvDir, &kD3DVt3AdvDir, &kD3DMatAdv);
-	D3DXVec3Scale(&kD3DVt3AdvDir, &kD3DVt3AdvDir, 300.0f);
-	D3DXVec3Add(&kD3DVt3Dst, &kD3DVt3AdvDir, &kD3DVt3Cur);
+	XMVECTOR cur = XMVectorSet(kPPosCur.x, -kPPosCur.y, kPPosCur.z, 0.0f);
+
+	XMMATRIX rot = XMMatrixRotationZ(XMConvertToRadians(fDirRot));
+
+	XMVECTOR advDir = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
+	advDir = XMVector3TransformCoord(advDir, rot);
+	advDir = XMVectorScale(advDir, 300.0f);
+
+	XMVECTOR dst = cur + advDir;
+
+	XMFLOAT3 out;
+	XMStoreFloat3(&out, dst);
 
 	TPixelPosition kPPosDst;
-	kPPosDst.x = +kD3DVt3Dst.x;
-	kPPosDst.y = -kD3DVt3Dst.y;
-	kPPosDst.z = +kD3DVt3Dst.z;
+	kPPosDst.x = out.x;
+	kPPosDst.y = -out.y;
+	kPPosDst.z = out.z;
 	
 	NEW_SetSrcPixelPosition(kPPosCur);
 	NEW_SetDstPixelPosition(kPPosDst);

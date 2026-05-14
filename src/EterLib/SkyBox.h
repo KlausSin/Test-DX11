@@ -92,9 +92,10 @@ protected:
 
 protected:
 	TSkyObjectFace m_FaceCloud;
-	D3DXMATRIX m_matWorldCloud{};
-	D3DXMATRIX m_matTextureCloud{};
-	D3DXVECTOR3 m_v3PositionCloud{};
+	XMFLOAT4X4 m_matWorldCloud{};
+	XMFLOAT4X4 m_matTextureCloud{};
+	XMFLOAT3 m_v3PositionCloud{};
+
 	float m_fCloudScaleX = 1.0f;
 	float m_fCloudScaleY = 1.0f;
 	float m_fCloudHeight = 0.0f;
@@ -107,9 +108,10 @@ protected:
 	DWORD m_dwlastTime = 0;
 
 	TGraphicImageInstanceMap m_GraphicImageInstanceMap;
-	D3DXMATRIX m_matWorld{};
-	D3DXMATRIX m_matTranslation{};
-	D3DXVECTOR3 m_v3Position{};
+
+	XMFLOAT4X4 m_matWorld{};
+	XMFLOAT4X4 m_matTranslation{};
+	XMFLOAT3 m_v3Position{};
 	float m_fScaleX = 1.0f;
 	float m_fScaleY = 1.0f;
 	float m_fScaleZ = 1.0f;
@@ -135,22 +137,22 @@ public:
 	void Destroy() override;
 	void Unload();
 
-	void SetSkyBoxScale(const D3DXVECTOR3& scale);
+	void SetSkyBoxScale(const XMFLOAT3& scale);
 	void SetGradientLevel(BYTE upper, BYTE lower);
 	void SetFaceTexture(const char* filename, int faceIndex);
 	void SetCloudTexture(const char* filename);
-	void SetCloudScale(const D3DXVECTOR2& cloudScale);
+	void SetCloudScale(const XMFLOAT2& cloudScale);
 	void SetCloudHeight(float height);
-	void SetCloudTextureScale(const D3DXVECTOR2& cloudTextureScale);
-	void SetCloudScrollSpeed(const D3DXVECTOR2& cloudScrollSpeed);
+	void SetCloudTextureScale(const XMFLOAT2& cloudTextureScale);
+	void SetCloudScrollSpeed(const XMFLOAT2& cloudScrollSpeed);
 	void SetCloudColor(const TGradientColor& color, const TGradientColor& nextColor, const DWORD& transitionTime);
 	void Refresh();
 	void SetSkyColor(const TVectorGradientColor& colorVector, const TVectorGradientColor& nextColorVector, long transitionTime);
 	void StartTransition() override;
 
 private:
-	void SetSkyObjectQuadVertical(TSkyObjectQuadVector* quads, const D3DXVECTOR2* points);
-	void SetSkyObjectQuadHorizon(TSkyObjectQuadVector* quads, const D3DXVECTOR3* points);
+	void SetSkyObjectQuadVertical(TSkyObjectQuadVector* quads, const XMFLOAT2* points);
+	void SetSkyObjectQuadHorizon(TSkyObjectQuadVector* quads, const XMFLOAT3* points);
 	void SetQuadColor(CSkyObjectQuad& quad, unsigned char vertexIndex, const TColor& color, const TColor& nextColor, DWORD transitionTime);
 	CGraphicImageInstance* FindTexture(const std::string& filename) const;
 

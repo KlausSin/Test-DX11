@@ -16,7 +16,7 @@ class CSnowEnvironment : public CScreen
 		void Enable();
 		void Disable();
 
-		void Update(const D3DXVECTOR3 & c_rv3Pos);
+		void Update(const XMFLOAT3 & c_rv3Pos);
 		void Deform();
 		void Render();
 
@@ -46,7 +46,7 @@ class CSnowEnvironment : public CScreen
 		VBufferPtr m_pVB;
 		IBufferPtr m_pIB;
 
-		D3DXVECTOR3 m_v3Center;
+		XMFLOAT3 m_v3Center;
 
 		WORD m_wBlurTextureSize;
 		CGraphicImageInstance * m_pImageInstance;

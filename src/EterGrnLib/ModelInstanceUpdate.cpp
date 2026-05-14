@@ -42,7 +42,7 @@ void CGrannyModelInstance::UpdateLocalTime(float fElapsedTime)
 	m_fLocalTime += fElapsedTime;
 }
 
-void CGrannyModelInstance::UpdateTransform(D3DXMATRIX * pMatrix, float fSecondsElapsed)
+void CGrannyModelInstance::UpdateTransform(XMFLOAT4X4* pMatrix, float fSecondsElapsed)
 {
 	if (!m_pgrnModelInstance)
 	{
@@ -54,7 +54,7 @@ void CGrannyModelInstance::UpdateTransform(D3DXMATRIX * pMatrix, float fSecondsE
 	
 }
 
-void CGrannyModelInstance::Deform(const D3DXMATRIX* c_pWorldMatrix)
+void CGrannyModelInstance::Deform(const XMFLOAT4X4* c_pWorldMatrix)
 {
 	if (IsEmpty() || !m_pModel)
 		return;
@@ -100,7 +100,7 @@ class CGrannyLocalPose
 };
 //////////////////////////////////////////////////////
 
-void CGrannyModelInstance::UpdateSkeleton(const D3DXMATRIX * c_pWorldMatrix, float /*fLocalTime*/)
+void CGrannyModelInstance::UpdateSkeleton(const XMFLOAT4X4* c_pWorldMatrix, float /*fLocalTime*/)
 {	
 	UpdateWorldPose();
 	UpdateWorldMatrices(c_pWorldMatrix);
@@ -124,35 +124,35 @@ void CGrannyModelInstance::UpdateWorldPose()
 
 }
 
-void CGrannyModelInstance::UpdateWorldMatrices(const D3DXMATRIX* c_pWorldMatrix)
+void CGrannyModelInstance::UpdateWorldMatrices(const XMFLOAT4X4* c_pWorldMatrix)
 {
 	if (m_meshMatrices.empty())
 		return;
 
 	assert(m_pModel != nullptr);
-	assert(ms_lpd3dMatStack != nullptr);
 
 	int meshCount = m_pModel->GetMeshCount();
 
-	granny_matrix_4x4* pgrnMatCompositeBuffer = GrannyGetWorldPoseComposite4x4Array(__GetWorldPosePtr());
-	D3DXMATRIX* boneMatrices = (D3DXMATRIX*)pgrnMatCompositeBuffer;
+	granny_matrix_4x4* pgrnMatCompositeBuffer =
+		GrannyGetWorldPoseComposite4x4Array(__GetWorldPosePtr());
+
+	XMMATRIX* boneMatrices = (XMMATRIX*)pgrnMatCompositeBuffer;
+
+	XMMATRIX world = XMLoadFloat4x4(c_pWorldMatrix);
 
 	for (int i = 0; i < meshCount; ++i)
 	{
-		D3DXMATRIX& rWorldMatrix = m_meshMatrices[i];
-
 		const CGrannyMesh* pMesh = m_pModel->GetMeshPointer(i);
-
-		int* boneIndices = __GetMeshBoneIndices(i);
+		int iBone = *(__GetMeshBoneIndices(i));
 
 		if (pMesh->HasSkinnedVertices())
 		{
-			rWorldMatrix = *c_pWorldMatrix;
+			XMStoreFloat4x4(&m_meshMatrices[i], world);
 		}
 		else
 		{
-			int iBone = *boneIndices;
-			D3DXMatrixMultiply(&rWorldMatrix, &boneMatrices[iBone], c_pWorldMatrix);
+			XMMATRIX result = boneMatrices[iBone] * world;
+			XMStoreFloat4x4(&m_meshMatrices[i], result);
 		}
 	}
 

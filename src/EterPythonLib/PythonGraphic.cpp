@@ -58,34 +58,29 @@ void CPythonGraphic::SetOmniLight()
 {
     // Set up a material
     D3DMATERIAL11 Material;
-	Material.Ambient = D3DXCOLOR(0.3f, 0.3f, 0.3f, 1.0f);
-	Material.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
-	Material.Emissive = D3DXCOLOR(0.1f, 0.1f, 0.1f, 1.0f);
+	Material.Ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
+	Material.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	Material.Emissive = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 	STATEMANAGER.GetLight().SetMaterial(Material);
 
 	D3DLIGHT11 Light;
 	Light.Type = D3DLIGHT_SPOT11;
-    Light.Position = D3DXVECTOR3(50.0f, 150.0f, 350.0f);
-    Light.Direction = D3DXVECTOR3(-0.15f, -0.3f, -0.9f);
-    Light.Theta = D3DXToRadian(30.0f);
-    Light.Phi = D3DXToRadian(45.0f);
+    Light.Position = XMFLOAT3(50.0f, 150.0f, 350.0f);
+    Light.Direction = XMFLOAT3(-0.15f, -0.3f, -0.9f);
+	Light.Theta = XMConvertToRadians(30.0f);
+	Light.Phi = XMConvertToRadians(45.0f);
     Light.Falloff = 1.0f;
     Light.Attenuation0 = 0.0f;
     Light.Attenuation1 = 0.005f;
     Light.Attenuation2 = 0.0f;
-    Light.Diffuse.r = 1.0f;
-    Light.Diffuse.g = 1.0f;
-    Light.Diffuse.b = 1.0f;
-	Light.Diffuse.a = 1.0f;
-	Light.Ambient.r = 1.0f;
-	Light.Ambient.g = 1.0f;
-	Light.Ambient.b = 1.0f;
-	Light.Ambient.a = 1.0f;
+	Light.Diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+	Light.Ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
+
     Light.Range = 500.0f;
 	STATEMANAGER.GetLight().SetLight(0, Light);
 
 	Light.Type = D3DLIGHT_POINT11;
-	Light.Position = D3DXVECTOR3(0.0f, 200.0f, 200.0f);
+	Light.Position = XMFLOAT3(0.0f, 200.0f, 200.0f);
 	Light.Attenuation0 = 0.1f;
 	Light.Attenuation1 = 0.01f;
 	Light.Attenuation2 = 0.0f;
@@ -248,8 +243,8 @@ void CPythonGraphic::RenderAlphaImage(CGraphicImageInstance* pImageInstance, flo
 {
 	assert(pImageInstance != NULL);
 
-	D3DXCOLOR DiffuseColor1 = D3DXCOLOR(1.0f, 1.0f, 1.0f, aLeft);
-	D3DXCOLOR DiffuseColor2 = D3DXCOLOR(1.0f, 1.0f, 1.0f, aRight);
+	XMFLOAT4 DiffuseColor1 = XMFLOAT4(1.0f, 1.0f, 1.0f, aLeft);
+	XMFLOAT4 DiffuseColor2 = XMFLOAT4(1.0f, 1.0f, 1.0f, aRight);
 
 	const CGraphicTexture * c_pTexture = pImageInstance->GetTexturePointer();
 
@@ -271,19 +266,19 @@ void CPythonGraphic::RenderAlphaImage(CGraphicImageInstance* pImageInstance, flo
 
 	TPDTVertex vertices[4];
 	vertices[0].position = TPosition(sx, sy, z);
-	vertices[0].diffuse = DiffuseColor1;
+	vertices[0].diffuse = ColorToUint(DiffuseColor1);
 	vertices[0].texCoord = TTextureCoordinate(su, sv);
 
 	vertices[1].position = TPosition(ex, sy, z);
-	vertices[1].diffuse = DiffuseColor2;
+	vertices[1].diffuse = ColorToUint(DiffuseColor2);
 	vertices[1].texCoord = TTextureCoordinate(eu, sv);
 
 	vertices[2].position = TPosition(sx, ey, z);
-	vertices[2].diffuse = DiffuseColor1;
+	vertices[2].diffuse = ColorToUint(DiffuseColor1);
 	vertices[2].texCoord = TTextureCoordinate(su, ev);
 
 	vertices[3].position = TPosition(ex, ey, z);
-	vertices[3].diffuse = DiffuseColor2;
+	vertices[3].diffuse = ColorToUint(DiffuseColor2);
 	vertices[3].texCoord = TTextureCoordinate(eu, ev);
 
 	_mgr->SetShader(VF_MESH);
@@ -300,35 +295,35 @@ void CPythonGraphic::RenderCoolTimeBox(float fxCenter, float fyCenter, float fRa
 
 	fTime = std::max(0.0f, fTime);
 
-	static D3DXCOLOR color = D3DXCOLOR(0.0f, 0.0f, 0.0f, 0.5f);
-	static D3DXVECTOR2 s_v2BoxPos[8] =
+	static XMFLOAT4 color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.5f);
+	static XMFLOAT2 s_v2BoxPos[8] =
 	{
-		D3DXVECTOR2( -1.0f, -1.0f ),
-		D3DXVECTOR2( -1.0f,  0.0f ),
-		D3DXVECTOR2( -1.0f, +1.0f ),
-		D3DXVECTOR2(  0.0f, +1.0f ),
-		D3DXVECTOR2( +1.0f, +1.0f ),
-		D3DXVECTOR2( +1.0f,  0.0f ),
-		D3DXVECTOR2( +1.0f, -1.0f ),
-		D3DXVECTOR2(  0.0f, -1.0f ),
+		XMFLOAT2( -1.0f, -1.0f ),
+		XMFLOAT2( -1.0f,  0.0f ),
+		XMFLOAT2( -1.0f, +1.0f ),
+		XMFLOAT2(  0.0f, +1.0f ),
+		XMFLOAT2( +1.0f, +1.0f ),
+		XMFLOAT2( +1.0f,  0.0f ),
+		XMFLOAT2( +1.0f, -1.0f ),
+		XMFLOAT2(  0.0f, -1.0f ),
 	};
 
 	int iTriCount = int(8 - 8.0f * fTime);
 	float fLastPercentage = (8 - 8.0f * fTime) - iTriCount;
 
 	// Build fan vertex positions (center + edge points)
-	std::vector<D3DXVECTOR2> fanPos;
-	fanPos.push_back(D3DXVECTOR2(fxCenter, fyCenter));                      // v0 = center
-	fanPos.push_back(D3DXVECTOR2(fxCenter, fyCenter - fRadius));            // v1 = top-center
+	std::vector<XMFLOAT2> fanPos;
+	fanPos.push_back(XMFLOAT2(fxCenter, fyCenter));                      // v0 = center
+	fanPos.push_back(XMFLOAT2(fxCenter, fyCenter - fRadius));            // v1 = top-center
 
 	for (int j = 0; j < iTriCount; ++j)
-		fanPos.push_back(D3DXVECTOR2(fxCenter + s_v2BoxPos[j].x * fRadius, fyCenter + s_v2BoxPos[j].y * fRadius));
+		fanPos.push_back(XMFLOAT2(fxCenter + s_v2BoxPos[j].x * fRadius, fyCenter + s_v2BoxPos[j].y * fRadius));
 
 	if (fLastPercentage > 0.0f)
 	{
-		D3DXVECTOR2 * pv2LastPos = &s_v2BoxPos[(iTriCount-1+8)%8];
-		D3DXVECTOR2 * pv2Pos = &s_v2BoxPos[(iTriCount+8)%8];
-		fanPos.push_back(D3DXVECTOR2(
+		XMFLOAT2 * pv2LastPos = &s_v2BoxPos[(iTriCount-1+8)%8];
+		XMFLOAT2 * pv2Pos = &s_v2BoxPos[(iTriCount+8)%8];
+		fanPos.push_back(XMFLOAT2(
 			fxCenter + ((pv2Pos->x-pv2LastPos->x) * fLastPercentage + pv2LastPos->x) * fRadius,
 			fyCenter + ((pv2Pos->y-pv2LastPos->y) * fLastPercentage + pv2LastPos->y) * fRadius));
 		++iTriCount;
@@ -342,7 +337,7 @@ void CPythonGraphic::RenderCoolTimeBox(float fxCenter, float fyCenter, float fRa
 	vertices.reserve(iTriCount * 3);
 	TPDTVertex vtx;
 	vtx.position.z = 0.0f;
-	vtx.diffuse = color;
+	vtx.diffuse = ColorToUint(color);
 	vtx.texCoord.x = 0.0f;
 	vtx.texCoord.y = 0.0f;
 

@@ -22,7 +22,7 @@ void CSnowEnvironment::Disable()
 	m_bSnowEnable = FALSE;
 }
 
-void CSnowEnvironment::Update(const D3DXVECTOR3 & c_rv3Pos)
+void CSnowEnvironment::Update(const XMFLOAT3 & c_rv3Pos)
 {
 	if (!m_bSnowEnable)
 	{
@@ -41,7 +41,7 @@ void CSnowEnvironment::Deform()
 			return;
 	}
 
-	const D3DXVECTOR3 & c_rv3Pos=m_v3Center;
+	const XMFLOAT3 & c_rv3Pos=m_v3Center;
 	
 	static long s_lLastTime = CTimer::Instance().GetCurrentMillisecond();
 	long lcurTime = CTimer::Instance().GetCurrentMillisecond();
@@ -52,9 +52,11 @@ void CSnowEnvironment::Deform()
 	if (!pCamera)
 		return;
 
-	const D3DXVECTOR3 & c_rv3View = pCamera->GetView();
+	const XMFLOAT3 & c_rv3View = pCamera->GetView();
 
-	D3DXVECTOR3 v3ChangedPos = c_rv3View * 3500.0f + c_rv3Pos;
+	XMFLOAT3 v3ChangedPos;
+	XMStoreFloat3(&v3ChangedPos,
+		XMLoadFloat3(&c_rv3View) * 3500.0f + XMLoadFloat3(&c_rv3Pos));
 	v3ChangedPos.z = c_rv3Pos.z;
 
 	std::vector<CSnowParticle*>::iterator itor = m_kVct_pkParticleSnow.begin();
@@ -128,10 +130,10 @@ void CSnowEnvironment::__ApplyBlur()
 
 	BlurVertex V[4] =
 	{
-		BlurVertex(D3DXVECTOR3(0.0f, 0.0f, 0.0f), 1.0f, 0xFFFFFF, 0, 0),
-		BlurVertex(D3DXVECTOR3(sx, 0.0f, 0.0f), 1.0f, 0xFFFFFF, 1, 0),
-		BlurVertex(D3DXVECTOR3(0.0f, sy, 0.0f), 1.0f, 0xFFFFFF, 0, 1),
-		BlurVertex(D3DXVECTOR3(sx, sy, 0.0f), 1.0f, 0xFFFFFF, 1, 1)
+		BlurVertex(XMFLOAT3(0.0f, 0.0f, 0.0f), 1.0f, 0xFFFFFF, 0, 0),
+		BlurVertex(XMFLOAT3(sx, 0.0f, 0.0f), 1.0f, 0xFFFFFF, 1, 0),
+		BlurVertex(XMFLOAT3(0.0f, sy, 0.0f), 1.0f, 0xFFFFFF, 0, 1),
+		BlurVertex(XMFLOAT3(sx, sy, 0.0f), 1.0f, 0xFFFFFF, 1, 1)
 	};
 
 	_mgr->SetShader(VF_SCREEN);
@@ -160,8 +162,8 @@ void CSnowEnvironment::Render()
 		return;
 	}
 
-	const D3DXVECTOR3& c_rv3Up = pCamera->GetUp();
-	const D3DXVECTOR3& c_rv3Cross = pCamera->GetCross();
+	const XMFLOAT3& c_rv3Up = pCamera->GetUp();
+	const XMFLOAT3& c_rv3Cross = pCamera->GetCross();
 
 	std::vector<SParticleVertex> tempVertices(dwParticleCount * 4);
 

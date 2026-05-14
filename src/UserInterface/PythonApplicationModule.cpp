@@ -7,7 +7,7 @@
 
 #include <utf8.h>
 
-extern D3DXCOLOR g_fSpecularColor;
+extern XMFLOAT4 g_fSpecularColor;
 extern BOOL bVisibleNotice = true;
 extern BOOL bTestServerFlag = FALSE;
 extern int TWOHANDED_WEWAPON_ATT_SPEED_DECREASE_VALUE = 0;
@@ -954,7 +954,7 @@ PyObject * apptestSetSpecularColor(PyObject * poSelf, PyObject * poArgs)
 	float fb;
 	if (!PyTuple_GetFloat(poArgs, 2, &fb))
 		return Py_BuildException();
-	g_fSpecularColor = D3DXCOLOR(fr, fg, fb, 1.0f);
+	g_fSpecularColor = XMFLOAT4(fr, fg, fb, 1.0f);
 	return Py_BuildNone();
 }
 

@@ -126,8 +126,8 @@ enum
 typedef struct SEnvironmentData
 {
 	// Light
-	BOOL		bDirLightsEnable[ENV_DIRLIGHT_NUM];
-	D3DLIGHT11	DirLights[ENV_DIRLIGHT_NUM];
+	BOOL bDirLightsEnable[ENV_DIRLIGHT_NUM];
+	D3DLIGHT11 DirLights[ENV_DIRLIGHT_NUM];
 
 	// Material
 	D3DMATERIAL11 Material;
@@ -141,15 +141,16 @@ typedef struct SEnvironmentData
 
 	float GetFogNearDistance() const;
 	float GetFogFarDistance() const;
-	
-	D3DXCOLOR FogColor;
+
+	XMFLOAT4 FogColor;
+
 	// MR-14: Fog update by Alaric
 	BYTE bFogLevel;
 	// MR-14: -- END OF -- Fog update by Alaric
 
 	// Filtering
 	BOOL bFilteringEnable;
-	D3DXCOLOR FilteringColor;
+	XMFLOAT4 FilteringColor;
 	BYTE byFilteringAlphaSrc;
 	BYTE byFilteringAlphaDest;
 
@@ -158,34 +159,36 @@ typedef struct SEnvironmentData
 	float fWindRandom;
 
 	// SkyBox
-	D3DXVECTOR3 v3SkyBoxScale;
-	BOOL		bSkyBoxTextureRenderMode;
+	XMFLOAT3 v3SkyBoxScale;
+	BOOL bSkyBoxTextureRenderMode;
 
 	BYTE bySkyBoxGradientLevelUpper;
 	BYTE bySkyBoxGradientLevelLower;
 
-	std::string strSkyBoxFaceFileName[6]; //order : front/back/left/right/top/bottom
+	std::string strSkyBoxFaceFileName[6]; // front/back/left/right/top/bottom
 
-
-	D3DXVECTOR2 v2CloudScale;
+	XMFLOAT2 v2CloudScale;
 	float fCloudHeight;
-	D3DXVECTOR2 v2CloudTextureScale;
-	D3DXVECTOR2 v2CloudSpeed;
-	std::string strCloudTextureFileName;
-	TGradientColor CloudGradientColor;
+	XMFLOAT2 v2CloudTextureScale;
+	XMFLOAT2 v2CloudSpeed;
 
+	std::string strCloudTextureFileName;
+
+	TGradientColor CloudGradientColor;
 	std::vector<TGradientColor> SkyBoxGradientColorVector;
 
 	// LensFlare
 	BOOL bLensFlareEnable;
-	D3DXCOLOR LensFlareBrightnessColor;
+
+	XMFLOAT4 LensFlareBrightnessColor;
 	float fLensFlareMaxBrightness;
 
 	BOOL bMainFlareEnable;
-	std::string strMainFlareTextureFileName; 
+	std::string strMainFlareTextureFileName;
 	float fMainFlareSize;
-	
+
 	BOOL bReserve; // 외부에서 설정을 고치지 않음
+
 } TEnvironmentData;
 
 typedef std::map<DWORD, TEnvironmentData*> TEnvironmentDataMap;
@@ -196,7 +199,7 @@ typedef struct SScreenPosition {
 	int y;
 } TScreenPosition;
 
-typedef D3DXVECTOR3 TPixelPosition;
+typedef XMFLOAT3 TPixelPosition;
 
 float SPixelPosition_CalculateDistanceSq3d(const TPixelPosition& c_rkPPosLeft, const TPixelPosition& c_rkPPosRight);
 

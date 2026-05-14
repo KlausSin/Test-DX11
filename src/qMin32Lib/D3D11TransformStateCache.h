@@ -4,10 +4,10 @@
 
 struct SD3D11TransformStateKey
 {
-	D3DXMATRIX world;
-	D3DXMATRIX view;
-	D3DXMATRIX projection;
-	D3DXMATRIX texture[4];
+	XMFLOAT4X4 world;
+	XMFLOAT4X4 view;
+	XMFLOAT4X4 projection;
+	XMFLOAT4X4 texture[4];
 
 	SD3D11TransformStateKey();
 	bool operator==(const SD3D11TransformStateKey& rhs) const;
@@ -27,20 +27,20 @@ public:
 	bool Restore();
 	void ClearStack();
 
-	void SetWorld(const D3DXMATRIX& value);
-	void SetView(const D3DXMATRIX& value);
-	void SetProjection(const D3DXMATRIX& value);
-	void SetTexture0(const D3DXMATRIX& value);
-	void SetTexture1(const D3DXMATRIX& value);
-	void SetTexture2(const D3DXMATRIX& value);
-	void SetTexture3(const D3DXMATRIX& value);
+	void SetWorld(const XMFLOAT4X4& value);
+	void SetView(const XMFLOAT4X4& value);
+	void SetProjection(const XMFLOAT4X4& value);
+	void SetTexture0(const XMFLOAT4X4& value);
+	void SetTexture1(const XMFLOAT4X4& value);
+	void SetTexture2(const XMFLOAT4X4& value);
+	void SetTexture3(const XMFLOAT4X4& value);
 	void SetKey(const SD3D11TransformStateKey& key);
 
-	const D3DXMATRIX& GetWorld() const;
-	const D3DXMATRIX& GetView() const;
-	const D3DXMATRIX& GetProjection() const;
-	const D3DXMATRIX& GetTexture0() const;
-	const D3DXMATRIX& GetTexture1() const;
+	const XMFLOAT4X4& GetWorld() const;
+	const XMFLOAT4X4& GetView() const;
+	const XMFLOAT4X4& GetProjection() const;
+	const XMFLOAT4X4& GetTexture0() const;
+	const XMFLOAT4X4& GetTexture1() const;
 	const SD3D11TransformStateKey& GetKey() const;
 
 private:

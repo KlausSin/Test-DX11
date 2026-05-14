@@ -27,7 +27,7 @@ void CPythonItem::TGroundItemInstance::Clear()
 	CEffectManager::Instance().DestroyEffectInstance(dwEffectInstanceIndex);
 }
 
-void CPythonItem::TGroundItemInstance::__PlayDropSound(DWORD eItemType, const D3DXVECTOR3& c_rv3Pos)
+void CPythonItem::TGroundItemInstance::__PlayDropSound(DWORD eItemType, const XMFLOAT3& c_rv3Pos)
 {
 	if (eItemType>=DROPSOUND_NUM)
 		return;
@@ -39,71 +39,75 @@ bool CPythonItem::TGroundItemInstance::Update()
 {
 	if (bAnimEnded)
 		return false;
+
 	if (dwEndTime < CTimer::Instance().GetCurrentMillisecond())
 	{
 		ThingInstance.SetRotationQuaternion(qEnd);
 
-		/*D3DXVECTOR3 v3Adjust = -v3Center;
-		D3DXMATRIX mat;
-		D3DXMatrixRotationYawPitchRoll(&mat, 
-		D3DXToRadian(rEnd.y), 
-		D3DXToRadian(rEnd.x), 
-		D3DXToRadian(rEnd.z));
-		D3DXVec3TransformCoord(&v3Adjust,&v3Adjust,&mat);*/
+		XMVECTOR center = XMLoadFloat3(&v3Center);
+		XMVECTOR endPos = XMLoadFloat3(&v3EndPosition);
 
-		D3DXQUATERNION qAdjust(-v3Center.x, -v3Center.y, -v3Center.z, 0.0f);
-		D3DXQUATERNION qc;
-		D3DXQuaternionConjugate(&qc, &qEnd);
-		D3DXQuaternionMultiply(&qAdjust,&qAdjust,&qEnd);
-		D3DXQuaternionMultiply(&qAdjust,&qc,&qAdjust);
+		XMVECTOR qEndV = XMLoadFloat4(&qEnd);
 
-		ThingInstance.SetPosition(v3EndPosition.x+qAdjust.x, 
-			v3EndPosition.y+qAdjust.y,
-			v3EndPosition.z+qAdjust.z);
-		//ThingInstance.Update();
+		XMVECTOR qAdjust = XMQuaternionMultiply(
+			XMQuaternionMultiply(XMVectorNegate(center), qEndV),
+			XMQuaternionConjugate(qEndV)
+		);
+
+		XMFLOAT3 out;
+		XMStoreFloat3(&out, qAdjust);
+
+		ThingInstance.SetPosition(
+			v3EndPosition.x + out.x,
+			v3EndPosition.y + out.y,
+			v3EndPosition.z + out.z
+		);
+
 		bAnimEnded = true;
-
 		__PlayDropSound(eDropSoundType, v3EndPosition);
 	}
 	else
 	{
 		DWORD time = CTimer::Instance().GetCurrentMillisecond() - dwStartTime;
-		DWORD etime = dwEndTime - CTimer::Instance().GetCurrentMillisecond();
 		float rate = time * 1.0f / (dwEndTime - dwStartTime);
 
-		D3DXVECTOR3 v3NewPosition=v3EndPosition;// = rate*(v3EndPosition - v3StartPosition) + v3StartPosition;
-		v3NewPosition.z += 100-100*rate*(3*rate-2);//-100*(rate-1)*(3*rate+2);
+		XMFLOAT3 v3NewPosition = v3EndPosition;
+		v3NewPosition.z += 100.0f - 100.0f * rate * (3.0f * rate - 2.0f);
 
-		D3DXQUATERNION q;
-		D3DXQuaternionRotationAxis(&q, &v3RotationAxis, etime * 0.03f *(-1+rate*(3*rate-2)));
-		//ThingInstance.SetRotation(rEnd.y + etime*rStart.y, rEnd.x + etime*rStart.x, rEnd.z + etime*rStart.z);
-		D3DXQuaternionMultiply(&q,&qEnd,&q);
+		XMVECTOR axis = XMLoadFloat3(&v3RotationAxis);
+		XMVECTOR qEndV = XMLoadFloat4(&qEnd);
 
-		ThingInstance.SetRotationQuaternion(q);
-		D3DXQUATERNION qAdjust(-v3Center.x, -v3Center.y, -v3Center.z, 0.0f);
-		D3DXQUATERNION qc;
-		D3DXQuaternionConjugate(&qc, &q);
-		D3DXQuaternionMultiply(&qAdjust,&qAdjust,&q);
-		D3DXQuaternionMultiply(&qAdjust,&qc,&qAdjust);
-		
-		ThingInstance.SetPosition(v3NewPosition.x+qAdjust.x, 
-			v3NewPosition.y+qAdjust.y,
-			v3NewPosition.z+qAdjust.z);
-		
-		/*D3DXVECTOR3 v3Adjust = -v3Center;
-		D3DXMATRIX mat;
-		D3DXMatrixRotationYawPitchRoll(&mat, 
-		D3DXToRadian(rEnd.y + etime*rStart.y), 
-		D3DXToRadian(rEnd.x + etime*rStart.x), 
-		D3DXToRadian(rEnd.z + etime*rStart.z));
-						
-		D3DXVec3TransformCoord(&v3Adjust,&v3Adjust,&mat);
-		//Tracef("%f %f %f\n",v3Adjust.x,v3Adjust.y,v3Adjust.z);
-		v3NewPosition += v3Adjust;
-		ThingInstance.SetPosition(v3NewPosition.x, v3NewPosition.y, v3NewPosition.z);*/
+		float etime = dwEndTime - CTimer::Instance().GetCurrentMillisecond();
+
+		XMVECTOR q = XMQuaternionRotationAxis(
+			axis,
+			etime * 0.03f * (-1.0f + rate * (3.0f * rate - 2.0f))
+		);
+
+		q = XMQuaternionMultiply(qEndV, q);
+
+		XMStoreFloat4(&qEnd, q);
+
+		XMVECTOR center = XMLoadFloat3(&v3Center);
+
+		XMVECTOR qAdjust = XMQuaternionMultiply(
+			XMQuaternionMultiply(XMVectorNegate(center), q),
+			XMQuaternionConjugate(q)
+		);
+
+		XMFLOAT3 adj;
+		XMStoreFloat3(&adj, qAdjust);
+
+		ThingInstance.SetPosition(
+			v3NewPosition.x + adj.x,
+			v3NewPosition.y + adj.y,
+			v3NewPosition.z + adj.z
+		);
 	}
+
 	ThingInstance.Transform();
-	ThingInstance.Deform();				
+	ThingInstance.Deform();
+
 	return !bAnimEnded;
 }
 
@@ -289,15 +293,13 @@ DWORD	CPythonItem::__GetUseSoundType(const CItemData& c_rkItemData)
 
 void CPythonItem::CreateItem(DWORD dwVirtualID, DWORD dwVirtualNumber, float x, float y, float z, bool bDrop)
 {
-	//CItemManager& rkItemMgr=CItemManager::Instance();
-
-	CItemData * pItemData;
+	CItemData* pItemData;
 	if (!CItemManager::Instance().GetItemDataPointer(dwVirtualNumber, &pItemData))
 		return;
 
 	CGraphicThing* pItemModel = pItemData->GetDropModelThing();
 
-	TGroundItemInstance *	pGroundItemInstance = m_GroundItemInstancePool.Alloc();	
+	TGroundItemInstance* pGroundItemInstance = m_GroundItemInstancePool.Alloc();
 	pGroundItemInstance->dwVirtualNumber = dwVirtualNumber;
 
 	bool bStabGround = false;
@@ -306,12 +308,13 @@ void CPythonItem::CreateItem(DWORD dwVirtualID, DWORD dwVirtualNumber, float x, 
 	{
 		z = CPythonBackground::Instance().GetHeight(x, y) + 10.0f;
 
-		if (pItemData->GetType()==CItemData::ITEM_TYPE_WEAPON && 
-			(pItemData->GetWeaponType() == CItemData::WEAPON_SWORD || 
-			 pItemData->GetWeaponType() == CItemData::WEAPON_ARROW))
+		if (pItemData->GetType() == CItemData::ITEM_TYPE_WEAPON &&
+			(pItemData->GetWeaponType() == CItemData::WEAPON_SWORD ||
+				pItemData->GetWeaponType() == CItemData::WEAPON_ARROW))
 			bStabGround = true;
 
 		bStabGround = false;
+
 		pGroundItemInstance->bAnimEnded = false;
 	}
 	else
@@ -319,32 +322,35 @@ void CPythonItem::CreateItem(DWORD dwVirtualID, DWORD dwVirtualNumber, float x, 
 		pGroundItemInstance->bAnimEnded = true;
 	}
 
-	{
-		// attaching effect
-		CEffectManager & rem =CEffectManager::Instance();
-		pGroundItemInstance->dwEffectInstanceIndex = 
-		rem.CreateEffect(m_dwDropItemEffectID, D3DXVECTOR3(x, -y, z), D3DXVECTOR3(0,0,0));		
+	CEffectManager& rem = CEffectManager::Instance();
+	pGroundItemInstance->dwEffectInstanceIndex =
+		rem.CreateEffect(
+			m_dwDropItemEffectID,
+			XMFLOAT3(x, -y, z),
+			XMFLOAT3(0, 0, 0)
+		);
 
-		pGroundItemInstance->eDropSoundType=__GetDropSoundType(*pItemData);
-	}
+	pGroundItemInstance->eDropSoundType = __GetDropSoundType(*pItemData);
 
-
-	D3DXVECTOR3 normal;
-	if (!CPythonBackground::Instance().GetNormal(int(x),int(y),&normal))
-		normal = D3DXVECTOR3(0.0f,0.0f,1.0f);
+	XMFLOAT3 normal;
+	if (!CPythonBackground::Instance().GetNormal((int)x, (int)y, &normal))
+		normal = XMFLOAT3(0.0f, 0.0f, 1.0f);
 
 	pGroundItemInstance->ThingInstance.Clear();
 	pGroundItemInstance->ThingInstance.ReserveModelThing(1);
 	pGroundItemInstance->ThingInstance.ReserveModelInstance(1);
 	pGroundItemInstance->ThingInstance.RegisterModelThing(0, pItemModel);
 	pGroundItemInstance->ThingInstance.SetModelInstance(0, 0, 0);
+
 	if (bDrop)
 	{
-		pGroundItemInstance->v3EndPosition = D3DXVECTOR3(x,-y,z);
-		pGroundItemInstance->ThingInstance.SetPosition(0,0,0);
+		pGroundItemInstance->v3EndPosition = XMFLOAT3(x, -y, z);
+		pGroundItemInstance->ThingInstance.SetPosition(0, 0, 0);
 	}
 	else
+	{
 		pGroundItemInstance->ThingInstance.SetPosition(x, -y, z);
+	}
 
 	pGroundItemInstance->ThingInstance.Update();
 	pGroundItemInstance->ThingInstance.Transform();
@@ -352,131 +358,142 @@ void CPythonItem::CreateItem(DWORD dwVirtualID, DWORD dwVirtualNumber, float x, 
 
 	if (bDrop)
 	{
-		D3DXVECTOR3 vMin, vMax;
-		pGroundItemInstance->ThingInstance.GetBoundBox(&vMin,&vMax);
-		pGroundItemInstance->v3Center = (vMin + vMax) * 0.5f;
+		XMFLOAT3 vMin, vMax;
+		pGroundItemInstance->ThingInstance.GetBoundBox(&vMin, &vMax);
 
-		std::pair<float,int> f[3] = 
-			{
-				std::make_pair(vMax.x - vMin.x,0),
-				std::make_pair(vMax.y - vMin.y,1),
-				std::make_pair(vMax.z - vMin.z,2)
-			};
+		XMVECTOR minV = XMLoadFloat3(&vMin);
+		XMVECTOR maxV = XMLoadFloat3(&vMax);
 
-		std::sort(f,f+3);
+		XMVECTOR centerV = (minV + maxV) * 0.5f;
+		XMStoreFloat3(&pGroundItemInstance->v3Center, centerV);
 
-		//int no_rotation_axis=-1;
-		
-		D3DXVECTOR3 rEnd;
-
-		if (/*f[1].first-f[0].first < (f[2].first-f[0].first)*0.30f*/ bStabGround)
+		std::pair<float, int> f[3] =
 		{
-			// 뾰족
-			if (f[2].second == 0) // axis x
+			{ vMax.x - vMin.x, 0 },
+			{ vMax.y - vMin.y, 1 },
+			{ vMax.z - vMin.z, 2 }
+		};
+
+		std::sort(f, f + 3);
+
+		XMFLOAT3 rEnd;
+
+		if (bStabGround)
+		{
+			if (f[2].second == 0)
 			{
 				rEnd.y = 90.0f + frandom(-15.0f, 15.0f);
 				rEnd.x = frandom(0.0f, 360.0f);
 				rEnd.z = frandom(-15.0f, 15.0f);
 			}
-			else if (f[2].second == 1) // axis y
+			else if (f[2].second == 1)
 			{
 				rEnd.y = frandom(0.0f, 360.0f);
 				rEnd.x = frandom(-15.0f, 15.0f);
 				rEnd.z = 180.0f + frandom(-15.0f, 15.0f);
 			}
-			else // axis z
+			else
 			{
 				rEnd.y = 180.0f + frandom(-15.0f, 15.0f);
-				rEnd.x = 0.0f+frandom(-15.0f, 15.0f);
+				rEnd.x = frandom(-15.0f, 15.0f);
 				rEnd.z = frandom(0.0f, 360.0f);
 			}
 		}
 		else
 		{
-			// 넓적
-			// 땅의 노말의 영향을 받을 것
+			XMVECTOR up = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+
 			if (f[0].second == 0)
 			{
-				// y,z = by normal
-				pGroundItemInstance->qEnd = 
-					RotationArc(
-						D3DXVECTOR3(
-						((float)(random()%2))*2-1+frandom(-0.1f,0.1f),
-						0+frandom(-0.1f,0.1f),
-						0+frandom(-0.1f,0.1f)),
-						D3DXVECTOR3(0,0,1)/*normal*/);
+				XMVECTOR dir = XMVectorSet(
+					(float)((random() % 2) * 2 - 1) + frandom(-0.1f, 0.1f),
+					frandom(-0.1f, 0.1f),
+					frandom(-0.1f, 0.1f),
+					0.0f
+				);
+				XMFLOAT3 dirF;
+				XMStoreFloat3(&dirF, dir);
+				pGroundItemInstance->qEnd = RotationArc(
+					dirF,
+					XMFLOAT3(0.0f, 0.0f, 1.0f)
+				);
 			}
 			else if (f[0].second == 1)
 			{
-				pGroundItemInstance->qEnd = 
-					RotationArc(
-						D3DXVECTOR3(
-							0+frandom(-0.1f,0.1f),
-							((float)(random()%2))*2-1+frandom(-0.1f,0.1f),
-							0+frandom(-0.1f,0.1f)),
-						D3DXVECTOR3(0,0,1)/*normal*/);
+				XMVECTOR dir = XMVectorSet(
+					frandom(-0.1f, 0.1f),
+					(float)((random() % 2) * 2 - 1) + frandom(-0.1f, 0.1f),
+					frandom(-0.1f, 0.1f),
+					0.0f
+				);
+				XMFLOAT3 dirF;
+				XMStoreFloat3(&dirF, dir);
+				pGroundItemInstance->qEnd = RotationArc(
+					dirF,
+					XMFLOAT3(0.0f, 0.0f, 1.0f)
+				);
 			}
-			else 
+			else
 			{
-				pGroundItemInstance->qEnd = 
-					RotationArc(
-					D3DXVECTOR3(
-					0+frandom(-0.1f,0.1f),
-					0+frandom(-0.1f,0.1f),
-					((float)(random()%2))*2-1+frandom(-0.1f,0.1f)),
-					D3DXVECTOR3(0,0,1)/*normal*/);
+				XMVECTOR dir = XMVectorSet(
+					frandom(-0.1f, 0.1f),
+					frandom(-0.1f, 0.1f),
+					(float)((random() % 2) * 2 - 1) + frandom(-0.1f, 0.1f),
+					0.0f
+				);
+				XMFLOAT3 dirF;
+				XMStoreFloat3(&dirF, dir);
+				pGroundItemInstance->qEnd = RotationArc(
+					dirF,
+					XMFLOAT3(0.0f, 0.0f, 1.0f)
+				);
 			}
 		}
-		//D3DXQuaternionRotationYawPitchRoll(&pGroundItemInstance->qEnd, rEnd.y, rEnd.x, rEnd.z );
-		float rot = frandom(0, 2*3.1415926535f);
-		D3DXQUATERNION q(0,0,cosf(rot),sinf(rot));
-		D3DXQuaternionMultiply(&pGroundItemInstance->qEnd, &pGroundItemInstance->qEnd, &q);
-		q = RotationArc(D3DXVECTOR3(0,0,1),normal);
-		D3DXQuaternionMultiply(&pGroundItemInstance->qEnd, &pGroundItemInstance->qEnd, &q);
+
+		float rot = frandom(0.0f, 2.0f * 3.1415926535f);
+
+		XMVECTOR q = XMQuaternionRotationAxis(
+			XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f),
+			rot
+		);
+
+		XMStoreFloat4(
+			&pGroundItemInstance->qEnd,
+			XMQuaternionMultiply(XMLoadFloat4(&pGroundItemInstance->qEnd), q)
+		);
+
+		XMStoreFloat4(
+			&pGroundItemInstance->qEnd,
+			XMQuaternionMultiply(
+				XMLoadFloat4(&pGroundItemInstance->qEnd),
+				XMQuaternionMultiply(
+					XMLoadFloat4(&pGroundItemInstance->qEnd),
+					XMLoadFloat4(&pGroundItemInstance->qEnd)
+				)
+			)
+		);
 
 		pGroundItemInstance->dwStartTime = CTimer::Instance().GetCurrentMillisecond();
-		pGroundItemInstance->dwEndTime = pGroundItemInstance->dwStartTime+300;
-		pGroundItemInstance->v3RotationAxis.x = sinf(rot+0);//frandom(0.4f,0.7f) * (2*(int)(random()%2) - 1);
-		pGroundItemInstance->v3RotationAxis.y = cosf(rot+0);//frandom(0.4f,0.7f) * (2*(int)(random()%2) - 1);
-		pGroundItemInstance->v3RotationAxis.z = 0;//frandom(0.4f,0.7f) * (2*(int)(random()%2) - 1);
+		pGroundItemInstance->dwEndTime = pGroundItemInstance->dwStartTime + 300;
 
-		/*
-		switch (no_rotation_axis)
-		{
-		case 0:
-			pGroundItemInstance->rStart.x = 0;
-			break;
-		case 1:
-			pGroundItemInstance->rStart.y = 0;
-			break;
-		case 2:
-			pGroundItemInstance->rStart.z = 0;
-			break;
-		}*/
+		pGroundItemInstance->v3RotationAxis.x = sinf(rot);
+		pGroundItemInstance->v3RotationAxis.y = cosf(rot);
+		pGroundItemInstance->v3RotationAxis.z = 0.0f;
 
-		D3DXVECTOR3 v3Adjust = -pGroundItemInstance->v3Center;
-		D3DXMATRIX mat;
-		D3DXMatrixRotationQuaternion(&mat, &pGroundItemInstance->qEnd);
-		/*D3DXMatrixRotationYawPitchRoll(&mat, 
-			D3DXToRadian(pGroundItemInstance->rEnd.y), 
-			D3DXToRadian(pGroundItemInstance->rEnd.x), 
-			D3DXToRadian(pGroundItemInstance->rEnd.z));*/
-
-		D3DXVec3TransformCoord(&v3Adjust,&v3Adjust,&mat);
-		//Tracef("%f %f %f\n",v3Adjust.x,v3Adjust.y,v3Adjust.z);
-		//pGroundItemInstance->v3EndPosition += v3Adjust;
-		//pGroundItemInstance->rEnd.z += pGroundItemInstance->v3Center.z;
+		XMMATRIX mat = XMMatrixRotationQuaternion(XMLoadFloat4(&pGroundItemInstance->qEnd));
+		XMVECTOR adjust = XMVectorNegate(centerV);
+		adjust = XMVector3TransformCoord(adjust, mat);
 	}
 
 	pGroundItemInstance->ThingInstance.Show();
 
-	m_GroundItemInstanceMap.insert(TGroundItemInstanceMap::value_type(dwVirtualID, pGroundItemInstance));
+	m_GroundItemInstanceMap.insert({ dwVirtualID, pGroundItemInstance });
 
-	CPythonTextTail& rkTextTail=CPythonTextTail::Instance();
-	rkTextTail.RegisterItemTextTail(
+	CPythonTextTail::Instance().RegisterItemTextTail(
 		dwVirtualID,
 		pItemData->GetName(),
-		&pGroundItemInstance->ThingInstance);
+		&pGroundItemInstance->ThingInstance
+	);
 }
 
 void CPythonItem::SetOwnership(DWORD dwVID, const char * c_pszName)
@@ -663,7 +680,7 @@ BOOL CPythonItem::GetGroundItemPosition(DWORD dwVirtualID, TPixelPosition * pPos
 
 	TGroundItemInstance * pInstance = itor->second;
 
-	const D3DXVECTOR3& rkD3DVct3=pInstance->ThingInstance.GetPosition();
+	const XMFLOAT3& rkD3DVct3=pInstance->ThingInstance.GetPosition();
 
 	pPosition->x=+rkD3DVct3.x;
 	pPosition->y=-rkD3DVct3.y;

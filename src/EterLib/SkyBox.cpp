@@ -59,7 +59,7 @@ bool CSkyObjectQuad::Update()
 	for (size_t i = 0; i < m_Helper.size(); ++i)
 	{
 		changed = m_Helper[i].Update() || changed;
-		m_Vertex[m_Indices[i]].diffuse = m_Helper[i].GetCurColor();
+		m_Vertex[m_Indices[i]].diffuse = ColorToUint(m_Helper[i].GetCurColor());
 	}
 	return changed;
 }
@@ -72,10 +72,11 @@ void CSkyObjectQuad::Render()
 
 CSkyObject::CSkyObject()
 {
-	D3DXMatrixIdentity(&m_matWorld);
-	D3DXMatrixIdentity(&m_matTranslation);
-	D3DXMatrixIdentity(&m_matWorldCloud);
-	D3DXMatrixIdentity(&m_matTextureCloud);
+	XMStoreFloat4x4(&m_matWorld, XMMatrixIdentity());
+	XMStoreFloat4x4(&m_matTranslation, XMMatrixIdentity());
+	XMStoreFloat4x4(&m_matWorldCloud, XMMatrixIdentity());
+	XMStoreFloat4x4(&m_matTextureCloud, XMMatrixIdentity());
+
 	m_dwlastTime = CTimer::Instance().GetCurrentMillisecond();
 }
 
@@ -92,17 +93,21 @@ void CSkyObject::Update()
 
 void CSkyObject::Update(const RenderContext& ctx)
 {
-	const D3DXVECTOR3 eye = ctx.Frame.Eye;
-	if (m_v3Position == eye && !m_bSkyMatrixUpdated)
+	const XMFLOAT3 eye = ctx.Frame.Eye;
+
+	if (m_v3Position.x == eye.x && m_v3Position.y == eye.y && m_v3Position.z == eye.z && !m_bSkyMatrixUpdated)
 		return;
 
 	m_v3Position = eye;
+
 	m_matWorld._41 = eye.x;
 	m_matWorld._42 = eye.y;
 	m_matWorld._43 = eye.z;
+
 	m_matWorldCloud._41 = eye.x;
 	m_matWorldCloud._42 = eye.y;
 	m_matWorldCloud._43 = eye.z + m_fCloudHeight;
+
 	m_bSkyMatrixUpdated = false;
 }
 
@@ -176,12 +181,14 @@ void CSkyBox::Unload()
 	m_FaceCloud.m_strfacename.clear();
 }
 
-void CSkyBox::SetSkyBoxScale(const D3DXVECTOR3& scale)
+void CSkyBox::SetSkyBoxScale(const XMFLOAT3& scale)
 {
 	m_fScaleX = scale.x;
 	m_fScaleY = scale.y;
 	m_fScaleZ = scale.z;
-	D3DXMatrixScaling(&m_matWorld, m_fScaleX, m_fScaleY, m_fScaleZ);
+
+	XMStoreFloat4x4(&m_matWorld, XMMatrixScaling(m_fScaleX, m_fScaleY, m_fScaleZ));
+
 	m_bSkyMatrixUpdated = true;
 }
 
@@ -227,11 +234,13 @@ void CSkyBox::SetCloudTexture(const char* filename)
 	m_GraphicImageInstanceMap.emplace(filename, imageInstance);
 }
 
-void CSkyBox::SetCloudScale(const D3DXVECTOR2& cloudScale)
+void CSkyBox::SetCloudScale(const XMFLOAT2& cloudScale)
 {
 	m_fCloudScaleX = cloudScale.x;
 	m_fCloudScaleY = cloudScale.y;
-	D3DXMatrixScaling(&m_matWorldCloud, m_fCloudScaleX, m_fCloudScaleY, 1.0f);
+
+	XMStoreFloat4x4(&m_matWorldCloud, XMMatrixScaling(m_fCloudScaleX, m_fCloudScaleY, 1.0f));
+
 	m_bSkyMatrixUpdated = true;
 }
 
@@ -241,7 +250,7 @@ void CSkyBox::SetCloudHeight(float height)
 	m_bSkyMatrixUpdated = true;
 }
 
-void CSkyBox::SetCloudTextureScale(const D3DXVECTOR2& cloudTextureScale)
+void CSkyBox::SetCloudTextureScale(const XMFLOAT2& cloudTextureScale)
 {
 	m_fCloudTextureScaleX = cloudTextureScale.x;
 	m_fCloudTextureScaleY = cloudTextureScale.y;
@@ -249,19 +258,20 @@ void CSkyBox::SetCloudTextureScale(const D3DXVECTOR2& cloudTextureScale)
 	m_matTextureCloud._22 = m_fCloudTextureScaleY;
 }
 
-void CSkyBox::SetCloudScrollSpeed(const D3DXVECTOR2& cloudScrollSpeed)
+void CSkyBox::SetCloudScrollSpeed(const XMFLOAT2& cloudScrollSpeed)
 {
 	m_fCloudScrollSpeedU = cloudScrollSpeed.x;
 	m_fCloudScrollSpeedV = cloudScrollSpeed.y;
 }
 
-void CSkyBox::SetSkyObjectQuadVertical(TSkyObjectQuadVector* quads, const D3DXVECTOR2* points)
+void CSkyBox::SetSkyObjectQuadVertical(TSkyObjectQuadVector* quads, const XMFLOAT2* points)
 {
 	if (!quads || !points)
 		return;
 
 	const uint32_t upper = m_ucVirticalGradientLevelUpper;
 	const uint32_t lower = m_ucVirticalGradientLevelLower;
+
 	quads->clear();
 	quads->resize(upper + lower);
 
@@ -271,72 +281,114 @@ void CSkyBox::SetSkyObjectQuadVertical(TSkyObjectQuadVector* quads, const D3DXVE
 	for (uint32_t y = 0; y < upper; ++y)
 	{
 		CSkyObjectQuad& quad = quads->at(index++);
+
 		const float y0 = static_cast<float>(y) / static_cast<float>(upper);
 		const float y1 = static_cast<float>(y + 1) / static_cast<float>(upper);
-		vertex.position = D3DXVECTOR3(points[0].x, points[0].y, 1.0f - y1); vertex.texCoord = D3DXVECTOR2(0.0f, y1 * 0.5f); quad.SetVertex(0, vertex);
-		vertex.position = D3DXVECTOR3(points[0].x, points[0].y, 1.0f - y0); vertex.texCoord = D3DXVECTOR2(0.0f, y0 * 0.5f); quad.SetVertex(1, vertex);
-		vertex.position = D3DXVECTOR3(points[1].x, points[1].y, 1.0f - y1); vertex.texCoord = D3DXVECTOR2(1.0f, y1 * 0.5f); quad.SetVertex(2, vertex);
-		vertex.position = D3DXVECTOR3(points[1].x, points[1].y, 1.0f - y0); vertex.texCoord = D3DXVECTOR2(1.0f, y0 * 0.5f); quad.SetVertex(3, vertex);
+
+		vertex.position = XMFLOAT3(points[0].x, points[0].y, 1.0f - y1);
+		vertex.texCoord = XMFLOAT2(0.0f, y1 * 0.5f);
+		quad.SetVertex(0, vertex);
+
+		vertex.position = XMFLOAT3(points[0].x, points[0].y, 1.0f - y0);
+		vertex.texCoord = XMFLOAT2(0.0f, y0 * 0.5f);
+		quad.SetVertex(1, vertex);
+
+		vertex.position = XMFLOAT3(points[1].x, points[1].y, 1.0f - y1);
+		vertex.texCoord = XMFLOAT2(1.0f, y1 * 0.5f);
+		quad.SetVertex(2, vertex);
+
+		vertex.position = XMFLOAT3(points[1].x, points[1].y, 1.0f - y0);
+		vertex.texCoord = XMFLOAT2(1.0f, y0 * 0.5f);
+		quad.SetVertex(3, vertex);
 	}
 
 	for (uint32_t y = 0; y < lower; ++y)
 	{
 		CSkyObjectQuad& quad = quads->at(index++);
+
 		const float y0 = static_cast<float>(y) / static_cast<float>(lower);
 		const float y1 = static_cast<float>(y + 1) / static_cast<float>(lower);
-		vertex.position = D3DXVECTOR3(points[0].x, points[0].y, -y1); vertex.texCoord = D3DXVECTOR2(0.0f, 0.5f + y1 * 0.5f); quad.SetVertex(0, vertex);
-		vertex.position = D3DXVECTOR3(points[0].x, points[0].y, -y0); vertex.texCoord = D3DXVECTOR2(0.0f, 0.5f + y0 * 0.5f); quad.SetVertex(1, vertex);
-		vertex.position = D3DXVECTOR3(points[1].x, points[1].y, -y1); vertex.texCoord = D3DXVECTOR2(1.0f, 0.5f + y1 * 0.5f); quad.SetVertex(2, vertex);
-		vertex.position = D3DXVECTOR3(points[1].x, points[1].y, -y0); vertex.texCoord = D3DXVECTOR2(1.0f, 0.5f + y0 * 0.5f); quad.SetVertex(3, vertex);
+
+		vertex.position = XMFLOAT3(points[0].x, points[0].y, -y1);
+		vertex.texCoord = XMFLOAT2(0.0f, 0.5f + y1 * 0.5f);
+		quad.SetVertex(0, vertex);
+
+		vertex.position = XMFLOAT3(points[0].x, points[0].y, -y0);
+		vertex.texCoord = XMFLOAT2(0.0f, 0.5f + y0 * 0.5f);
+		quad.SetVertex(1, vertex);
+
+		vertex.position = XMFLOAT3(points[1].x, points[1].y, -y1);
+		vertex.texCoord = XMFLOAT2(1.0f, 0.5f + y1 * 0.5f);
+		quad.SetVertex(2, vertex);
+
+		vertex.position = XMFLOAT3(points[1].x, points[1].y, -y0);
+		vertex.texCoord = XMFLOAT2(1.0f, 0.5f + y0 * 0.5f);
+		quad.SetVertex(3, vertex);
 	}
 }
 
-void CSkyBox::SetSkyObjectQuadHorizon(TSkyObjectQuadVector* quads, const D3DXVECTOR3* points)
+void CSkyBox::SetSkyObjectQuadHorizon(TSkyObjectQuadVector* quads, const XMFLOAT3* points)
 {
 	if (!quads || !points)
 		return;
 
 	quads->clear();
 	quads->resize(1);
+
 	CSkyObjectQuad& quad = quads->front();
+
 	TPDTVertex vertex{};
-	vertex.position = points[0]; vertex.texCoord = D3DXVECTOR2(0.0f, 1.0f); quad.SetVertex(0, vertex);
-	vertex.position = points[1]; vertex.texCoord = D3DXVECTOR2(0.0f, 0.0f); quad.SetVertex(1, vertex);
-	vertex.position = points[2]; vertex.texCoord = D3DXVECTOR2(1.0f, 1.0f); quad.SetVertex(2, vertex);
-	vertex.position = points[3]; vertex.texCoord = D3DXVECTOR2(1.0f, 0.0f); quad.SetVertex(3, vertex);
+
+	vertex.position = points[0];
+	vertex.texCoord = XMFLOAT2(0.0f, 1.0f);
+	quad.SetVertex(0, vertex);
+
+	vertex.position = points[1];
+	vertex.texCoord = XMFLOAT2(0.0f, 0.0f);
+	quad.SetVertex(1, vertex);
+
+	vertex.position = points[2];
+	vertex.texCoord = XMFLOAT2(1.0f, 1.0f);
+	quad.SetVertex(2, vertex);
+
+	vertex.position = points[3];
+	vertex.texCoord = XMFLOAT2(1.0f, 0.0f);
+	quad.SetVertex(3, vertex);
 }
 
 void CSkyBox::Refresh()
 {
-	D3DXVECTOR3 points3[4]{};
-	D3DXVECTOR2 points2[2]{};
+	XMFLOAT3 points3[4]{};
+	XMFLOAT2 points2[2]{};
 
 	if (m_ucRenderMode == SKY_RENDER_MODE_DEFAULT || m_ucRenderMode == SKY_RENDER_MODE_DIFFUSE)
 	{
 		if (m_ucVirticalGradientLevelUpper + m_ucVirticalGradientLevelLower == 0)
 			return;
 
-		points2[0] = D3DXVECTOR2(1.0f, -1.0f); points2[1] = D3DXVECTOR2(-1.0f, -1.0f); SetSkyObjectQuadVertical(&m_Faces[0].m_SkyObjectQuadVector, points2); m_Faces[0].m_strfacename = "front";
-		points2[0] = D3DXVECTOR2(-1.0f, 1.0f); points2[1] = D3DXVECTOR2(1.0f, 1.0f); SetSkyObjectQuadVertical(&m_Faces[1].m_SkyObjectQuadVector, points2); m_Faces[1].m_strfacename = "back";
-		points2[0] = D3DXVECTOR2(-1.0f, -1.0f); points2[1] = D3DXVECTOR2(-1.0f, 1.0f); SetSkyObjectQuadVertical(&m_Faces[2].m_SkyObjectQuadVector, points2); m_Faces[2].m_strfacename = "left";
-		points2[0] = D3DXVECTOR2(1.0f, 1.0f); points2[1] = D3DXVECTOR2(1.0f, -1.0f); SetSkyObjectQuadVertical(&m_Faces[3].m_SkyObjectQuadVector, points2); m_Faces[3].m_strfacename = "right";
-		points3[0] = D3DXVECTOR3(1.0f, 1.0f, 1.0f); points3[1] = D3DXVECTOR3(-1.0f, 1.0f, 1.0f); points3[2] = D3DXVECTOR3(1.0f, -1.0f, 1.0f); points3[3] = D3DXVECTOR3(-1.0f, -1.0f, 1.0f); SetSkyObjectQuadHorizon(&m_Faces[4].m_SkyObjectQuadVector, points3); m_Faces[4].m_strfacename = "top";
-		points3[0] = D3DXVECTOR3(-1.0f, 1.0f, -1.0f); points3[1] = D3DXVECTOR3(1.0f, 1.0f, -1.0f); points3[2] = D3DXVECTOR3(-1.0f, -1.0f, -1.0f); points3[3] = D3DXVECTOR3(1.0f, -1.0f, -1.0f); SetSkyObjectQuadHorizon(&m_Faces[5].m_SkyObjectQuadVector, points3); m_Faces[5].m_strfacename = "bottom";
+		points2[0] = XMFLOAT2(1.0f, -1.0f); points2[1] = XMFLOAT2(-1.0f, -1.0f); SetSkyObjectQuadVertical(&m_Faces[0].m_SkyObjectQuadVector, points2); m_Faces[0].m_strfacename = "front";
+		points2[0] = XMFLOAT2(-1.0f, 1.0f); points2[1] = XMFLOAT2(1.0f, 1.0f); SetSkyObjectQuadVertical(&m_Faces[1].m_SkyObjectQuadVector, points2); m_Faces[1].m_strfacename = "back";
+		points2[0] = XMFLOAT2(-1.0f, -1.0f); points2[1] = XMFLOAT2(-1.0f, 1.0f); SetSkyObjectQuadVertical(&m_Faces[2].m_SkyObjectQuadVector, points2); m_Faces[2].m_strfacename = "left";
+		points2[0] = XMFLOAT2(1.0f, 1.0f); points2[1] = XMFLOAT2(1.0f, -1.0f); SetSkyObjectQuadVertical(&m_Faces[3].m_SkyObjectQuadVector, points2); m_Faces[3].m_strfacename = "right";
+
+		points3[0] = XMFLOAT3(1.0f, 1.0f, 1.0f); points3[1] = XMFLOAT3(-1.0f, 1.0f, 1.0f); points3[2] = XMFLOAT3(1.0f, -1.0f, 1.0f); points3[3] = XMFLOAT3(-1.0f, -1.0f, 1.0f); SetSkyObjectQuadHorizon(&m_Faces[4].m_SkyObjectQuadVector, points3); m_Faces[4].m_strfacename = "top";
+		points3[0] = XMFLOAT3(-1.0f, 1.0f, -1.0f); points3[1] = XMFLOAT3(1.0f, 1.0f, -1.0f); points3[2] = XMFLOAT3(-1.0f, -1.0f, -1.0f); points3[3] = XMFLOAT3(1.0f, -1.0f, -1.0f); SetSkyObjectQuadHorizon(&m_Faces[5].m_SkyObjectQuadVector, points3); m_Faces[5].m_strfacename = "bottom";
 	}
 	else if (m_ucRenderMode == SKY_RENDER_MODE_TEXTURE)
 	{
-		points3[0] = D3DXVECTOR3(1.0f, -1.0f, -1.0f); points3[1] = D3DXVECTOR3(1.0f, -1.0f, 1.0f); points3[2] = D3DXVECTOR3(-1.0f, -1.0f, -1.0f); points3[3] = D3DXVECTOR3(-1.0f, -1.0f, 1.0f); SetSkyObjectQuadHorizon(&m_Faces[0].m_SkyObjectQuadVector, points3); m_Faces[0].m_strfacename = "front";
-		points3[0] = D3DXVECTOR3(-1.0f, 1.0f, -1.0f); points3[1] = D3DXVECTOR3(-1.0f, 1.0f, 1.0f); points3[2] = D3DXVECTOR3(1.0f, 1.0f, -1.0f); points3[3] = D3DXVECTOR3(1.0f, 1.0f, 1.0f); SetSkyObjectQuadHorizon(&m_Faces[1].m_SkyObjectQuadVector, points3); m_Faces[1].m_strfacename = "back";
-		points3[0] = D3DXVECTOR3(1.0f, 1.0f, -1.0f); points3[1] = D3DXVECTOR3(1.0f, 1.0f, 1.0f); points3[2] = D3DXVECTOR3(1.0f, -1.0f, -1.0f); points3[3] = D3DXVECTOR3(1.0f, -1.0f, 1.0f); SetSkyObjectQuadHorizon(&m_Faces[2].m_SkyObjectQuadVector, points3); m_Faces[2].m_strfacename = "left";
-		points3[0] = D3DXVECTOR3(-1.0f, -1.0f, -1.0f); points3[1] = D3DXVECTOR3(-1.0f, -1.0f, 1.0f); points3[2] = D3DXVECTOR3(-1.0f, 1.0f, -1.0f); points3[3] = D3DXVECTOR3(-1.0f, 1.0f, 1.0f); SetSkyObjectQuadHorizon(&m_Faces[3].m_SkyObjectQuadVector, points3); m_Faces[3].m_strfacename = "right";
-		points3[0] = D3DXVECTOR3(1.0f, -1.0f, 1.0f); points3[1] = D3DXVECTOR3(1.0f, 1.0f, 1.0f); points3[2] = D3DXVECTOR3(-1.0f, -1.0f, 1.0f); points3[3] = D3DXVECTOR3(-1.0f, 1.0f, 1.0f); SetSkyObjectQuadHorizon(&m_Faces[4].m_SkyObjectQuadVector, points3); m_Faces[4].m_strfacename = "top";
-		points3[0] = D3DXVECTOR3(1.0f, -1.0f, -1.0f); points3[1] = D3DXVECTOR3(1.0f, 1.0f, -1.0f); points3[2] = D3DXVECTOR3(-1.0f, -1.0f, -1.0f); points3[3] = D3DXVECTOR3(-1.0f, 1.0f, -1.0f); SetSkyObjectQuadHorizon(&m_Faces[5].m_SkyObjectQuadVector, points3); m_Faces[5].m_strfacename = "bottom";
+		points3[0] = XMFLOAT3(1.0f, -1.0f, -1.0f); points3[1] = XMFLOAT3(1.0f, -1.0f, 1.0f); points3[2] = XMFLOAT3(-1.0f, -1.0f, -1.0f); points3[3] = XMFLOAT3(-1.0f, -1.0f, 1.0f); SetSkyObjectQuadHorizon(&m_Faces[0].m_SkyObjectQuadVector, points3); m_Faces[0].m_strfacename = "front";
+		points3[0] = XMFLOAT3(-1.0f, 1.0f, -1.0f); points3[1] = XMFLOAT3(-1.0f, 1.0f, 1.0f); points3[2] = XMFLOAT3(1.0f, 1.0f, -1.0f); points3[3] = XMFLOAT3(1.0f, 1.0f, 1.0f); SetSkyObjectQuadHorizon(&m_Faces[1].m_SkyObjectQuadVector, points3); m_Faces[1].m_strfacename = "back";
+		points3[0] = XMFLOAT3(1.0f, 1.0f, -1.0f); points3[1] = XMFLOAT3(1.0f, 1.0f, 1.0f); points3[2] = XMFLOAT3(1.0f, -1.0f, -1.0f); points3[3] = XMFLOAT3(1.0f, -1.0f, 1.0f); SetSkyObjectQuadHorizon(&m_Faces[2].m_SkyObjectQuadVector, points3); m_Faces[2].m_strfacename = "left";
+		points3[0] = XMFLOAT3(-1.0f, -1.0f, -1.0f); points3[1] = XMFLOAT3(-1.0f, -1.0f, 1.0f); points3[2] = XMFLOAT3(-1.0f, 1.0f, -1.0f); points3[3] = XMFLOAT3(-1.0f, 1.0f, 1.0f); SetSkyObjectQuadHorizon(&m_Faces[3].m_SkyObjectQuadVector, points3); m_Faces[3].m_strfacename = "right";
+		points3[0] = XMFLOAT3(1.0f, -1.0f, 1.0f); points3[1] = XMFLOAT3(1.0f, 1.0f, 1.0f); points3[2] = XMFLOAT3(-1.0f, -1.0f, 1.0f); points3[3] = XMFLOAT3(-1.0f, 1.0f, 1.0f); SetSkyObjectQuadHorizon(&m_Faces[4].m_SkyObjectQuadVector, points3); m_Faces[4].m_strfacename = "top";
+		points3[0] = XMFLOAT3(1.0f, -1.0f, -1.0f); points3[1] = XMFLOAT3(1.0f, 1.0f, -1.0f); points3[2] = XMFLOAT3(-1.0f, -1.0f, -1.0f); points3[3] = XMFLOAT3(-1.0f, 1.0f, -1.0f); SetSkyObjectQuadHorizon(&m_Faces[5].m_SkyObjectQuadVector, points3); m_Faces[5].m_strfacename = "bottom";
 	}
 
-	points3[0] = D3DXVECTOR3(1.0f, 1.0f, 0.0f);
-	points3[1] = D3DXVECTOR3(-1.0f, 1.0f, 0.0f);
-	points3[2] = D3DXVECTOR3(1.0f, -1.0f, 0.0f);
-	points3[3] = D3DXVECTOR3(-1.0f, -1.0f, 0.0f);
+	points3[0] = XMFLOAT3(1.0f, 1.0f, 0.0f);
+	points3[1] = XMFLOAT3(-1.0f, 1.0f, 0.0f);
+	points3[2] = XMFLOAT3(1.0f, -1.0f, 0.0f);
+	points3[3] = XMFLOAT3(-1.0f, -1.0f, 0.0f);
+
 	SetSkyObjectQuadHorizon(&m_FaceCloud.m_SkyObjectQuadVector, points3);
 }
 

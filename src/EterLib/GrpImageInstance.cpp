@@ -41,10 +41,10 @@ CGraphicImageInstance::~CGraphicImageInstance()
 
 void CGraphicImageInstance::Initialize()
 {
-	m_DiffuseColor.r = 1.0f;
-	m_DiffuseColor.g = 1.0f;
-	m_DiffuseColor.b = 1.0f;
-	m_DiffuseColor.a = 1.0f;
+	m_DiffuseColor.x = 1.0f;
+	m_DiffuseColor.y = 1.0f;
+	m_DiffuseColor.z = 1.0f;
+	m_DiffuseColor.w = 1.0f;
 
 	m_v2Position.x = 0.0f;
 	m_v2Position.y = 0.0f;
@@ -107,10 +107,10 @@ void CGraphicImageInstance::OnRender()
 	vertices[2].texCoord = TTextureCoordinate(su, ev);
 	vertices[3].texCoord = TTextureCoordinate(eu, ev);
 
-	vertices[0].diffuse = m_DiffuseColor;
-	vertices[1].diffuse = m_DiffuseColor;
-	vertices[2].diffuse = m_DiffuseColor;
-	vertices[3].diffuse = m_DiffuseColor;
+	vertices[0].diffuse = ColorToUint(m_DiffuseColor);
+	vertices[1].diffuse = ColorToUint(m_DiffuseColor);
+	vertices[2].diffuse = ColorToUint(m_DiffuseColor);
+	vertices[3].diffuse = ColorToUint(m_DiffuseColor);
 
 	STATEMANAGER.GetStateCache().Push();
 
@@ -142,10 +142,10 @@ void CGraphicImageInstance::OnRender()
 
 void CGraphicImageInstance::SetDiffuseColor(float r, float g, float b, float a)
 {
-	m_DiffuseColor.r = r;
-	m_DiffuseColor.g = g;
-	m_DiffuseColor.b = b;
-	m_DiffuseColor.a = a;
+	m_DiffuseColor.x = r;
+	m_DiffuseColor.y = g;
+	m_DiffuseColor.z = b;
+	m_DiffuseColor.w = a;
 }
 
 void CGraphicImageInstance::SetPosition(float x, float y)

@@ -50,18 +50,18 @@ m_isLock(false)
 	m_fObjectCollisionRadius		= 50.0f;
 
 	m_bDrag							= false;
-
+	
 	m_lMousePosX					= -1;
 	m_lMousePosY					= -1;
 
 	m_fTarget_						= CAMERA_TARGET_STANDARD;
 
-	m_v3AngularAcceleration			= D3DXVECTOR3(0.0f, 0.0f, 0.0f);
-	m_v3AngularVelocity				= D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+	m_v3AngularAcceleration			= { 0.0f, 0.0f, 0.0f };
+	m_v3AngularVelocity				= { 0.0f, 0.0f, 0.0f };
 
 	m_bProcessTerrainCollision		= true;
 
-    SetViewParams(D3DXVECTOR3(0.0f,0.0f,1.0f), D3DXVECTOR3(0.0f,0.0f,0.0f), D3DXVECTOR3(0.0f,1.0f,0.0f));
+    SetViewParams(XMFLOAT3(0.0f,0.0f,1.0f), XMFLOAT3(0.0f,0.0f,0.0f), XMFLOAT3(0.0f,1.0f,0.0f));
 }
 
 CCamera::~CCamera()
@@ -210,7 +210,7 @@ void CCamera::ResetNumScreenBuilding()
 
 //////////////////////////////////////////////////////////////////////////
 // Property
-void CCamera::SetViewParams( const D3DXVECTOR3 &v3Eye, const D3DXVECTOR3& v3Target, const D3DXVECTOR3& v3Up)
+void CCamera::SetViewParams( const XMFLOAT3&v3Eye, const XMFLOAT3& v3Target, const XMFLOAT3& v3Up)
 {
 	if (IsLock())
 		return;
@@ -227,7 +227,7 @@ void CCamera::SetViewParams( const D3DXVECTOR3 &v3Eye, const D3DXVECTOR3& v3Targ
 	SetViewMatrix();
 }
 
-void CCamera::SetEye(const D3DXVECTOR3 & v3Eye)
+void CCamera::SetEye(const XMFLOAT3& v3Eye)
 {
 	if (IsLock())
 		return;
@@ -237,7 +237,7 @@ void CCamera::SetEye(const D3DXVECTOR3 & v3Eye)
 	SetViewMatrix();
 }
 
-void CCamera::SetTarget(const D3DXVECTOR3 & v3Target)
+void CCamera::SetTarget(const XMFLOAT3& v3Target)
 {
 	if (IsLock())
 		return;
@@ -247,7 +247,7 @@ void CCamera::SetTarget(const D3DXVECTOR3 & v3Target)
 	SetViewMatrix();
 }
 
-void CCamera::SetUp(const D3DXVECTOR3 & v3Up)
+void CCamera::SetUp(const XMFLOAT3& v3Up)
 {
 	if (IsLock())
 		return;
@@ -257,102 +257,88 @@ void CCamera::SetUp(const D3DXVECTOR3 & v3Up)
 	SetViewMatrix();
 }
 
-bool IsNaN(const D3DXVECTOR3& v)
+bool IsNaN(const XMFLOAT3& v)
 {
 	return std::isnan(v.x) || std::isnan(v.y) || std::isnan(v.z);
 }
 
 void CCamera::SetViewMatrix()
 {
-	// Calculate view direction
-	m_v3View = m_v3Target - m_v3Eye;
+	m_v3View = {
+		m_v3Target.x - m_v3Eye.x,
+		m_v3Target.y - m_v3Eye.y,
+		m_v3Target.z - m_v3Eye.z
+	};
+
 	if (IsNaN(m_v3View))
-	{
-		m_v3View = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-	}
+		m_v3View = { 0.0f, 0.0f, 1.0f };
 
-	// v3CenterRay is the reverse of the view vector
-	D3DXVECTOR3 v3CenterRay = -m_v3View;
+	XMFLOAT3 v3CenterRay = { -m_v3View.x, -m_v3View.y, -m_v3View.z };
 
-	// Calculate roll (if this function uses m_v3View, ensure it’s valid)
 	CalculateRoll();
 
-	// Compute the distance from eye to target
-	m_fDistance = D3DXVec3Length(&m_v3View);
+	m_fDistance = XMVectorGetX(XMVector3Length(XMLoadFloat3(&m_v3View)));
 	if (std::isnan(m_fDistance))
-	{
 		m_fDistance = 0.0f;
-	}
+
 	m_fDistance = std::fmax(0.0f, m_fDistance);
-	assert(m_fDistance >= 0);
+	assert(m_fDistance >= 0.0f);
 
-	// Normalize the view vector if possible
 	if (m_fDistance > FLT_EPSILON)
-	{
-		D3DXVec3Normalize(&m_v3View, &m_v3View);
-	}
+		XMStoreFloat3(&m_v3View, XMVector3Normalize(XMLoadFloat3(&m_v3View)));
 	else
-	{
-		// Avoid dividing by zero; set to a default forward direction
-		m_v3View = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-	}
+		m_v3View = { 0.0f, 0.0f, 1.0f };
 
-	// Compute the cross product for the right vector and normalize
-	D3DXVec3Cross(&m_v3Cross, &m_v3Up, &m_v3View);
-	float crossLength = D3DXVec3Length(&m_v3Cross);
+	XMStoreFloat3(&m_v3Cross, XMVector3Cross(XMLoadFloat3(&m_v3Up), XMLoadFloat3(&m_v3View)));
+
+	float crossLength = XMVectorGetX(XMVector3Length(XMLoadFloat3(&m_v3Cross)));
 	if (crossLength > FLT_EPSILON)
-	{
-		D3DXVec3Normalize(&m_v3Cross, &m_v3Cross);
-	}
+		XMStoreFloat3(&m_v3Cross, XMVector3Normalize(XMLoadFloat3(&m_v3Cross)));
 	else
-	{
-		// Use a default right vector if the cross product is near zero
-		m_v3Cross = D3DXVECTOR3(1.0f, 0.0f, 0.0f);
-	}
+		m_v3Cross = { 1.0f, 0.0f, 0.0f };
 
-	// Recompute the up vector and normalize
-	D3DXVec3Cross(&m_v3Up, &m_v3View, &m_v3Cross);
-	float upLength = D3DXVec3Length(&m_v3Up);
+	XMStoreFloat3(&m_v3Up, XMVector3Cross(XMLoadFloat3(&m_v3View), XMLoadFloat3(&m_v3Cross)));
+
+	float upLength = XMVectorGetX(XMVector3Length(XMLoadFloat3(&m_v3Up)));
 	if (upLength > FLT_EPSILON)
-	{
-		D3DXVec3Normalize(&m_v3Up, &m_v3Up);
-	}
+		XMStoreFloat3(&m_v3Up, XMVector3Normalize(XMLoadFloat3(&m_v3Up)));
 	else
-	{
-		// Use a default up vector.
-		m_v3Up = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
-	}
+		m_v3Up = { 0.0f, 1.0f, 0.0f };
 
-	// Calculate the pitch angle from the up vector
-	D3DXVECTOR3 val = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-	m_fPitch = D3DXVec3Dot(&m_v3Up, &val);
-	// Clamp the dot product so acosf is safe
+	XMFLOAT3 val = { 0.0f, 0.0f, 1.0f };
+
+	m_fPitch = XMVectorGetX(XMVector3Dot(XMLoadFloat3(&m_v3Up), XMLoadFloat3(&val)));
+
 	if (m_fPitch >= 1.0f)
 		m_fPitch = 1.0f;
 	else if (m_fPitch <= -1.0f)
 		m_fPitch = -1.0f;
+
 	m_fPitch = acosf(m_fPitch);
+
 	if (std::isnan(m_fPitch))
-	{
 		m_fPitch = 0.0f;
-	}
-	m_fPitch *= (180.0f / D3DX_PI);
-	if (m_v3View.z > 0)
+
+	m_fPitch *= (180.0f / XM_PI);
+
+	if (m_v3View.z > 0.0f)
 		m_fPitch = -m_fPitch;
 
-	// Build the view matrix.
-	D3DXMatrixLookAtRH(&m_matView, &m_v3Eye, &m_v3Target, &m_v3Up);
+	XMMATRIX matView = XMMatrixLookAtRH(
+		XMLoadFloat3(&m_v3Eye),
+		XMLoadFloat3(&m_v3Target),
+		XMLoadFloat3(&m_v3Up));
 
-	// Compute the determinant and check it.
-	float fDeterminantD3DMatView = D3DXMatrixDeterminant(&m_matView);
-	if (std::isnan(fDeterminantD3DMatView) || fabs(fDeterminantD3DMatView) < FLT_EPSILON)
-	{
-		D3DXMatrixIdentity(&m_matInverseView);
-	}
+	XMStoreFloat4x4(&m_matView, matView);
+
+	XMVECTOR determinant;
+	XMMATRIX matInverseView = XMMatrixInverse(&determinant, matView);
+	float fDeterminantD3DMatView = XMVectorGetX(determinant);
+
+	if (std::isnan(fDeterminantD3DMatView) || fabsf(fDeterminantD3DMatView) < FLT_EPSILON)
+		XMStoreFloat4x4(&m_matInverseView, XMMatrixIdentity());
 	else
-	{
-		D3DXMatrixInverse(&m_matInverseView, &fDeterminantD3DMatView, &m_matView);
-	}
+		XMStoreFloat4x4(&m_matInverseView, matInverseView);
 
 	m_matBillboard = m_matInverseView;
 	m_matBillboard._41 = 0.0f;
@@ -369,41 +355,66 @@ void CCamera::SetViewMatrix()
 	m_kCameraRightToTerrainRay.SetStartPoint(m_v3Eye);
 	m_kTargetToCameraBottomRay.SetStartPoint(m_v3Target);
 
-	m_kCameraBottomToTerrainRay.SetDirection(-m_v3Up, 2.0f * m_fTerrainCollisionRadius);
+	m_kCameraBottomToTerrainRay.SetDirection({ -m_v3Up.x, -m_v3Up.y, -m_v3Up.z }, 2.0f * m_fTerrainCollisionRadius);
 	m_kCameraFrontToTerrainRay.SetDirection(m_v3View, 4.0f * m_fTerrainCollisionRadius);
-	m_kCameraBackToTerrainRay.SetDirection(-m_v3View, m_fTerrainCollisionRadius);
-	m_kCameraLeftToTerrainRay.SetDirection(-m_v3Cross, 3.0f * m_fTerrainCollisionRadius);
+	m_kCameraBackToTerrainRay.SetDirection({ -m_v3View.x, -m_v3View.y, -m_v3View.z }, m_fTerrainCollisionRadius);
+	m_kCameraLeftToTerrainRay.SetDirection({ -m_v3Cross.x, -m_v3Cross.y, -m_v3Cross.z }, 3.0f * m_fTerrainCollisionRadius);
 	m_kCameraRightToTerrainRay.SetDirection(m_v3Cross, 3.0f * m_fTerrainCollisionRadius);
 
-	D3DXVECTOR3 temp = (v3CenterRay - m_fTerrainCollisionRadius * m_v3Up);
-	m_kTargetToCameraBottomRay.SetDirection(v3CenterRay - m_fTerrainCollisionRadius * m_v3Up,
-		D3DXVec3Length(&temp));
+	XMFLOAT3 temp = {
+		v3CenterRay.x - m_fTerrainCollisionRadius * m_v3Up.x,
+		v3CenterRay.y - m_fTerrainCollisionRadius * m_v3Up.y,
+		v3CenterRay.z - m_fTerrainCollisionRadius * m_v3Up.z
+	};
+
+	m_kTargetToCameraBottomRay.SetDirection(temp, XMVectorGetX(XMVector3Length(XMLoadFloat3(&temp))));
 
 	m_kLeftObjectCollisionRay.SetStartPoint(m_v3Target);
 	m_kTopObjectCollisionRay.SetStartPoint(m_v3Target);
 	m_kRightObjectCollisionRay.SetStartPoint(m_v3Target);
 	m_kBottomObjectCollisionRay.SetStartPoint(m_v3Target);
 
-	D3DXVECTOR3 val1 = (v3CenterRay + m_fObjectCollisionRadius * m_v3Cross);
-	m_kLeftObjectCollisionRay.SetDirection(val1, D3DXVec3Length(&val1));
+	XMFLOAT3 val1 = {
+		v3CenterRay.x + m_fObjectCollisionRadius * m_v3Cross.x,
+		v3CenterRay.y + m_fObjectCollisionRadius * m_v3Cross.y,
+		v3CenterRay.z + m_fObjectCollisionRadius * m_v3Cross.z
+	};
+	m_kLeftObjectCollisionRay.SetDirection(val1, XMVectorGetX(XMVector3Length(XMLoadFloat3(&val1))));
 
-	D3DXVECTOR3 val2 = (v3CenterRay - m_fObjectCollisionRadius * m_v3Cross);
-	m_kRightObjectCollisionRay.SetDirection(val2, D3DXVec3Length(&val2));
+	XMFLOAT3 val2 = {
+		v3CenterRay.x - m_fObjectCollisionRadius * m_v3Cross.x,
+		v3CenterRay.y - m_fObjectCollisionRadius * m_v3Cross.y,
+		v3CenterRay.z - m_fObjectCollisionRadius * m_v3Cross.z
+	};
+	m_kRightObjectCollisionRay.SetDirection(val2, XMVectorGetX(XMVector3Length(XMLoadFloat3(&val2))));
 
-	D3DXVECTOR3 val3 = (v3CenterRay + m_fObjectCollisionRadius * m_v3Up);
-	m_kTopObjectCollisionRay.SetDirection(val3, D3DXVec3Length(&val3));
+	XMFLOAT3 val3 = {
+		v3CenterRay.x + m_fObjectCollisionRadius * m_v3Up.x,
+		v3CenterRay.y + m_fObjectCollisionRadius * m_v3Up.y,
+		v3CenterRay.z + m_fObjectCollisionRadius * m_v3Up.z
+	};
+	m_kTopObjectCollisionRay.SetDirection(val3, XMVectorGetX(XMVector3Length(XMLoadFloat3(&val3))));
 
-	D3DXVECTOR3 val4 = (v3CenterRay - m_fObjectCollisionRadius * m_v3Up);
-	m_kBottomObjectCollisionRay.SetDirection(val4, D3DXVec3Length(&val4));
+	XMFLOAT3 val4 = {
+		v3CenterRay.x - m_fObjectCollisionRadius * m_v3Up.x,
+		v3CenterRay.y - m_fObjectCollisionRadius * m_v3Up.y,
+		v3CenterRay.z - m_fObjectCollisionRadius * m_v3Up.z
+	};
+	m_kBottomObjectCollisionRay.SetDirection(val4, XMVectorGetX(XMVector3Length(XMLoadFloat3(&val4))));
 }
 
-void CCamera::Move(const D3DXVECTOR3 & v3Displacement)
+void CCamera::Move(const XMFLOAT3& v3Displacement)
 {
 	if (IsLock())
 		return;
 
-	m_v3Eye += v3Displacement;
-	m_v3Target += v3Displacement; 
+	m_v3Eye.x += v3Displacement.x;
+	m_v3Eye.y += v3Displacement.y;
+	m_v3Eye.z += v3Displacement.z;
+
+	m_v3Target.x += v3Displacement.x;
+	m_v3Target.y += v3Displacement.y;
+	m_v3Target.z += v3Displacement.z;
 
 	SetViewMatrix();
 }
@@ -416,52 +427,92 @@ void CCamera::Zoom(float fRatio)
 	if (fRatio == 1.0f)
 		return;
 
-	D3DXVECTOR3 v3Temp = m_v3Eye - m_v3Target;
-	v3Temp *= fRatio;
-	m_v3Eye = v3Temp + m_v3Target;
+	XMFLOAT3 v3Temp = {
+		m_v3Eye.x - m_v3Target.x,
+		m_v3Eye.y - m_v3Target.y,
+		m_v3Eye.z - m_v3Target.z
+	};
+
+	v3Temp.x *= fRatio;
+	v3Temp.y *= fRatio;
+	v3Temp.z *= fRatio;
+
+	m_v3Eye.x = v3Temp.x + m_v3Target.x;
+	m_v3Eye.y = v3Temp.y + m_v3Target.y;
+	m_v3Eye.z = v3Temp.z + m_v3Target.z;
 
 	SetViewMatrix();
 }
 
-void CCamera::MoveAlongView(float fDistance) 
+void CCamera::MoveAlongView(float fDistance)
 {
 	if (IsLock())
 		return;
 
-	D3DXVECTOR3 v3Temp;
-	D3DXVec3Normalize(&v3Temp, &m_v3View);
-	
-	m_v3Eye += v3Temp * fDistance;
-	m_v3Target += v3Temp * fDistance;
-	
+	XMFLOAT3 v3Temp;
+	XMStoreFloat3(&v3Temp, XMVector3Normalize(XMLoadFloat3(&m_v3View)));
+
+	v3Temp.x *= fDistance;
+	v3Temp.y *= fDistance;
+	v3Temp.z *= fDistance;
+
+	m_v3Eye.x += v3Temp.x;
+	m_v3Eye.y += v3Temp.y;
+	m_v3Eye.z += v3Temp.z;
+
+	m_v3Target.x += v3Temp.x;
+	m_v3Target.y += v3Temp.y;
+	m_v3Target.z += v3Temp.z;
+
 	SetViewMatrix();
 }
 
-void CCamera::MoveAlongCross(float fDistance) 
+void CCamera::MoveAlongCross(float fDistance)
 {
 	if (IsLock())
 		return;
 
-	D3DXVECTOR3 v3Temp;
-	D3DXVec3Normalize(&v3Temp, &m_v3Cross);
+	XMFLOAT3 v3Temp;
+	XMStoreFloat3(&v3Temp, XMVector3Normalize(XMLoadFloat3(&m_v3Cross)));
 
-	m_v3Eye += v3Temp * fDistance;
-	m_v3Target += v3Temp * fDistance;
+	v3Temp.x *= fDistance;
+	v3Temp.y *= fDistance;
+	v3Temp.z *= fDistance;
+
+	m_v3Eye.x += v3Temp.x;
+	m_v3Eye.y += v3Temp.y;
+	m_v3Eye.z += v3Temp.z;
+
+	m_v3Target.x += v3Temp.x;
+	m_v3Target.y += v3Temp.y;
+	m_v3Target.z += v3Temp.z;
 
 	SetViewMatrix();
 }
 
-void CCamera::MoveAlongUp(FLOAT fDistance) 
+void CCamera::MoveAlongUp(float fDistance)
 {
 	if (IsLock())
 		return;
 
-	D3DXVECTOR3 v3Temp ;
-	D3DXVec3Normalize(&v3Temp, &m_v3Up);
-	m_v3Target += v3Temp * fDistance;
-	m_v3Eye += v3Temp * fDistance;
+	XMFLOAT3 v3Temp;
+	XMStoreFloat3(&v3Temp, XMVector3Normalize(XMLoadFloat3(&m_v3Up)));
+
+	v3Temp.x *= fDistance;
+	v3Temp.y *= fDistance;
+	v3Temp.z *= fDistance;
+
+	m_v3Eye.x += v3Temp.x;
+	m_v3Eye.y += v3Temp.y;
+	m_v3Eye.z += v3Temp.z;
+
+	m_v3Target.x += v3Temp.x;
+	m_v3Target.y += v3Temp.y;
+	m_v3Target.z += v3Temp.z;
+
 	SetViewMatrix();
 }
+
 
 void CCamera::MoveLateral(float fDistance)
 {
@@ -471,18 +522,28 @@ void CCamera::MoveLateral(float fDistance)
 	MoveAlongCross(fDistance);
 }
 
-void CCamera::MoveFront(float fDistance) 
-{	
+void CCamera::MoveFront(float fDistance)
+{
 	if (IsLock())
 		return;
 
-	D3DXVECTOR3 v3Temp = D3DXVECTOR3(m_v3View.x, m_v3View.y, 0.0f);
-	D3DXVec3Normalize(&v3Temp, &v3Temp);
+	XMFLOAT3 v3Temp = { m_v3View.x, m_v3View.y, 0.0f };
 
-	m_v3Eye += v3Temp * fDistance; 
-	m_v3Target += v3Temp * fDistance;
-	
-	SetViewMatrix();	
+	XMStoreFloat3(&v3Temp, XMVector3Normalize(XMLoadFloat3(&v3Temp)));
+
+	v3Temp.x *= fDistance;
+	v3Temp.y *= fDistance;
+	v3Temp.z *= fDistance;
+
+	m_v3Eye.x += v3Temp.x;
+	m_v3Eye.y += v3Temp.y;
+	m_v3Eye.z += v3Temp.z;
+
+	m_v3Target.x += v3Temp.x;
+	m_v3Target.y += v3Temp.y;
+	m_v3Target.z += v3Temp.z;
+
+	SetViewMatrix();
 }
 
 void CCamera::MoveVertical(float fDistance) 
@@ -496,45 +557,33 @@ void CCamera::MoveVertical(float fDistance)
 	SetViewMatrix();
 }
 
-//void CCamera::RotateUpper(float fDegree)
-//{
-//	D3DXMATRIX matRot;
-//	D3DXMatrixRotationAxis(&matRot, &m_v3Cross, -D3DXToRadian(fDegree));
-//	D3DXVec3TransformCoord(&m_v3View, &m_v3View, &matRot) ;
-//    D3DXVec3Cross(&m_v3Up, &m_v3View, &m_v3Cross);
-//
-//	m_v3Target = m_v3Eye + m_v3View;
-//
-//	SetViewMatrix() ;
-//}
-
-void CCamera::RotateEyeAroundTarget(float fPitchDegree, float fRollDegree) 
+void CCamera::RotateEyeAroundTarget(float fPitchDegree, float fRollDegree)
 {
 	if (IsLock())
 		return;
 
-	D3DXMATRIX matRot, matRotPitch, matRotRoll;
-
-	// 머리위로 넘어가기 막기...
 	if (m_fPitch + fPitchDegree > 80.0f)
-	{
 		fPitchDegree = 80.0f - m_fPitch;
-	}
-	else if( m_fPitch + fPitchDegree < -80.0f)
-	{
+	else if (m_fPitch + fPitchDegree < -80.0f)
 		fPitchDegree = -80.0f - m_fPitch;
-	}
 
-	D3DXMatrixRotationAxis(&matRotPitch, &m_v3Cross, D3DXToRadian(fPitchDegree));
+	XMMATRIX matRotPitch = XMMatrixRotationAxis(XMLoadFloat3(&m_v3Cross), XMConvertToRadians(fPitchDegree));
+	XMMATRIX matRotRoll = XMMatrixRotationZ(-XMConvertToRadians(fRollDegree));
+	XMMATRIX matRot = matRotPitch * matRotRoll;
 
-	D3DXMatrixRotationZ(&matRotRoll, -D3DXToRadian(fRollDegree));
-	matRot = matRotPitch * matRotRoll;
+	XMFLOAT3 v3Temp = {
+		m_v3Eye.x - m_v3Target.x,
+		m_v3Eye.y - m_v3Target.y,
+		m_v3Eye.z - m_v3Target.z
+	};
 
-	D3DXVECTOR3 v3Temp = m_v3Eye - m_v3Target;
-	D3DXVec3TransformCoord(&m_v3Eye, &v3Temp, &matRot);
-	m_v3Eye += m_v3Target;
+	XMStoreFloat3(&m_v3Eye, XMVector3TransformCoord(XMLoadFloat3(&v3Temp), matRot));
 
-	SetUp(D3DXVECTOR3(0.0f, 0.0f, 1.0f));
+	m_v3Eye.x += m_v3Target.x;
+	m_v3Eye.y += m_v3Target.y;
+	m_v3Eye.z += m_v3Target.z;
+
+	SetUp({ 0.0f, 0.0f, 1.0f });
 
 	m_fRoll += fRollDegree;
 
@@ -544,79 +593,94 @@ void CCamera::RotateEyeAroundTarget(float fPitchDegree, float fRollDegree)
 		m_fRoll += 360.0f;
 }
 
-void CCamera::RotateEyeAroundPoint(const D3DXVECTOR3 & v3Point, float fPitchDegree, float fRollDegree)
+void CCamera::RotateEyeAroundPoint(const XMFLOAT3& v3Point, float fPitchDegree, float fRollDegree)
 {
-//	if (IsLock())
-//		return;
+	XMMATRIX matRotPitch = XMMatrixRotationAxis(XMLoadFloat3(&m_v3Cross), XMConvertToRadians(fPitchDegree));
+	XMMATRIX matRotRoll = XMMatrixRotationZ(-XMConvertToRadians(fRollDegree));
+	XMMATRIX matRot = matRotPitch * matRotRoll;
 
-	D3DXMATRIX matRot, matRotPitch, matRotRoll;
+	XMFLOAT3 v3Temp = {
+		m_v3Eye.x - v3Point.x,
+		m_v3Eye.y - v3Point.y,
+		m_v3Eye.z - v3Point.z
+	};
 
-	D3DXMatrixRotationAxis(&matRotPitch, &m_v3Cross, D3DXToRadian(fPitchDegree));
+	XMStoreFloat3(&m_v3Eye, XMVector3TransformCoord(XMLoadFloat3(&v3Temp), matRot));
 
-	D3DXMatrixRotationZ(&matRotRoll, -D3DXToRadian(fRollDegree));
-	matRot = matRotPitch * matRotRoll;
-	
-	D3DXVECTOR3 v3Temp = m_v3Eye - v3Point;
-	D3DXVec3TransformCoord(&m_v3Eye, &v3Temp, &matRot);
-	m_v3Eye += v3Point;
-	
-	const auto vv2 = (v3Temp + m_v3Up);
-	D3DXVec3TransformCoord(&m_v3Up, &vv2, &matRot);
-	m_v3Up -= (m_v3Eye - v3Point);
-	
-	v3Temp = m_v3Target - v3Point;
-	D3DXVec3TransformCoord(&m_v3Target, &v3Temp, &matRot);
-	m_v3Target += v3Point;
+	m_v3Eye.x += v3Point.x;
+	m_v3Eye.y += v3Point.y;
+	m_v3Eye.z += v3Point.z;
+
+	XMFLOAT3 vv2 = {
+		v3Temp.x + m_v3Up.x,
+		v3Temp.y + m_v3Up.y,
+		v3Temp.z + m_v3Up.z
+	};
+
+	XMStoreFloat3(&m_v3Up, XMVector3TransformCoord(XMLoadFloat3(&vv2), matRot));
+
+	m_v3Up.x -= m_v3Eye.x - v3Point.x;
+	m_v3Up.y -= m_v3Eye.y - v3Point.y;
+	m_v3Up.z -= m_v3Eye.z - v3Point.z;
+
+	v3Temp = {
+		m_v3Target.x - v3Point.x,
+		m_v3Target.y - v3Point.y,
+		m_v3Target.z - v3Point.z
+	};
+
+	XMStoreFloat3(&m_v3Target, XMVector3TransformCoord(XMLoadFloat3(&v3Temp), matRot));
+
+	m_v3Target.x += v3Point.x;
+	m_v3Target.y += v3Point.y;
+	m_v3Target.z += v3Point.z;
 
 	SetViewMatrix();
 }
 
 void CCamera::Pitch(const float fPitchDelta)
 {
-//	if (IsLock())
-//		return;
-
 	RotateEyeAroundTarget(fPitchDelta, 0.0f);
 }
 
 void CCamera::Roll(const float fRollDelta)
 {
-//	if (IsLock())
-//		return;
-
 	RotateEyeAroundTarget(0.0f, fRollDelta);
 }
 
 void CCamera::SetDistance(const float fdistance)
 {
-//	if (IsLock())
-//		return;
-
 	Zoom(fdistance/m_fDistance);
 }
 
 void CCamera::CalculateRoll()
 {
-	D3DXVECTOR2 v2ViewXY;
+	XMFLOAT2 v2ViewXY;
 	v2ViewXY.x = m_v3View.x;
 	v2ViewXY.y = m_v3View.y;
- 	D3DXVec2Normalize(&v2ViewXY, &v2ViewXY);
-	const auto vv = D3DXVECTOR2(0.0f, 1.0f);
-	float fDot = D3DXVec2Dot(&v2ViewXY, &vv);
-	if (fDot >= 1)
-		fDot = 1;
-	else if (fDot <= -1)
-		fDot = -1;
+
+	XMStoreFloat2(&v2ViewXY, XMVector2Normalize(XMLoadFloat2(&v2ViewXY)));
+
+	const XMFLOAT2 vv = { 0.0f, 1.0f };
+
+	float fDot = XMVectorGetX(XMVector2Dot(XMLoadFloat2(&v2ViewXY), XMLoadFloat2(&vv)));
+
+	if (fDot >= 1.0f)
+		fDot = 1.0f;
+	else if (fDot <= -1.0f)
+		fDot = -1.0f;
+
 	fDot = acosf(fDot);
-	fDot *= (180.0f / D3DX_PI);
-	float fCross = D3DXVec2CCW (&v2ViewXY, &vv);
-	if ( 0 > fCross)
-	{
+	fDot *= (180.0f / XM_PI);
+
+	float fCross =
+		v2ViewXY.x * vv.y -
+		v2ViewXY.y * vv.x;
+
+	if (fCross < 0.0f)
 		fDot = -fDot;
-	}
 
 	m_fRoll = fDot;
-
 }
 
 //////////////////////////////////////////////////////////////////////////

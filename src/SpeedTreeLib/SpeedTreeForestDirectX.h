@@ -47,7 +47,7 @@ class CSpeedTreeForestDirectX : public CSpeedTreeForest, public CGraphicBase, pu
 		CSpeedTreeForestDirectX();
 		virtual ~CSpeedTreeForestDirectX();
 
-		void			UpdateCompundMatrix(const D3DXVECTOR3 & c_rEyeVec, const D3DXMATRIX & c_rmatView, const D3DXMATRIX& c_rmatProj);
+		void UpdateCompundMatrix(const XMFLOAT3& eye, const XMFLOAT4X4& view, const XMFLOAT4X4& proj);
 
 		void			Render(unsigned long ulRenderBitVector = Forest_RenderAll);
 		void			Render(const RenderContext& ctx, unsigned long ulRenderBitVector = Forest_RenderAll);

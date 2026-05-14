@@ -82,25 +82,25 @@ void CGraphicMarkInstance::OnRender()
 	vertices[0].position.y	= m_v2Position.y;
 	vertices[0].position.z	= 0.0f;
 	vertices[0].texCoord	= TTextureCoordinate(su, sv);
-	vertices[0].diffuse		= m_DiffuseColor;
+	vertices[0].diffuse		= ColorToUint(m_DiffuseColor);
 
 	vertices[1].position.x	= m_v2Position.x + fRenderWidth;
 	vertices[1].position.y	= m_v2Position.y;
 	vertices[1].position.z	= 0.0f;
 	vertices[1].texCoord	= TTextureCoordinate(eu, sv);
-	vertices[1].diffuse		= m_DiffuseColor;
+	vertices[1].diffuse		= ColorToUint(m_DiffuseColor);
 
 	vertices[2].position.x	= m_v2Position.x;
 	vertices[2].position.y	= m_v2Position.y + fRenderHeight;
 	vertices[2].position.z	= 0.0f;
 	vertices[2].texCoord	= TTextureCoordinate(su, ev);
-	vertices[2].diffuse		= m_DiffuseColor;
+	vertices[2].diffuse		= ColorToUint(m_DiffuseColor);
 
 	vertices[3].position.x	= m_v2Position.x + fRenderWidth;
 	vertices[3].position.y	= m_v2Position.y + fRenderHeight;
 	vertices[3].position.z	= 0.0f;
 	vertices[3].texCoord	= TTextureCoordinate(eu, ev);	
-	vertices[3].diffuse		= m_DiffuseColor;
+	vertices[3].diffuse		= ColorToUint(m_DiffuseColor);
 
 	if (CGraphicBase::SetPDTStream(vertices, 4))
 	{
@@ -158,10 +158,10 @@ int CGraphicMarkInstance::GetHeight()
 
 void CGraphicMarkInstance::SetDiffuseColor(float fr, float fg, float fb, float fa)
 {
-	m_DiffuseColor.r = fr;
-	m_DiffuseColor.g = fg;
-	m_DiffuseColor.b = fb;
-	m_DiffuseColor.a = fa;
+	m_DiffuseColor.x = fr;
+	m_DiffuseColor.y = fg;
+	m_DiffuseColor.z = fb;
+	m_DiffuseColor.w = fa;
 }
 
 void CGraphicMarkInstance::SetPosition(float fx, float fy)
@@ -232,7 +232,7 @@ void CGraphicMarkInstance::OnSetImagePointer()
 
 void CGraphicMarkInstance::Initialize()
 {
-	m_DiffuseColor.r = m_DiffuseColor.g = m_DiffuseColor.b = m_DiffuseColor.a = 1.0f;
+	m_DiffuseColor.x = m_DiffuseColor.y = m_DiffuseColor.z = m_DiffuseColor.w = 1.0f;
 	m_v2Position.x = m_v2Position.y = 0.0f;
 	m_uIndex = 0;
 	m_fScale = 1.0f;

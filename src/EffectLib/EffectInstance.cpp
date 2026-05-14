@@ -118,7 +118,7 @@ void CEffectInstance::OnRender(const RenderContext& ctx)
 	++ms_iRenderingEffectCount;
 }
 
-void CEffectInstance::SetGlobalMatrix(const D3DXMATRIX & c_rmatGlobal)
+void CEffectInstance::SetGlobalMatrix(const XMFLOAT4X4& c_rmatGlobal)
 {
 	m_matGlobal = c_rmatGlobal;
 }
@@ -225,7 +225,7 @@ void CEffectInstance::SetEffectDataPointer(CEffectData * pEffectData)
 	m_pSoundInstanceVector = pEffectData->GetSoundInstanceVector();
 }
 
-bool CEffectInstance::GetBoundingSphere(D3DXVECTOR3 & v3Center, float & fRadius)
+bool CEffectInstance::GetBoundingSphere(XMFLOAT3& v3Center, float & fRadius)
 {
 	v3Center.x = m_matGlobal._41 + m_v3BoundingSpherePosition.x;
 	v3Center.y = m_matGlobal._42 + m_v3BoundingSpherePosition.y;
@@ -269,7 +269,7 @@ void CEffectInstance::__Initialize()
 
 	m_pkEftData=NULL;
 
-	D3DXMatrixIdentity(&m_matGlobal);
+	XMStoreFloat4x4(&m_matGlobal, XMMatrixIdentity());
 }
 
 CEffectInstance::CEffectInstance() 

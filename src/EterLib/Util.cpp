@@ -107,28 +107,28 @@ bool LoadMultipleTextData(const char * c_szFileName, CTokenVectorMap & rstTokenV
 	return true;
 }
 
-D3DXVECTOR3 TokenToVector(CTokenVector & rVector)
+XMFLOAT3 TokenToVector(CTokenVector & rVector)
 {
 	if (3 != rVector.size())
 	{
 		assert(!"Size of token vector which will be converted to vector is not 3");
-		return D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+		return XMFLOAT3(0.0f, 0.0f, 0.0f);
 	}
 
-	return D3DXVECTOR3(atof(rVector[0].c_str()),
+	return XMFLOAT3(atof(rVector[0].c_str()),
 						atof(rVector[1].c_str()),
 						atof(rVector[2].c_str()));
 }
 
-D3DXCOLOR TokenToColor(CTokenVector & rVector)
+XMFLOAT4 TokenToColor(CTokenVector & rVector)
 {
 	if (4 != rVector.size())
 	{
 		assert(!"Size of token vector which will be converted to color is not 4");
-		return D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
+		return XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	}
 
-	return D3DXCOLOR(atof(rVector[0].c_str()),
+	return XMFLOAT4(atof(rVector[0].c_str()),
 						atof(rVector[1].c_str()),
 						atof(rVector[2].c_str()),
 						atof(rVector[3].c_str()));

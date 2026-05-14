@@ -535,7 +535,7 @@ BOOL CTextFileLoader::GetTokenFloat(const std::string & c_rstrKey, float * pData
 	return TRUE;
 }
 
-BOOL CTextFileLoader::GetTokenVector2(const std::string & c_rstrKey, D3DXVECTOR2 * pVector2)
+BOOL CTextFileLoader::GetTokenVector2(const std::string & c_rstrKey, XMFLOAT2 * pVector2)
 {
 	CTokenVector * pTokenVector;
 	if (!GetTokenVector(c_rstrKey, &pTokenVector))
@@ -553,7 +553,7 @@ BOOL CTextFileLoader::GetTokenVector2(const std::string & c_rstrKey, D3DXVECTOR2
 	return TRUE;
 }
 
-BOOL CTextFileLoader::GetTokenVector3(const std::string & c_rstrKey, D3DXVECTOR3 * pVector3)
+BOOL CTextFileLoader::GetTokenVector3(const std::string & c_rstrKey, XMFLOAT3 * pVector3)
 {
 	CTokenVector * pTokenVector;
 	if (!GetTokenVector(c_rstrKey, &pTokenVector))
@@ -572,7 +572,7 @@ BOOL CTextFileLoader::GetTokenVector3(const std::string & c_rstrKey, D3DXVECTOR3
 	return TRUE;
 }
 
-BOOL CTextFileLoader::GetTokenVector4(const std::string & c_rstrKey, D3DXVECTOR4 * pVector4)
+BOOL CTextFileLoader::GetTokenVector4(const std::string & c_rstrKey, XMFLOAT4 * pVector4)
 {
 	CTokenVector * pTokenVector;
 	if (!GetTokenVector(c_rstrKey, &pTokenVector))
@@ -593,42 +593,37 @@ BOOL CTextFileLoader::GetTokenVector4(const std::string & c_rstrKey, D3DXVECTOR4
 }
 
 
-BOOL CTextFileLoader::GetTokenPosition(const std::string & c_rstrKey, D3DXVECTOR3 * pVector)
+BOOL CTextFileLoader::GetTokenPosition(const std::string & c_rstrKey, XMFLOAT3 * pVector)
 {
 	return GetTokenVector3(c_rstrKey, pVector);
 }
 
-BOOL CTextFileLoader::GetTokenQuaternion(const std::string & c_rstrKey, D3DXQUATERNION * pQ)
+BOOL CTextFileLoader::GetTokenQuaternion(const std::string& c_rstrKey, XMFLOAT4* pQ)
 {
-	CTokenVector * pTokenVector;
+	CTokenVector* pTokenVector;
 	if (!GetTokenVector(c_rstrKey, &pTokenVector))
 		return FALSE;
-	
+
 	if (pTokenVector->size() != 4)
-	{
-		//Tracef(" CTextFileLoader::GetTokenVector3 - This key should have 3 values %s [%s : %s]\n", m_File.GetFileName(), m_pcurNode->strGroupName.c_str(), c_rstrKey.c_str());
 		return FALSE;
-	}
-	
+
 	pQ->x = atof(pTokenVector->at(0).c_str());
 	pQ->y = atof(pTokenVector->at(1).c_str());
 	pQ->z = atof(pTokenVector->at(2).c_str());
 	pQ->w = atof(pTokenVector->at(3).c_str());
-	
+
 	return TRUE;
 }
 
-BOOL CTextFileLoader::GetTokenDirection(const std::string & c_rstrKey, D3DVECTOR * pVector)
+BOOL CTextFileLoader::GetTokenDirection(const std::string& c_rstrKey, XMFLOAT3* pVector)
 {
-	CTokenVector * pTokenVector;
+	CTokenVector* pTokenVector;
+
 	if (!GetTokenVector(c_rstrKey, &pTokenVector))
 		return FALSE;
 
 	if (pTokenVector->size() != 3)
-	{
-		//Tracef(" CTextFileLoader::GetTokenDirection - This key should have 3 values %s [%s : %s]\n", m_File.GetFileName(), m_pcurNode->strGroupName.c_str(), c_rstrKey.c_str());
 		return FALSE;
-	}
 
 	pVector->x = atof(pTokenVector->at(0).c_str());
 	pVector->y = atof(pTokenVector->at(1).c_str());
@@ -637,42 +632,20 @@ BOOL CTextFileLoader::GetTokenDirection(const std::string & c_rstrKey, D3DVECTOR
 	return TRUE;
 }
 
-BOOL CTextFileLoader::GetTokenColor(const std::string & c_rstrKey, D3DXCOLOR * pColor)
+BOOL CTextFileLoader::GetTokenColor(const std::string& c_rstrKey, XMFLOAT4* pColor)
 {
-	CTokenVector * pTokenVector;
+	CTokenVector* pTokenVector;
+
 	if (!GetTokenVector(c_rstrKey, &pTokenVector))
 		return FALSE;
 
 	if (pTokenVector->size() != 4)
-	{
-		//Tracef(" CTextFileLoader::GetTokenColor - This key should have 4 values %s [%s : %s]\n", m_File.GetFileName(), m_pcurNode->strGroupName.c_str(), c_rstrKey.c_str());
-		return FALSE;
-	}
-
-	pColor->r = atof(pTokenVector->at(0).c_str());
-	pColor->g = atof(pTokenVector->at(1).c_str());
-	pColor->b = atof(pTokenVector->at(2).c_str());
-	pColor->a = atof(pTokenVector->at(3).c_str());
-
-	return TRUE;
-}
-
-BOOL CTextFileLoader::GetTokenColor(const std::string & c_rstrKey, D3DCOLORVALUE * pColor)
-{
-	CTokenVector * pTokenVector;
-	if (!GetTokenVector(c_rstrKey, &pTokenVector))
 		return FALSE;
 
-	if (pTokenVector->size() != 4)
-	{
-		//Tracef(" CTextFileLoader::GetTokenColor - This key should have 4 values %s [%s : %s]\n", m_File.GetFileName(), m_pcurNode->strGroupName.c_str(), c_rstrKey.c_str());
-		return FALSE;
-	}
-
-	pColor->r = atof(pTokenVector->at(0).c_str());
-	pColor->g = atof(pTokenVector->at(1).c_str());
-	pColor->b = atof(pTokenVector->at(2).c_str());
-	pColor->a = atof(pTokenVector->at(3).c_str());
+	pColor->x = atof(pTokenVector->at(0).c_str());
+	pColor->y = atof(pTokenVector->at(1).c_str());
+	pColor->z = atof(pTokenVector->at(2).c_str());
+	pColor->w = atof(pTokenVector->at(3).c_str());
 
 	return TRUE;
 }

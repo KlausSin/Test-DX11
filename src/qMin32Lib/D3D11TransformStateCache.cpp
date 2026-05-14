@@ -5,16 +5,14 @@
 #include "EterLib/GrpBase.h"
 #include <EterBase/Debug.h>
 
-
 SD3D11TransformStateKey::SD3D11TransformStateKey()
 {
-	D3DXMatrixIdentity(&world);
-	D3DXMatrixIdentity(&view);
-	D3DXMatrixIdentity(&projection);
+	XMStoreFloat4x4(&world, XMMatrixIdentity());
+	XMStoreFloat4x4(&view, XMMatrixIdentity());
+	XMStoreFloat4x4(&projection, XMMatrixIdentity());
 
 	for (UINT i = 0; i < 2; ++i)
-		D3DXMatrixIdentity(&texture[i]);
-
+		XMStoreFloat4x4(&texture[i], XMMatrixIdentity());
 }
 
 bool SD3D11TransformStateKey::operator==(const SD3D11TransformStateKey& rhs) const
@@ -82,7 +80,7 @@ void CD3D11TransformStateCache::ClearStack()
 	m_stack.clear();
 }
 
-void CD3D11TransformStateCache::SetWorld(const D3DXMATRIX& value)
+void CD3D11TransformStateCache::SetWorld(const XMFLOAT4X4& value)
 {
 	if (std::memcmp(&m_key.world, &value, sizeof(value)) != 0)
 	{
@@ -93,7 +91,7 @@ void CD3D11TransformStateCache::SetWorld(const D3DXMATRIX& value)
 	_mgr->GetCbMgr()->SetWorldMatrix(value);
 }
 
-void CD3D11TransformStateCache::SetView(const D3DXMATRIX& value)
+void CD3D11TransformStateCache::SetView(const XMFLOAT4X4& value)
 {
 	if (std::memcmp(&m_key.view, &value, sizeof(value)) != 0)
 	{
@@ -104,7 +102,7 @@ void CD3D11TransformStateCache::SetView(const D3DXMATRIX& value)
 	_mgr->GetCbMgr()->SetViewMatrix(value);
 }
 
-void CD3D11TransformStateCache::SetProjection(const D3DXMATRIX& value)
+void CD3D11TransformStateCache::SetProjection(const XMFLOAT4X4& value)
 {
 	if (std::memcmp(&m_key.projection, &value, sizeof(value)) != 0)
 	{
@@ -115,7 +113,7 @@ void CD3D11TransformStateCache::SetProjection(const D3DXMATRIX& value)
 	_mgr->GetCbMgr()->SetProjMatrix(value);
 }
 
-void CD3D11TransformStateCache::SetTexture0(const D3DXMATRIX& value)
+void CD3D11TransformStateCache::SetTexture0(const XMFLOAT4X4& value)
 {
 	if (std::memcmp(&m_key.texture[0], &value, sizeof(value)) != 0)
 	{
@@ -126,7 +124,7 @@ void CD3D11TransformStateCache::SetTexture0(const D3DXMATRIX& value)
 	_mgr->GetCbMgr()->SetTexTransform(0, value);
 }
 
-void CD3D11TransformStateCache::SetTexture1(const D3DXMATRIX& value)
+void CD3D11TransformStateCache::SetTexture1(const XMFLOAT4X4& value)
 {
 	if (std::memcmp(&m_key.texture[1], &value, sizeof(value)) != 0)
 	{
@@ -137,7 +135,7 @@ void CD3D11TransformStateCache::SetTexture1(const D3DXMATRIX& value)
 	_mgr->GetCbMgr()->SetTexTransform(1, value);
 }
 
-void CD3D11TransformStateCache::SetTexture2(const D3DXMATRIX& value)
+void CD3D11TransformStateCache::SetTexture2(const XMFLOAT4X4& value)
 {
 	if (std::memcmp(&m_key.texture[2], &value, sizeof(value)) != 0)
 	{
@@ -148,7 +146,7 @@ void CD3D11TransformStateCache::SetTexture2(const D3DXMATRIX& value)
 	_mgr->GetCbMgr()->SetTexTransform(2, value);
 }
 
-void CD3D11TransformStateCache::SetTexture3(const D3DXMATRIX& value)
+void CD3D11TransformStateCache::SetTexture3(const XMFLOAT4X4& value)
 {
 	if (std::memcmp(&m_key.texture[3], &value, sizeof(value)) != 0)
 	{
@@ -170,27 +168,27 @@ void CD3D11TransformStateCache::SetKey(const SD3D11TransformStateKey& key)
 	ApplyKey();
 }
 
-const D3DXMATRIX& CD3D11TransformStateCache::GetWorld() const
+const XMFLOAT4X4& CD3D11TransformStateCache::GetWorld() const
 {
 	return m_key.world;
 }
 
-const D3DXMATRIX& CD3D11TransformStateCache::GetView() const
+const XMFLOAT4X4& CD3D11TransformStateCache::GetView() const
 {
 	return m_key.view;
 }
 
-const D3DXMATRIX& CD3D11TransformStateCache::GetProjection() const
+const XMFLOAT4X4& CD3D11TransformStateCache::GetProjection() const
 {
 	return m_key.projection;
 }
 
-const D3DXMATRIX& CD3D11TransformStateCache::GetTexture0() const
+const XMFLOAT4X4& CD3D11TransformStateCache::GetTexture0() const
 {
 	return m_key.texture[0];
 }
 
-const D3DXMATRIX& CD3D11TransformStateCache::GetTexture1() const
+const XMFLOAT4X4& CD3D11TransformStateCache::GetTexture1() const
 {
 	return m_key.texture[1];
 }

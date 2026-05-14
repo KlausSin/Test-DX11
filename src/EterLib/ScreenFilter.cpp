@@ -19,7 +19,7 @@ void CScreenFilter::Render()
 	STATEMANAGER.GetBlend().SetDestBlend((D3D11_BLEND)m_byDestType);
 
 	SetOrtho2D(CScreen::ms_iWidth, CScreen::ms_iHeight, 400.0f);
-	SetDiffuseColor(m_Color.r, m_Color.g, m_Color.b, m_Color.a);
+	SetDiffuseColor(m_Color.x, m_Color.y, m_Color.z, m_Color.w);
 	RenderBar2d(0, 0, CScreen::ms_iWidth, CScreen::ms_iHeight);
 
 	STATEMANAGER.GetBlend().Restore();
@@ -36,7 +36,7 @@ void CScreenFilter::SetBlendType(BYTE bySrcType, BYTE byDestType)
 	m_bySrcType = bySrcType;
 	m_byDestType = byDestType;
 }
-void CScreenFilter::SetColor(const D3DXCOLOR & c_rColor)
+void CScreenFilter::SetColor(const XMFLOAT4 & c_rColor)
 {
 	m_Color = c_rColor;
 }
@@ -46,7 +46,7 @@ CScreenFilter::CScreenFilter()
 	m_bEnable = FALSE;
 	m_bySrcType = D3D11_BLEND_SRC_ALPHA;
 	m_byDestType = D3D11_BLEND_INV_SRC_ALPHA;
-	m_Color = D3DXCOLOR(0.0f, 0.0f, 0.0f, 0.0f);
+	m_Color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 }
 CScreenFilter::~CScreenFilter()
 {

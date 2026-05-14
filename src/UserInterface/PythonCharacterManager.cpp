@@ -389,7 +389,7 @@ CInstanceBase * CPythonCharacterManager::OLD_GetPickedInstancePtr()
 	return m_pkInstPick;
 }
 
-D3DXVECTOR2 & CPythonCharacterManager::OLD_GetPickedInstPosReference()
+XMFLOAT2 & CPythonCharacterManager::OLD_GetPickedInstPosReference()
 {
 	return m_v2PickedInstProjPos;
 }
@@ -422,20 +422,22 @@ bool CPythonCharacterManager::IsDeadVID(DWORD dwVID)
 // to avoid overdrawing
 struct LessCharacterInstancePtrRenderOrder
 {
-	D3DXVECTOR3 v3CameraPosition;
+	XMFLOAT3 v3CameraPosition;
+
 	bool operator() (CInstanceBase* pkLeft, CInstanceBase* pkRight)
 	{
-		D3DXVECTOR3 v3Left, v3Right;
+		XMFLOAT3 v3Left, v3Right;
+
 		pkLeft->NEW_GetPixelPosition(&v3Left);
 		pkRight->NEW_GetPixelPosition(&v3Right);
 
-		v3Left.y *= -1;
-		v3Right.y *= -1;
+		v3Left.y *= -1.0f;
+		v3Right.y *= -1.0f;
 
-		D3DXVECTOR3 v3LeftDiff = v3Left - v3CameraPosition;
-		D3DXVECTOR3 v3RightDiff = v3Right - v3CameraPosition;
+		XMVECTOR leftDiff = XMLoadFloat3(&v3Left) - XMLoadFloat3(&v3CameraPosition);
+		XMVECTOR rightDiff = XMLoadFloat3(&v3Right) - XMLoadFloat3(&v3CameraPosition);
 
-		return D3DXVec3Dot(&v3LeftDiff, &v3LeftDiff) < D3DXVec3Dot(&v3RightDiff, &v3RightDiff);
+		return XMVectorGetX(XMVector3LengthSq(leftDiff)) < XMVectorGetX(XMVector3LengthSq(rightDiff));
 	}
 };
 
@@ -509,7 +511,7 @@ void CPythonCharacterManager::Render(const RenderContext& ctx)
 	CInstanceBase * pkPickedInst = OLD_GetPickedInstancePtr();
 	if (pkPickedInst)
 	{
-		const D3DXVECTOR3 & c_rv3Position = pkPickedInst->GetGraphicThingInstanceRef().GetPosition();
+		const XMFLOAT3 & c_rv3Position = pkPickedInst->GetGraphicThingInstanceRef().GetPosition();
 		CPythonGraphic::Instance().ProjectPosition(c_rv3Position.x, c_rv3Position.y, c_rv3Position.z, &m_v2PickedInstProjPos.x, &m_v2PickedInstProjPos.y);
 	}
 }
@@ -736,7 +738,7 @@ struct CInstanceBase_SLessCameraDistance
 void CPythonCharacterManager::__SortPickedActorList()
 {
 	CCamera * pCamera = CCameraManager::Instance().GetCurrentCamera();
-	const D3DXVECTOR3& c_rv3EyePos=pCamera->GetEye();
+	const XMFLOAT3& c_rv3EyePos=pCamera->GetEye();
 
 	CInstanceBase_SLessCameraDistance kLess;
 	kLess.m_kPPosEye=TPixelPosition(+c_rv3EyePos.x, -c_rv3EyePos.y, +c_rv3EyePos.z);
@@ -959,7 +961,7 @@ void CPythonCharacterManager::__Initialize()
 	m_pkInstMain = NULL;
 	m_pkInstBind = NULL;
 	m_pkInstPick = NULL;
-	m_v2PickedInstProjPos = D3DXVECTOR2(0.0f, 0.0f);
+	m_v2PickedInstProjPos = XMFLOAT2(0.0f, 0.0f);
 }
 
 

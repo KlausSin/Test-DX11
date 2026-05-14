@@ -17,7 +17,7 @@ void CColorTransitionHelper::Clear(const float & c_rfRed,
 	m_fDstBlue	= c_rfBlue;
 	m_fDstAlpha	= c_rfAlpha;
 
-	m_dwCurColor = 0x00000000;
+	m_dwCurColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	m_dwStartTime = m_dwDuration = 0;
 }
@@ -74,10 +74,7 @@ bool CColorTransitionHelper::Update()
 
 // 	Tracef("%f, %f, %f, %f\n", fCurRed, fCurGreen, fCurBlue, fCurAlpha);
 
-	m_dwCurColor = (((DWORD)(fCurAlpha * 255.0f)&0xff)<< 24) |
-		(((DWORD)(fCurRed * 255.0f)&0xff) << 16) |
-		(((DWORD)(fCurGreen * 255.0f)&0xff) << 8) |
-		((DWORD)(fCurBlue * 255.0f)&0xff);
+	m_dwCurColor = XMFLOAT4(fCurRed, fCurGreen, fCurBlue, fCurAlpha);
 
 	if ( (1.0f == fpercent) && (fCurAlpha == m_fDstAlpha) && (fCurRed == m_fDstRed) && (fCurGreen == m_fDstGreen) && (fCurBlue == m_fDstBlue) )
 	{
@@ -88,7 +85,7 @@ bool CColorTransitionHelper::Update()
 	return true;
 }
 
-const D3DCOLOR & CColorTransitionHelper::GetCurColor()
+const XMFLOAT4& CColorTransitionHelper::GetCurColor()
 {
 	return m_dwCurColor; 
 }

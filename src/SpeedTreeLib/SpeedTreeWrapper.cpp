@@ -1237,19 +1237,18 @@ void CSpeedTreeWrapper::CleanUpMemory(void)
 
 void CSpeedTreeWrapper::PositionTree(void) const
 {
-	const float* pPosition = m_pSpeedTree->GetTreePosition();
-	D3DXVECTOR3 vecPosition(pPosition[0], pPosition[1], pPosition[2]);
+	const float* p = m_pSpeedTree->GetTreePosition();
+	XMFLOAT3 pos(p[0], p[1], p[2]);
 
-	D3DXMATRIX matTranslation;
-	D3DXMatrixIdentity(&matTranslation);
-	D3DXMatrixTranslation(&matTranslation, vecPosition.x, vecPosition.y, vecPosition.z);
+	XMFLOAT4X4 mat;
+	XMStoreFloat4x4(&mat, XMMatrixTranslation(pos.x, pos.y, pos.z));
 
-	STATEMANAGER.GetTransform().SetWorld(matTranslation);
+	STATEMANAGER.GetTransform().SetWorld(mat);
 
-	D3DXVECTOR4 vecConstant(vecPosition.x, vecPosition.y, vecPosition.z, 0.0f);
+	XMFLOAT4 c(pos.x, pos.y, pos.z, 0.0f);
 
 	if (_mgr)
-		_mgr->GetCbMgr()->SetSpeedTreeTreePosition(vecConstant);
+		_mgr->GetCbMgr()->SetSpeedTreeTreePosition(c);
 }
 
 
@@ -1302,7 +1301,7 @@ void CSpeedTreeWrapper::SetPosition(float x, float y, float z)
 	CGraphicObjectInstance::SetPosition(x, y, z);
 }
 
-bool CSpeedTreeWrapper::GetBoundingSphere(D3DXVECTOR3& v3Center, float& fRadius)
+bool CSpeedTreeWrapper::GetBoundingSphere(XMFLOAT3& v3Center, float& fRadius)
 {
 	float fX = m_afBoundingBox[3] - m_afBoundingBox[0];
 	float fY = m_afBoundingBox[4] - m_afBoundingBox[1];
@@ -1328,56 +1327,47 @@ bool CSpeedTreeWrapper::GetBoundingSphere(D3DXVECTOR3& v3Center, float& fRadius)
 
 void CSpeedTreeWrapper::CalculateBBox()
 {
-	float fX, fY, fZ;
+	float fx = m_afBoundingBox[3] - m_afBoundingBox[0];
+	float fy = m_afBoundingBox[4] - m_afBoundingBox[1];
+	float fz = m_afBoundingBox[5] - m_afBoundingBox[2];
 
-	fX = m_afBoundingBox[3] - m_afBoundingBox[0];
-	fY = m_afBoundingBox[4] - m_afBoundingBox[1];
-	fZ = m_afBoundingBox[5] - m_afBoundingBox[2];
+	m_v3BBoxMin = XMFLOAT3(-fx * 0.5f, -fy * 0.5f, 0.0f);
+	m_v3BBoxMax = XMFLOAT3(fx * 0.5f, fy * 0.5f, fz);
 
-	m_v3BBoxMin.x = -fX / 2.0f;
-	m_v3BBoxMin.y = -fY / 2.0f;
-	m_v3BBoxMin.z = 0.0f;
-	m_v3BBoxMax.x = fX / 2.0f;
-	m_v3BBoxMax.y = fY / 2.0f;
-	m_v3BBoxMax.z = fZ;
+	m_v4TBBox[0] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMin.y, m_v3BBoxMin.z, 1.0f);
+	m_v4TBBox[1] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMax.y, m_v3BBoxMin.z, 1.0f);
+	m_v4TBBox[2] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMin.y, m_v3BBoxMin.z, 1.0f);
+	m_v4TBBox[3] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMax.y, m_v3BBoxMin.z, 1.0f);
+	m_v4TBBox[4] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMin.y, m_v3BBoxMax.z, 1.0f);
+	m_v4TBBox[5] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMax.y, m_v3BBoxMax.z, 1.0f);
+	m_v4TBBox[6] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMin.y, m_v3BBoxMax.z, 1.0f);
+	m_v4TBBox[7] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMax.y, m_v3BBoxMax.z, 1.0f);
 
-	m_v4TBBox[0] = D3DXVECTOR4(m_v3BBoxMin.x, m_v3BBoxMin.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[1] = D3DXVECTOR4(m_v3BBoxMin.x, m_v3BBoxMax.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[2] = D3DXVECTOR4(m_v3BBoxMax.x, m_v3BBoxMin.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[3] = D3DXVECTOR4(m_v3BBoxMax.x, m_v3BBoxMax.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[4] = D3DXVECTOR4(m_v3BBoxMin.x, m_v3BBoxMin.y, m_v3BBoxMax.z, 1.0f);
-	m_v4TBBox[5] = D3DXVECTOR4(m_v3BBoxMin.x, m_v3BBoxMax.y, m_v3BBoxMax.z, 1.0f);
-	m_v4TBBox[6] = D3DXVECTOR4(m_v3BBoxMax.x, m_v3BBoxMin.y, m_v3BBoxMax.z, 1.0f);
-	m_v4TBBox[7] = D3DXVECTOR4(m_v3BBoxMax.x, m_v3BBoxMax.y, m_v3BBoxMax.z, 1.0f);
+	XMMATRIX m = XMLoadFloat4x4(&GetTransform());
 
-	const D3DXMATRIX& c_rmatTransform = GetTransform();
-
-	for (DWORD i = 0; i < 8; ++i)
+	for (int i = 0; i < 8; ++i)
 	{
-		D3DXVec4Transform(&m_v4TBBox[i], &m_v4TBBox[i], &c_rmatTransform);
-		if (0 == i)
+		XMVECTOR v = XMLoadFloat4(&m_v4TBBox[i]);
+		v = XMVector4Transform(v, m);
+		XMStoreFloat4(&m_v4TBBox[i], v);
+
+		if (i == 0)
 		{
-			m_v3TBBoxMin.x = m_v4TBBox[i].x;
-			m_v3TBBoxMin.y = m_v4TBBox[i].y;
-			m_v3TBBoxMin.z = m_v4TBBox[i].z;
-			m_v3TBBoxMax.x = m_v4TBBox[i].x;
-			m_v3TBBoxMax.y = m_v4TBBox[i].y;
-			m_v3TBBoxMax.z = m_v4TBBox[i].z;
+			m_v3TBBoxMin = m_v3TBBoxMax = XMFLOAT3(
+				m_v4TBBox[i].x,
+				m_v4TBBox[i].y,
+				m_v4TBBox[i].z
+			);
 		}
 		else
 		{
-			if (m_v3TBBoxMin.x > m_v4TBBox[i].x)
-				m_v3TBBoxMin.x = m_v4TBBox[i].x;
-			if (m_v3TBBoxMax.x < m_v4TBBox[i].x)
-				m_v3TBBoxMax.x = m_v4TBBox[i].x;
-			if (m_v3TBBoxMin.y > m_v4TBBox[i].y)
-				m_v3TBBoxMin.y = m_v4TBBox[i].y;
-			if (m_v3TBBoxMax.y < m_v4TBBox[i].y)
-				m_v3TBBoxMax.y = m_v4TBBox[i].y;
-			if (m_v3TBBoxMin.z > m_v4TBBox[i].z)
-				m_v3TBBoxMin.z = m_v4TBBox[i].z;
-			if (m_v3TBBoxMax.z < m_v4TBBox[i].z)
-				m_v3TBBoxMax.z = m_v4TBBox[i].z;
+			if (m_v4TBBox[i].x < m_v3TBBoxMin.x) m_v3TBBoxMin.x = m_v4TBBox[i].x;
+			if (m_v4TBBox[i].y < m_v3TBBoxMin.y) m_v3TBBoxMin.y = m_v4TBBox[i].y;
+			if (m_v4TBBox[i].z < m_v3TBBoxMin.z) m_v3TBBoxMin.z = m_v4TBBox[i].z;
+
+			if (m_v4TBBox[i].x > m_v3TBBoxMax.x) m_v3TBBoxMax.x = m_v4TBBox[i].x;
+			if (m_v4TBBox[i].y > m_v3TBBoxMax.y) m_v3TBBoxMax.y = m_v4TBBox[i].y;
+			if (m_v4TBBox[i].z > m_v3TBBoxMax.z) m_v3TBBoxMax.z = m_v4TBBox[i].z;
 		}
 	}
 }
@@ -1410,8 +1400,8 @@ void CSpeedTreeWrapper::GetTreeSize(float& r_fSize, float& r_fVariance)
 // pscdVector may be null
 void CSpeedTreeWrapper::OnUpdateCollisionData(const CStaticCollisionDataVector* /*pscdVector*/)
 {
-	D3DXMATRIX mat;
-	D3DXMatrixTranslation(&mat, m_afPos[0], m_afPos[1], m_afPos[2]);
+	XMFLOAT4X4 mat;
+	XMStoreFloat4x4(&mat, XMMatrixTranslation(m_afPos[0], m_afPos[1], m_afPos[2]));
 
 	/////
 	for (UINT i = 0; i < GetCollisionObjectCount(); ++i)

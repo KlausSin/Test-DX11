@@ -22,72 +22,112 @@
 }
 
 */
-ViewState Frustum::ViewVolumeTest(const Vector3d &c_v3Center,const float c_fRadius) const
+ViewState Frustum::ViewVolumeTest(const Vector3d& c, float r) const
 {
+	XMVECTOR center = XMLoadFloat3((XMFLOAT3*)&c);
+
 	if (m_bUsingSphere)
 	{
-		D3DXVECTOR3 v(
-				c_v3Center.x-m_v3Center.x,
-				c_v3Center.y-m_v3Center.y,
-				c_v3Center.z-m_v3Center.z);
+		XMVECTOR v = center - XMLoadFloat3(&m_v3Center);
+		float d = XMVectorGetX(XMVector3LengthSq(v));
 
-		if ((c_fRadius + m_fRadius) * (c_fRadius + m_fRadius) < D3DXVec3LengthSq(&v))
-		{
-			return VS_OUTSIDE;
-		}
-	}	
-	
-	const int count=6;
+		float rr = m_fRadius + r;
+		if (rr * rr < d) return VS_OUTSIDE;
+	}
 
-	D3DXVECTOR3 center = c_v3Center;
-	//center.y *=-1;
+	float dist[6];
 
-	int i;
-
-	float distance[count];
-	for(i=0;i<count;i++)
+	for (int i = 0; i < 6; ++i)
 	{
-		distance[i] = D3DXPlaneDotCoord(&m_plane[i],&center);
-		if (distance[i]<=-c_fRadius) 
+		XMVECTOR p = XMLoadFloat4(&m_plane[i]);
+		dist[i] = XMVectorGetX(XMPlaneDotCoord(p, center));
+
+		if (dist[i] <= -r)
 			return VS_OUTSIDE;
 	}
 
-	//return VS_INSIDE;
-
-	for(i=0;i<count;i++)
-	{
-		if (distance[i]<=c_fRadius) 
+	for (int i = 0; i < 6; ++i)
+		if (dist[i] <= r)
 			return VS_PARTIAL;
-	}
-	
+
 	return VS_INSIDE;
 }
 
-void Frustum::BuildViewFrustum(D3DXMATRIX & mat)
+void Frustum::BuildViewFrustum(XMFLOAT4X4& mat)
 {
 	m_bUsingSphere = false;
-	m_plane[0] = D3DXPLANE(          mat._13,           mat._23,           mat._33,           mat._43);
-	m_plane[1] = D3DXPLANE(mat._14 - mat._13, mat._24 - mat._23, mat._34 - mat._33, mat._44 - mat._43);
-	//m_plane[0] = D3DXPLANE(mat._14 + mat._13, mat._24 + mat._23, mat._34 + mat._33, mat._44 + mat._43);
-	m_plane[2] = D3DXPLANE(mat._14 + mat._11, mat._24 + mat._21, mat._34 + mat._31, mat._44 + mat._41);
-	m_plane[3] = D3DXPLANE(mat._14 - mat._11, mat._24 - mat._21, mat._34 - mat._31, mat._44 - mat._41);
-	m_plane[4] = D3DXPLANE(mat._14 + mat._12, mat._24 + mat._22, mat._34 + mat._32, mat._44 + mat._42);
-	m_plane[5] = D3DXPLANE(mat._14 - mat._12, mat._24 - mat._22, mat._34 - mat._32, mat._44 - mat._42);
 
-	for(int i=0;i<6;i++)
-		D3DXPlaneNormalize(&m_plane[i],&m_plane[i]);
+	XMMATRIX m = XMLoadFloat4x4(&mat);
+
+	m_plane[0] = XMFLOAT4(
+		XMVectorGetZ(m.r[0]),
+		XMVectorGetZ(m.r[1]),
+		XMVectorGetZ(m.r[2]),
+		XMVectorGetZ(m.r[3])
+	);
+
+	m_plane[1] = XMFLOAT4(
+		XMVectorGetW(m.r[0]) - XMVectorGetZ(m.r[0]),
+		XMVectorGetW(m.r[1]) - XMVectorGetZ(m.r[1]),
+		XMVectorGetW(m.r[2]) - XMVectorGetZ(m.r[2]),
+		XMVectorGetW(m.r[3]) - XMVectorGetZ(m.r[3])
+	);
+
+	m_plane[2] = XMFLOAT4(
+		XMVectorGetW(m.r[0]) + XMVectorGetX(m.r[0]),
+		XMVectorGetW(m.r[1]) + XMVectorGetX(m.r[1]),
+		XMVectorGetW(m.r[2]) + XMVectorGetX(m.r[2]),
+		XMVectorGetW(m.r[3]) + XMVectorGetX(m.r[3])
+	);
+
+	m_plane[3] = XMFLOAT4(
+		XMVectorGetW(m.r[0]) - XMVectorGetX(m.r[0]),
+		XMVectorGetW(m.r[1]) - XMVectorGetX(m.r[1]),
+		XMVectorGetW(m.r[2]) - XMVectorGetX(m.r[2]),
+		XMVectorGetW(m.r[3]) - XMVectorGetX(m.r[3])
+	);
+
+	m_plane[4] = XMFLOAT4(
+		XMVectorGetW(m.r[0]) + XMVectorGetY(m.r[0]),
+		XMVectorGetW(m.r[1]) + XMVectorGetY(m.r[1]),
+		XMVectorGetW(m.r[2]) + XMVectorGetY(m.r[2]),
+		XMVectorGetW(m.r[3]) + XMVectorGetY(m.r[3])
+	);
+
+	m_plane[5] = XMFLOAT4(
+		XMVectorGetW(m.r[0]) - XMVectorGetY(m.r[0]),
+		XMVectorGetW(m.r[1]) - XMVectorGetY(m.r[1]),
+		XMVectorGetW(m.r[2]) - XMVectorGetY(m.r[2]),
+		XMVectorGetW(m.r[3]) - XMVectorGetY(m.r[3])
+	);
+
+	for (int i = 0; i < 6; ++i)
+	{
+		XMStoreFloat4(&m_plane[i],
+			XMPlaneNormalize(XMLoadFloat4(&m_plane[i])));
+	}
 }
 
-void Frustum::BuildViewFrustum2(D3DXMATRIX & mat, float fNear, float fFar, float fFov, float fAspect, const D3DXVECTOR3 & vCamera, const D3DXVECTOR3 & vLook)
+void Frustum::BuildViewFrustum2(XMFLOAT4X4& mat,
+	float fNear, float fFar, float fFov, float fAspect,
+	const XMFLOAT3& cam, const XMFLOAT3& look)
 {
-	float fViewLen = fFar-fNear;
-	float fH = fViewLen * tan(fFov*0.5f);
-	float fW = fH*fAspect;
-	D3DXVECTOR3 P(0.0f, 0.0f, fNear+fViewLen*0.5f);
-	D3DXVECTOR3 Q(fW, fH, fViewLen);
-	D3DXVECTOR3 PQ = P-Q;
-	m_fRadius = D3DXVec3Length(&PQ);
-	m_v3Center = vCamera + vLook * (fNear+fViewLen*0.5f);
+	float len = fFar - fNear;
+	float h = len * tanf(fFov * 0.5f);
+	float w = h * fAspect;
+
+	XMVECTOR P = XMVectorSet(0, 0, fNear + len * 0.5f, 0);
+	XMVECTOR Q = XMVectorSet(w, h, len, 0);
+
+	float radius = XMVectorGetX(XMVector3Length(P - Q));
+	m_fRadius = radius;
+
+	XMVECTOR c = XMLoadFloat3(&cam);
+	XMVECTOR l = XMLoadFloat3(&look);
+
+	XMStoreFloat3(&m_v3Center,
+		c + l * (fNear + len * 0.5f));
+
 	BuildViewFrustum(mat);
 	m_bUsingSphere = true;
 }

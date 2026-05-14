@@ -1,17 +1,19 @@
 #include "StdAfx.h"
 #include "GrpMath.h"
 
+using namespace DirectX;
+
 float CrossProduct2D(float x1, float y1, float x2, float y2)
 {
-	return x1*y2-y1*x2;
+	return x1 * y2 - y1 * x2;
 }
 
 bool IsInTriangle2D(float ax, float ay, float bx, float by, float cx, float cy, float tx, float ty)
 {
-	float c1 = CrossProduct2D(bx-ax, by-ay, tx-ax, ty-ay);
-	float c2 = CrossProduct2D(cx-bx, cy-by, tx-bx, ty-by);
-	float c3 = CrossProduct2D(ax-cx, ay-cy, tx-cx, ty-cy);
-	
+	float c1 = CrossProduct2D(bx - ax, by - ay, tx - ax, ty - ay);
+	float c2 = CrossProduct2D(cx - bx, cy - by, tx - bx, ty - by);
+	float c3 = CrossProduct2D(ax - cx, ay - cy, tx - cx, ty - cy);
+
 	if (c1 * c2 > 0.0f && c1 * c3 > 0.0f)
 		return true;
 
@@ -43,35 +45,43 @@ bool IsInTriangle2D(float ax, float ay, float bx, float by, float cx, float cy, 
 	return false;
 }
 
-D3DXVECTOR3* D3DXVec3Rotation(D3DXVECTOR3* pvtOut, const D3DXVECTOR3* c_pvtSrc, const D3DXQUATERNION* c_pqtRot)
+XMFLOAT3* D3DXVec3Rotation(XMFLOAT3* pvtOut, const XMFLOAT3* c_pvtSrc, const XMFLOAT4* c_pqtRot)
 {
-	D3DXQUATERNION qtSrc(c_pvtSrc->x, c_pvtSrc->y, c_pvtSrc->z, 0);
-	D3DXQUATERNION qtRet;
-	D3DXQuaternionConjugate(&qtRet, c_pqtRot);
-	D3DXQuaternionMultiply(&qtRet, &qtSrc, &qtRet);
-	D3DXQuaternionMultiply(&qtRet, c_pqtRot, &qtRet);
+	const XMVECTOR qtSrc = XMVectorSet(c_pvtSrc->x, c_pvtSrc->y, c_pvtSrc->z, 0.0f);
+	const XMVECTOR qtRot = XMLoadFloat4(c_pqtRot);
 
-	pvtOut->x=qtRet.x;
-	pvtOut->y=qtRet.y;
-	pvtOut->z=qtRet.z;
+	XMVECTOR qtRet = XMQuaternionConjugate(qtRot);
+	qtRet = XMQuaternionMultiply(qtSrc, qtRet);
+	qtRet = XMQuaternionMultiply(qtRot, qtRet);
+
+	pvtOut->x = XMVectorGetX(qtRet);
+	pvtOut->y = XMVectorGetY(qtRet);
+	pvtOut->z = XMVectorGetZ(qtRet);
 
 	return pvtOut;
 }
 
+XMFLOAT3* D3DXVec3Translation(XMFLOAT3* pvtOut, const XMFLOAT3* c_pvtSrc, const XMFLOAT3* c_pvtTrans)
+{
+	pvtOut->x = c_pvtSrc->x + c_pvtTrans->x;
+	pvtOut->y = c_pvtSrc->y + c_pvtTrans->y;
+	pvtOut->z = c_pvtSrc->z + c_pvtTrans->z;
 
+	return pvtOut;
+}
 
-void GetRotationFromMatrix(D3DXVECTOR3 * pRotation, const D3DXMATRIX * c_pMatrix)
+void GetRotationFromMatrix(XMFLOAT3* pRotation, const XMFLOAT4X4* c_pMatrix)
 {
 	float sx = c_pMatrix->_32;
 	float cx = sqrtf(1.0f - sx * sx);
 
 	if (cx < 0.00001f)
 	{
-		if (sx > 0)
-			pRotation->x = D3DX_PI / 2;
+		if (sx > 0.0f)
+			pRotation->x = XM_PI / 2.0f;
 		else
-			pRotation->x = -D3DX_PI / 2;
-		
+			pRotation->x = -XM_PI / 2.0f;
+
 		pRotation->y = atan2f(c_pMatrix->_31, c_pMatrix->_11);
 		pRotation->z = 0.0f;
 	}
@@ -83,7 +93,7 @@ void GetRotationFromMatrix(D3DXVECTOR3 * pRotation, const D3DXMATRIX * c_pMatrix
 	}
 }
 
-void GetPivotAndRotationFromMatrix(D3DXMATRIX * pMatrix, D3DXVECTOR3 * pPivot, D3DXVECTOR3 * pRotation)
+void GetPivotAndRotationFromMatrix(XMFLOAT4X4* pMatrix, XMFLOAT3* pPivot, XMFLOAT3* pRotation)
 {
 	float sx = pMatrix->_32;
 	float cx = sqrtf(1.0f - sx * sx);
@@ -91,10 +101,10 @@ void GetPivotAndRotationFromMatrix(D3DXMATRIX * pMatrix, D3DXVECTOR3 * pPivot, D
 
 	if (cx < 0.00001f)
 	{
-		if (sx > 0)
-			x = D3DX_PI / 2;
+		if (sx > 0.0f)
+			x = XM_PI / 2.0f;
 		else
-			x = -D3DX_PI / 2;
+			x = -XM_PI / 2.0f;
 
 		y = atan2f(pMatrix->_31, pMatrix->_11);
 		z = 0.0f;
@@ -115,22 +125,17 @@ void GetPivotAndRotationFromMatrix(D3DXMATRIX * pMatrix, D3DXVECTOR3 * pPivot, D
 	pPivot->z = pMatrix->_43;
 }
 
-// NOTE : must be optimized!
-void ExtractMovement(D3DXMATRIX * pTargetMatrix, D3DXMATRIX * pSourceMatrix)
+void ExtractMovement(XMFLOAT4X4* pTargetMatrix, XMFLOAT4X4* pSourceMatrix)
 {
-	D3DXVECTOR3 v3Pivot;
-	D3DXVECTOR3 v3Rotation;
+	XMFLOAT3 v3Pivot;
+	XMFLOAT3 v3Rotation;
+
 	GetPivotAndRotationFromMatrix(pSourceMatrix, &v3Pivot, &v3Rotation);
 
-	D3DXMATRIX matRotationX;
-	D3DXMatrixRotationX(&matRotationX, v3Rotation.x);
-	D3DXMATRIX matRotationY;
-	D3DXMatrixRotationY(&matRotationY, v3Rotation.y);
-	D3DXMATRIX matRotationZ;
-	D3DXMatrixRotationZ(&matRotationZ, v3Rotation.z);
+	const XMMATRIX matRotationX = XMMatrixRotationX(v3Rotation.x);
+	const XMMATRIX matRotationY = XMMatrixRotationY(v3Rotation.y);
+	const XMMATRIX matRotationZ = XMMatrixRotationZ(v3Rotation.z);
+	const XMMATRIX matTranslation = XMMatrixTranslation(v3Pivot.x, v3Pivot.y, v3Pivot.z);
 
-	D3DXMATRIX matTranslation;
-	D3DXMatrixTranslation(&matTranslation, v3Pivot.x, v3Pivot.y, v3Pivot.z);
-
-	*pTargetMatrix = matRotationX * matRotationY * matRotationZ * matTranslation;
+	XMStoreFloat4x4(pTargetMatrix, matRotationX * matRotationY * matRotationZ * matTranslation);
 }

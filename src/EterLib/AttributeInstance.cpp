@@ -7,72 +7,95 @@ CDynamicPool<CAttributeInstance> CAttributeInstance::ms_kPool;
 
 const float c_fStepSize = 50.0f;
 
-bool CAttributeInstance::Picking(const D3DXVECTOR3 & v, const D3DXVECTOR3 & dir, float & out_x, float & out_y)
+bool CAttributeInstance::Picking(const XMFLOAT3& v, const XMFLOAT3& dir, float& out_x, float& out_y)
 {
 	if (IsEmpty())
-		return FALSE;
-	//fy *= -1.0f;
+		return false;
 
 	bool bPicked = false;
-	float nx = 0;
-	float ny = 0;
+	float nx = 0.0f;
+	float ny = 0.0f;
+
+	XMVECTOR rayOrigin = XMLoadFloat3(&v);
+	XMVECTOR rayDir = XMLoadFloat3(&dir);
 
 	for (DWORD i = 0; i < m_v3HeightDataVector.size(); ++i)
-		for (DWORD j = 0; j < m_v3HeightDataVector[i].size(); j+=3)
+	{
+		for (DWORD j = 0; j < m_v3HeightDataVector[i].size(); j += 3)
 		{
-			const D3DXVECTOR3 & cv0 = m_v3HeightDataVector[i][j];
-			const D3DXVECTOR3 & cv2 = m_v3HeightDataVector[i][j+1];
-			const D3DXVECTOR3 & cv1 = m_v3HeightDataVector[i][j+2];
+			const XMFLOAT3& cv0 = m_v3HeightDataVector[i][j];
+			const XMFLOAT3& cv2 = m_v3HeightDataVector[i][j + 1];
+			const XMFLOAT3& cv1 = m_v3HeightDataVector[i][j + 2];
 
-			D3DXVECTOR3 n;
-			const auto vvv = (cv1 - cv0);
-			const auto vvv2 = (cv2 - cv0);
-			const auto vvv3 = (cv2 - cv1);
-			D3DXVec3Cross(&n,&vvv,&vvv2);
-			D3DXVECTOR3 x;
-			float t;
-			const auto _vv = (v - cv0);
-			t = - D3DXVec3Dot(&_vv,&n)/D3DXVec3Dot(&dir,&n);
-			
-			x = v+t*dir;
-			const auto vvv4 = (x - cv0);
-			const auto vvv5 = (x - cv1);
-			const auto vvv6 = (x - cv2);
-			D3DXVECTOR3 temp;
-			D3DXVec3Cross(&temp,&vvv,&vvv4);
-			if (D3DXVec3Dot(&temp,&n)<0) continue;
-			D3DXVec3Cross(&temp,&vvv3,&vvv5);
-			if (D3DXVec3Dot(&temp,&n)<0) continue;
-			const auto _vv_ = (cv0 - cv2);
-			D3DXVec3Cross(&temp,&_vv_,&vvv6);
-			if (D3DXVec3Dot(&temp,&n)<0) continue;
+			XMVECTOR v0 = XMLoadFloat3(&cv0);
+			XMVECTOR v1 = XMLoadFloat3(&cv1);
+			XMVECTOR v2 = XMLoadFloat3(&cv2);
+
+			XMVECTOR edge01 = v1 - v0;
+			XMVECTOR edge02 = v2 - v0;
+			XMVECTOR edge12 = v2 - v1;
+
+			XMVECTOR n = XMVector3Cross(edge01, edge02);
+
+			float denom = XMVectorGetX(XMVector3Dot(rayDir, n));
+			if (fabsf(denom) < FLT_EPSILON)
+				continue;
+
+			float t = -XMVectorGetX(XMVector3Dot(rayOrigin - v0, n)) / denom;
+
+			XMVECTOR x = rayOrigin + rayDir * t;
+
+			XMVECTOR x0 = x - v0;
+			XMVECTOR x1 = x - v1;
+			XMVECTOR x2 = x - v2;
+
+			XMVECTOR temp = XMVector3Cross(edge01, x0);
+			if (XMVectorGetX(XMVector3Dot(temp, n)) < 0.0f)
+				continue;
+
+			temp = XMVector3Cross(edge12, x1);
+			if (XMVectorGetX(XMVector3Dot(temp, n)) < 0.0f)
+				continue;
+
+			temp = XMVector3Cross(v0 - v2, x2);
+			if (XMVectorGetX(XMVector3Dot(temp, n)) < 0.0f)
+				continue;
+
+			XMFLOAT3 hit;
+			XMStoreFloat3(&hit, x);
 
 			if (bPicked)
 			{
-				if ((v.x-x.x)*(v.x-x.x)+(v.y-x.y)*(v.y-x.y)<(v.x-nx)*(v.x-nx)+(v.y-ny)*(v.y-ny))
+				float newDist = (v.x - hit.x) * (v.x - hit.x) + (v.y - hit.y) * (v.y - hit.y);
+				float oldDist = (v.x - nx) * (v.x - nx) + (v.y - ny) * (v.y - ny);
+
+				if (newDist < oldDist)
 				{
-					nx=x.x;
-					ny=x.y;
+					nx = hit.x;
+					ny = hit.y;
 				}
 			}
 			else
 			{
-				nx = x.x;
-				ny = x.y;
+				nx = hit.x;
+				ny = hit.y;
+				bPicked = true;
 			}
-			bPicked = true;
-	}	
+		}
+	}
+
 	if (bPicked)
 	{
 		out_x = nx;
 		out_y = ny;
-	} 
+	}
+
 	return bPicked;
 }
 
-BOOL CAttributeInstance::GetHeight(float fx, float fy, float * pfHeight)
-{	
-	if(IsEmpty())
+BOOL CAttributeInstance::GetHeight(float fx, float fy, float* pfHeight)
+{
+	if (IsEmpty())
 		return FALSE;
 
 	fy *= -1.0f;
@@ -83,38 +106,58 @@ BOOL CAttributeInstance::GetHeight(float fx, float fy, float * pfHeight)
 	BOOL bFlag = FALSE;
 
 	for (DWORD i = 0; i < m_v3HeightDataVector.size(); ++i)
-	for (DWORD j = 0; j < m_v3HeightDataVector[i].size(); j+=3)
 	{
-		const D3DXVECTOR3 & c_rv3Vertex0 = m_v3HeightDataVector[i][j];
-		const D3DXVECTOR3 & c_rv3Vertex1 = m_v3HeightDataVector[i][j+1];
-		const D3DXVECTOR3 & c_rv3Vertex2 = m_v3HeightDataVector[i][j+2];
-
-		if (
-			fx<c_rv3Vertex0.x && fx<c_rv3Vertex1.x && fx<c_rv3Vertex2.x ||
-			fx>c_rv3Vertex0.x && fx>c_rv3Vertex1.x && fx>c_rv3Vertex2.x ||
-			fy<c_rv3Vertex0.y && fy<c_rv3Vertex1.y && fy<c_rv3Vertex2.y ||
-			fy>c_rv3Vertex0.y && fy>c_rv3Vertex1.y && fy>c_rv3Vertex2.y
-			)
-			continue;
-
-		if (IsInTriangle2D(c_rv3Vertex0.x, c_rv3Vertex0.y,
-						   c_rv3Vertex1.x, c_rv3Vertex1.y,
-						   c_rv3Vertex2.x, c_rv3Vertex2.y, fx, fy))
+		for (DWORD j = 0; j < m_v3HeightDataVector[i].size(); j += 3)
 		{
-			D3DXVECTOR3 v3Line1 = c_rv3Vertex1 - c_rv3Vertex0;
-			D3DXVECTOR3 v3Line2 = c_rv3Vertex2 - c_rv3Vertex0;
-			D3DXVECTOR3 v3Cross;
+			const XMFLOAT3& c_rv3Vertex0 = m_v3HeightDataVector[i][j];
+			const XMFLOAT3& c_rv3Vertex1 = m_v3HeightDataVector[i][j + 1];
+			const XMFLOAT3& c_rv3Vertex2 = m_v3HeightDataVector[i][j + 2];
 
-			D3DXVec3Cross(&v3Cross, &v3Line1, &v3Line2);
-			D3DXVec3Normalize(&v3Cross, &v3Cross);
+			if (
+				fx < c_rv3Vertex0.x && fx < c_rv3Vertex1.x && fx < c_rv3Vertex2.x ||
+				fx > c_rv3Vertex0.x && fx > c_rv3Vertex1.x && fx > c_rv3Vertex2.x ||
+				fy < c_rv3Vertex0.y && fy < c_rv3Vertex1.y && fy < c_rv3Vertex2.y ||
+				fy > c_rv3Vertex0.y && fy > c_rv3Vertex1.y && fy > c_rv3Vertex2.y
+				)
+				continue;
 
-			if (0.0f != v3Cross.z)
+			if (IsInTriangle2D(
+				c_rv3Vertex0.x, c_rv3Vertex0.y,
+				c_rv3Vertex1.x, c_rv3Vertex1.y,
+				c_rv3Vertex2.x, c_rv3Vertex2.y,
+				fx, fy))
 			{
-				float fd = (v3Cross.x*c_rv3Vertex0.x + v3Cross.y*c_rv3Vertex0.y + v3Cross.z*c_rv3Vertex0.z);
-				float fm = (v3Cross.x*fx + v3Cross.y*fy);
-				*pfHeight = fMAX((fd - fm) / v3Cross.z, *pfHeight);
+				XMFLOAT3 v3Line1 = {
+					c_rv3Vertex1.x - c_rv3Vertex0.x,
+					c_rv3Vertex1.y - c_rv3Vertex0.y,
+					c_rv3Vertex1.z - c_rv3Vertex0.z
+				};
 
-				bFlag = TRUE;
+				XMFLOAT3 v3Line2 = {
+					c_rv3Vertex2.x - c_rv3Vertex0.x,
+					c_rv3Vertex2.y - c_rv3Vertex0.y,
+					c_rv3Vertex2.z - c_rv3Vertex0.z
+				};
+
+				XMFLOAT3 v3Cross;
+				XMStoreFloat3(
+					&v3Cross,
+					XMVector3Normalize(
+						XMVector3Cross(
+							XMLoadFloat3(&v3Line1),
+							XMLoadFloat3(&v3Line2)
+						)
+					)
+				);
+
+				if (v3Cross.z != 0.0f)
+				{
+					float fd = v3Cross.x * c_rv3Vertex0.x + v3Cross.y * c_rv3Vertex0.y + v3Cross.z * c_rv3Vertex0.z;
+					float fm = v3Cross.x * fx + v3Cross.y * fy;
+
+					*pfHeight = fMAX((fd - fm) / v3Cross.z, *pfHeight);
+					bFlag = TRUE;
+				}
 			}
 		}
 	}
@@ -142,46 +185,54 @@ void CAttributeInstance::SetObjectPointer(CAttributeData * pAttributeData)
 	m_roAttributeData.SetPointer(pAttributeData);
 }
 
-void CAttributeInstance::RefreshObject(const D3DXMATRIX & c_rmatGlobal)
+void CAttributeInstance::RefreshObject(const XMFLOAT4X4& c_rmatGlobal)
 {
 	assert(!m_roAttributeData.IsNull());
 
 	m_matGlobal = c_rmatGlobal;
 
 	DWORD dwHeightDataCount = m_roAttributeData->GetHeightDataCount();
+
 	m_v3HeightDataVector.clear();
 	m_v3HeightDataVector.resize(dwHeightDataCount);
 
-	m_fHeightRadius = 0.0f;   // reset
+	m_fHeightRadius = 0.0f;
 
 	for (DWORD i = 0; i < dwHeightDataCount; ++i)
 	{
-		const THeightData * c_pHeightData = nullptr;
+		const THeightData* c_pHeightData = nullptr;
+
 		if (!m_roAttributeData->GetHeightDataPointer(i, &c_pHeightData) || c_pHeightData->v3VertexVector.empty())
 			continue;
 
 		DWORD dwVertexCount = c_pHeightData->v3VertexVector.size();
+
 		m_v3HeightDataVector[i].resize(dwVertexCount);
 
 		for (DWORD j = 0; j < dwVertexCount; ++j)
 		{
-			const D3DXVECTOR3& src = c_pHeightData->v3VertexVector[j];
+			const XMFLOAT3& src = c_pHeightData->v3VertexVector[j];
 
-			// Better transformation (used in most DX11 ports)
-			D3DXVECTOR4 v4Out;
-			D3DXVec3Transform(&v4Out, &src, &m_matGlobal);
+			XMFLOAT4 v4Out;
 
-			m_v3HeightDataVector[i][j] = D3DXVECTOR3(v4Out.x, v4Out.y, v4Out.z);
+			XMStoreFloat4(
+				&v4Out,
+				XMVector3Transform(
+					XMLoadFloat3(&src),
+					XMLoadFloat4x4(&m_matGlobal)
+				)
+			);
 
-			// Update radius safely
-			m_fHeightRadius = fMAX(m_fHeightRadius, fabs(v4Out.x) + 200.0f);
-			m_fHeightRadius = fMAX(m_fHeightRadius, fabs(v4Out.y) + 200.0f);
-			m_fHeightRadius = fMAX(m_fHeightRadius, fabs(v4Out.z) + 200.0f);
+			m_v3HeightDataVector[i][j] = XMFLOAT3(v4Out.x, v4Out.y, v4Out.z);
+
+			m_fHeightRadius = fMAX(m_fHeightRadius, fabsf(v4Out.x) + 200.0f);
+			m_fHeightRadius = fMAX(m_fHeightRadius, fabsf(v4Out.y) + 200.0f);
+			m_fHeightRadius = fMAX(m_fHeightRadius, fabsf(v4Out.z) + 200.0f);
 		}
 	}
 
 	if (m_fHeightRadius < 1000.0f)
-		m_fHeightRadius = 10000.0f;   // safety for large maps
+		m_fHeightRadius = 10000.0f;
 
 	Tracef("RefreshObject() - Height blocks: %u | Radius: %.1f\n", dwHeightDataCount, m_fHeightRadius);
 }
@@ -223,7 +274,8 @@ void CAttributeInstance::Clear()
 {
 	m_fHeightRadius = 0.0f;
 	m_fCollisionRadius = 0.0f;
-	D3DXMatrixIdentity(&m_matGlobal);
+
+	XMStoreFloat4x4(&m_matGlobal, XMMatrixIdentity());
 
 	m_v3HeightDataVector.clear();
 

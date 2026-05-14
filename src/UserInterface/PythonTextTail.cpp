@@ -17,12 +17,12 @@
 #include <utf8.h>
 // EPlaceDir and TextTailBiDi() template are defined in utf8.h
 
-const D3DXCOLOR c_TextTail_Player_Color = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
-const D3DXCOLOR c_TextTail_Monster_Color = D3DXCOLOR(1.0f, 0.0f, 0.0f, 1.0f);
-const D3DXCOLOR c_TextTail_Item_Color = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
-const D3DXCOLOR c_TextTail_Chat_Color = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
-const D3DXCOLOR c_TextTail_Info_Color = D3DXCOLOR(1.0f, 0.785f, 0.785f, 1.0f);
-const D3DXCOLOR c_TextTail_Guild_Name_Color = 0xFFEFD3FF;
+const XMFLOAT4 c_TextTail_Player_Color =  { 1.0f, 1.0f, 1.0f, 1.0f };
+const XMFLOAT4 c_TextTail_Monster_Color = { 1.0f, 0.0f, 0.0f, 1.0f };
+const XMFLOAT4 c_TextTail_Item_Color =	  { 1.0f, 1.0f, 1.0f, 1.0f };
+const XMFLOAT4 c_TextTail_Chat_Color =	  { 1.0f, 1.0f, 1.0f, 1.0f };
+const XMFLOAT4 c_TextTail_Info_Color = { 1.0f, 0.785f, 0.785f, 1.0f };
+const XMFLOAT4 c_TextTail_Guild_Name_Color = XMFLOAT4(239.0f / 255.0f, 211.0f / 255.0f, 255.0f / 255.0f, 1.0f);
 const float c_TextTail_Name_Position = -10.0f;
 const float c_fxMarkPosition = 1.5f;
 const float c_fyGuildNamePosition = 15.0f;
@@ -134,7 +134,7 @@ void CPythonTextTail::UpdateTextTail(TTextTail * pTextTail)
 	CPythonGraphic & rpyGraphic = CPythonGraphic::Instance();
 	rpyGraphic.Identity();
 
-	const D3DXVECTOR3 & c_rv3Position = pTextTail->pOwner->GetPosition();
+	const XMFLOAT3 & c_rv3Position = pTextTail->pOwner->GetPosition();
 	rpyGraphic.ProjectPosition(c_rv3Position.x,
 							   c_rv3Position.y,
 							   c_rv3Position.z + pTextTail->fHeight,
@@ -202,14 +202,14 @@ void CPythonTextTail::ArrangeTextTail()
 			pInsertTextTail->pOwnerTextInstance->SetPosition(pInsertTextTail->x, pInsertTextTail->y, pInsertTextTail->z);
 			pInsertTextTail->pOwnerTextInstance->Update();
 
-			pInsertTextTail->pTextInstance->SetColor(pInsertTextTail->Color.r, pInsertTextTail->Color.g, pInsertTextTail->Color.b);
+			pInsertTextTail->pTextInstance->SetColor(pInsertTextTail->Color.x, pInsertTextTail->Color.y, pInsertTextTail->Color.z);
 			pInsertTextTail->pTextInstance->SetPosition(pInsertTextTail->x, pInsertTextTail->y + 15.0f, pInsertTextTail->z);
 			pInsertTextTail->pTextInstance->Update();
 
 		}
 		else
 		{
-			pInsertTextTail->pTextInstance->SetColor(pInsertTextTail->Color.r, pInsertTextTail->Color.g, pInsertTextTail->Color.b);
+			pInsertTextTail->pTextInstance->SetColor(pInsertTextTail->Color.x, pInsertTextTail->Color.y, pInsertTextTail->Color.z);
 			pInsertTextTail->pTextInstance->SetPosition(pInsertTextTail->x, pInsertTextTail->y, pInsertTextTail->z);
 			pInsertTextTail->pTextInstance->Update();
 
@@ -266,7 +266,7 @@ void CPythonTextTail::ArrangeTextTail()
 		}
 #endif
 
-		pTextTail->pTextInstance->SetColor(pTextTail->Color.r, pTextTail->Color.g, pTextTail->Color.b);
+		pTextTail->pTextInstance->SetColor(pTextTail->Color.x, pTextTail->Color.y, pTextTail->Color.z);
 		pTextTail->pTextInstance->SetPosition(nameX, nameY, pTextTail->z);
 		pTextTail->pTextInstance->Update();
 	}
@@ -284,7 +284,7 @@ void CPythonTextTail::ArrangeTextTail()
 		else
 			++itorChat;
 
-		pTextTail->pTextInstance->SetColor(pTextTail->Color);
+		pTextTail->pTextInstance->SetColor(pTextTail->Color.x, pTextTail->Color.y, pTextTail->Color.z, pTextTail->Color.w);
 		pTextTail->pTextInstance->SetPosition(pTextTail->x, pTextTail->y, pTextTail->z);
 		pTextTail->pTextInstance->Update();
 	}
@@ -371,11 +371,17 @@ void CPythonTextTail::HideAllTextTail()
 	m_ItemTextTailList.clear();
 }
 
-void CPythonTextTail::UpdateDistance(const TPixelPosition & c_rCenterPosition, TTextTail * pTextTail)
+void CPythonTextTail::UpdateDistance(const TPixelPosition& c_rCenterPosition, TTextTail* pTextTail)
 {
-	const D3DXVECTOR3 & c_rv3Position = pTextTail->pOwner->GetPosition();
-	D3DXVECTOR2 v2Distance(c_rv3Position.x - c_rCenterPosition.x, -c_rv3Position.y - c_rCenterPosition.y);
-	pTextTail->fDistanceFromPlayer = D3DXVec2Length(&v2Distance);
+	const XMFLOAT3& c_rv3Position = pTextTail->pOwner->GetPosition();
+
+	XMFLOAT2 v2Distance(
+		c_rv3Position.x - c_rCenterPosition.x,
+		-c_rv3Position.y - c_rCenterPosition.y
+	);
+
+	pTextTail->fDistanceFromPlayer =
+		XMVectorGetX(XMVector2Length(XMLoadFloat2(&v2Distance)));
 }
 
 void CPythonTextTail::ShowAllTextTail()
@@ -464,7 +470,7 @@ bool CPythonTextTail::isIn(CPythonTextTail::TTextTail * pSource, CPythonTextTail
 	return false;
 }
 
-void CPythonTextTail::RegisterCharacterTextTail(DWORD dwGuildID, DWORD dwVirtualID, const D3DXCOLOR & c_rColor, float fAddHeight)
+void CPythonTextTail::RegisterCharacterTextTail(DWORD dwGuildID, DWORD dwVirtualID, const XMFLOAT4 & c_rColor, float fAddHeight)
 {
 	CInstanceBase * pCharacterInstance = CPythonCharacterManager::Instance().GetInstancePtr(dwVirtualID);
 
@@ -536,7 +542,7 @@ void CPythonTextTail::RegisterCharacterTextTail(DWORD dwGuildID, DWORD dwVirtual
 		prGuildNameInstance->SetHorizonalAlign(CGraphicTextInstance::HORIZONTAL_ALIGN_CENTER);
 		prGuildNameInstance->SetVerticalAlign(CGraphicTextInstance::VERTICAL_ALIGN_BOTTOM);
 		prGuildNameInstance->SetValue(strGuildName.c_str());
-		prGuildNameInstance->SetColor(c_TextTail_Guild_Name_Color.r, c_TextTail_Guild_Name_Color.g, c_TextTail_Guild_Name_Color.b);
+		prGuildNameInstance->SetColor(c_TextTail_Guild_Name_Color.x, c_TextTail_Guild_Name_Color.y, c_TextTail_Guild_Name_Color.z);
 		prGuildNameInstance->Update();
 	}
 
@@ -573,7 +579,7 @@ void CPythonTextTail::RegisterChatTail(DWORD VirtualID, const char * c_szChat)
 		pTextTail->pTextInstance->SetValue(c_szChat);
 		pTextTail->pTextInstance->Update();
 		pTextTail->Color = c_TextTail_Chat_Color;
-		pTextTail->pTextInstance->SetColor(c_TextTail_Chat_Color);
+		pTextTail->pTextInstance->SetColor(c_TextTail_Chat_Color.x, c_TextTail_Chat_Color.y, c_TextTail_Chat_Color.z, c_TextTail_Chat_Color.w);
 
 		// TEXTTAIL_LIVINGTIME_CONTROL
 		pTextTail->LivingTime = CTimer::Instance().GetCurrentMillisecond() + TextTail_GetLivingTime();
@@ -616,7 +622,7 @@ void CPythonTextTail::RegisterInfoTail(DWORD VirtualID, const char * c_szChat)
 		pTextTail->pTextInstance->SetValue(c_szChat);
 		pTextTail->pTextInstance->Update();
 		pTextTail->Color = c_TextTail_Info_Color;
-		pTextTail->pTextInstance->SetColor(c_TextTail_Info_Color);
+		pTextTail->pTextInstance->SetColor(c_TextTail_Info_Color.x, c_TextTail_Info_Color.y, c_TextTail_Info_Color.z, c_TextTail_Info_Color.w);
 
 		// TEXTTAIL_LIVINGTIME_CONTROL
 		pTextTail->LivingTime = CTimer::Instance().GetCurrentMillisecond() + TextTail_GetLivingTime();
@@ -670,7 +676,7 @@ bool CPythonTextTail::IsChatTextTail(DWORD dwVID)
 	return true;
 }
 
-void CPythonTextTail::SetCharacterTextTailColor(DWORD VirtualID, const D3DXCOLOR & c_rColor)
+void CPythonTextTail::SetCharacterTextTailColor(DWORD VirtualID, const XMFLOAT4 & c_rColor)
 {
 	TTextTailMap::iterator itorCharacter = m_CharacterTextTailMap.find(VirtualID);
 
@@ -678,7 +684,7 @@ void CPythonTextTail::SetCharacterTextTailColor(DWORD VirtualID, const D3DXCOLOR
 		return;
 
 	TTextTail * pTextTail = itorCharacter->second;
-	pTextTail->pTextInstance->SetColor(c_rColor);
+	pTextTail->pTextInstance->SetColor(c_rColor.x, c_rColor.y, c_rColor.z, c_rColor.w);
 	pTextTail->Color = c_rColor;
 }
 
@@ -764,7 +770,7 @@ void CPythonTextTail::DeleteItemTextTail(DWORD VirtualID)
 	m_ItemTextTailMap.erase(itor);
 }
 
-CPythonTextTail::TTextTail * CPythonTextTail::RegisterTextTail(DWORD dwVirtualID, const char * c_szText, CGraphicObjectInstance * pOwner, float fHeight, const D3DXCOLOR & c_rColor)
+CPythonTextTail::TTextTail * CPythonTextTail::RegisterTextTail(DWORD dwVirtualID, const char * c_szText, CGraphicObjectInstance * pOwner, float fHeight, const XMFLOAT4 & c_rColor)
 {
 	TTextTail * pTextTail = m_TextTailPool.Alloc();
 
@@ -777,7 +783,7 @@ CPythonTextTail::TTextTail * CPythonTextTail::RegisterTextTail(DWORD dwVirtualID
 	pTextTail->pTextInstance->SetTextPointer(ms_pFont);
 	pTextTail->pTextInstance->SetHorizonalAlign(CGraphicTextInstance::HORIZONTAL_ALIGN_CENTER);
 	pTextTail->pTextInstance->SetValue(c_szText);
-	pTextTail->pTextInstance->SetColor(c_rColor.r, c_rColor.g, c_rColor.b);
+	pTextTail->pTextInstance->SetColor(c_rColor.x, c_rColor.y, c_rColor.z);
 	pTextTail->pTextInstance->Update();
 
 	int xSize, ySize;
@@ -872,7 +878,7 @@ void CPythonTextTail::SelectItemName(DWORD dwVirtualID)
 	pTextTail->pTextInstance->SetColor(0.1f, 0.9f, 0.1f);
 }
 
-void CPythonTextTail::AttachTitle(DWORD dwVID, const char * c_szName, const D3DXCOLOR & c_rColor)
+void CPythonTextTail::AttachTitle(DWORD dwVID, const char * c_szName, const XMFLOAT4 & c_rColor)
 {
 	if (!bPKTitleEnable)
 		return;
@@ -894,7 +900,7 @@ void CPythonTextTail::AttachTitle(DWORD dwVID, const char * c_szName, const D3DX
 	}
 
 	prTitle->SetValue(c_szName);
-	prTitle->SetColor(c_rColor.r, c_rColor.g, c_rColor.b);
+	prTitle->SetColor(c_rColor.x, c_rColor.y, c_rColor.z);
 	prTitle->Update();
 }
 
@@ -921,7 +927,7 @@ void CPythonTextTail::EnablePKTitle(BOOL bFlag)
 	bPKTitleEnable = bFlag;
 }
 
-void CPythonTextTail::AttachLevel(DWORD dwVID, const char * c_szText, const D3DXCOLOR & c_rColor)
+void CPythonTextTail::AttachLevel(DWORD dwVID, const char * c_szText, const XMFLOAT4 & c_rColor)
 {
 	if (!bPKTitleEnable)
 		return;
@@ -944,7 +950,7 @@ void CPythonTextTail::AttachLevel(DWORD dwVID, const char * c_szText, const D3DX
 	}
 
 	prLevel->SetValue(c_szText);
-	prLevel->SetColor(c_rColor.r, c_rColor.g, c_rColor.b);
+	prLevel->SetColor(c_rColor.x, c_rColor.y, c_rColor.z);
 	prLevel->Update();
 }
 

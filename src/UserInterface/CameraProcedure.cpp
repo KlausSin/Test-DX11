@@ -12,42 +12,51 @@ float CCamera::CAMERA_MAX_DISTANCE = 2500.0f;
 
 void CCamera::ProcessTerrainCollision()
 {
-	CPythonBackground & rPythonBackground = CPythonBackground::Instance();
-	D3DXVECTOR3 v3CollisionPoint;
+	auto& bg = CPythonBackground::Instance();
+	XMFLOAT3 hit;
 
-	if (rPythonBackground.GetPickingPointWithRayOnlyTerrain(m_kTargetToCameraBottomRay, &v3CollisionPoint))
+	if (bg.GetPickingPointWithRayOnlyTerrain(m_kTargetToCameraBottomRay, &hit))
 	{
 		SetCameraState(CAMERA_STATE_CANTGODOWN);
-		D3DXVECTOR3 v3CheckVector = m_v3Eye - 2.0f * m_fTerrainCollisionRadius * m_v3Up;
-		v3CheckVector.z = rPythonBackground.GetHeight(floorf(v3CheckVector.x), floorf(v3CheckVector.y));
-		D3DXVECTOR3 v3NewEye = v3CheckVector + 2.0f * m_fTerrainCollisionRadius * m_v3Up;
-		if (v3NewEye.z > m_v3Eye.z)
-		{
-			//printf("ToCameraBottom(%f, %f, %f) TCR %f, UP(%f, %f, %f), new %f > old %f", 
-			//	v3CheckVector.x, v3CheckVector.y, v3CheckVector.z, 
-			//	m_fTerrainCollisionRadius,
-			//	m_v3Up.x, m_v3Up.y, m_v3Up.z,
-			//	v3NewEye.z, m_v3Eye.z);
-			SetEye(v3NewEye);
-		}
-		/*
-		SetCameraState(CAMERA_STATE_NORMAL);
-		D3DXVECTOR3 v3NewEye = v3CollisionPoint;
-		SetEye(v3NewEye);
-		*/
+
+		XMVECTOR eye = XMLoadFloat3(&m_v3Eye);
+		XMVECTOR up = XMLoadFloat3(&m_v3Up);
+
+		XMVECTOR check = eye - up * (2.0f * m_fTerrainCollisionRadius);
+
+		XMFLOAT3 chk;
+		XMStoreFloat3(&chk, check);
+		chk.z = bg.GetHeight(floorf(chk.x), floorf(chk.y));
+
+		XMVECTOR vNewEye = XMLoadFloat3(&chk) + up * (2.0f * m_fTerrainCollisionRadius);
+
+		XMFLOAT3 newEye;
+		XMStoreFloat3(&newEye, vNewEye);
+
+		if (newEye.z > m_v3Eye.z)
+			SetEye(newEye);
 	}
 	else
 		SetCameraState(CAMERA_STATE_NORMAL);
 
-	if (rPythonBackground.GetPickingPointWithRayOnlyTerrain(m_kCameraBottomToTerrainRay, &v3CollisionPoint))
+	if (bg.GetPickingPointWithRayOnlyTerrain(m_kCameraBottomToTerrainRay, &hit))
 	{
 		SetCameraState(CAMERA_STATE_CANTGODOWN);
-		auto d3dd = (m_v3Eye - v3CollisionPoint);
-		if (D3DXVec3Length(&d3dd) < 2.0f * m_fTerrainCollisionRadius)
+
+		XMVECTOR eye = XMLoadFloat3(&m_v3Eye);
+		XMVECTOR col = XMLoadFloat3(&hit);
+		XMVECTOR up = XMLoadFloat3(&m_v3Up);
+
+		XMVECTOR d = eye - col;
+
+		if (XMVectorGetX(XMVector3Length(d)) < 2.0f * m_fTerrainCollisionRadius)
 		{
-			D3DXVECTOR3 v3NewEye = v3CollisionPoint + 2.0f * m_fTerrainCollisionRadius * m_v3Up;
-			//printf("CameraBottomToTerrain new %f > old %f", v3NewEye.z, m_v3Eye.z);
-			SetEye(v3NewEye);
+			XMVECTOR vNewEye = col + up * (2.0f * m_fTerrainCollisionRadius);
+
+			XMFLOAT3 newEye;
+			XMStoreFloat3(&newEye, vNewEye);
+
+			SetEye(newEye);
 		}
 	}
 	else
@@ -57,10 +66,10 @@ void CCamera::ProcessTerrainCollision()
 struct CameraCollisionChecker
 {
 	bool m_isBlocked;
-	std::vector<D3DXVECTOR3>* m_pkVct_v3Position;
+	std::vector<XMFLOAT3>* m_pkVct_v3Position;
 	CDynamicSphereInstance * m_pdsi;
 
-	CameraCollisionChecker(CDynamicSphereInstance * pdsi, std::vector<D3DXVECTOR3>* pkVct_v3Position) : m_pdsi(pdsi), m_pkVct_v3Position(pkVct_v3Position), m_isBlocked(false) 
+	CameraCollisionChecker(CDynamicSphereInstance * pdsi, std::vector<XMFLOAT3>* pkVct_v3Position) : m_pdsi(pdsi), m_pkVct_v3Position(pkVct_v3Position), m_isBlocked(false)
 	{
 	}
 	void operator () (CGraphicObjectInstance* pOpponent)
@@ -78,7 +87,7 @@ void CCamera::ProcessBuildingCollision()
 	float fMoveAmountSmall = 2.0f;
 	float fMoveAmountLarge = 4.0f;
 
-	D3DXVECTOR3 v3CheckVector;
+	XMFLOAT3 v3CheckVector;
 
 	CDynamicSphereInstance s;
 	s.fRadius = m_fObjectCollisionRadius;
@@ -92,10 +101,12 @@ void CCamera::ProcessBuildingCollision()
 	CCullingManager & rkCullingMgr = CCullingManager::Instance();
 
 	{
-		v3CheckVector = m_v3Eye - m_fObjectCollisionRadius * m_v3View;
+		XMStoreFloat3(&v3CheckVector,
+			XMLoadFloat3(&m_v3Eye) - XMLoadFloat3(&m_v3View) * m_fObjectCollisionRadius
+		);
 		s.v3Position = v3CheckVector;
 
-		std::vector<D3DXVECTOR3> kVct_kPosition;
+		std::vector<XMFLOAT3> kVct_kPosition;
 		CameraCollisionChecker kCameraCollisionChecker(&s, &kVct_kPosition);
 		rkCullingMgr.ForInRange(aVector3d, m_fObjectCollisionRadius, &kCameraCollisionChecker);
 		bool bCollide = kCameraCollisionChecker.m_isBlocked;
@@ -117,9 +128,11 @@ void CCamera::ProcessBuildingCollision()
 			}
 			else
 			{
-				auto d3dd = (kVct_kPosition[0] - m_v3Eye);
-				D3DXVec3Cross(&v3CheckVector, &d3dd, &m_v3View);
-				float fDot = D3DXVec3Dot(&v3CheckVector, &m_v3Up);
+				XMVECTOR d3dd = XMLoadFloat3(&kVct_kPosition[0]) - XMLoadFloat3(&m_v3Eye);
+
+				XMVECTOR vCross = XMVector3Cross(d3dd, XMLoadFloat3(&m_v3View));
+
+				float fDot = XMVectorGetX(XMVector3Dot(vCross, XMLoadFloat3(&m_v3Up)));
 				if (fDot < 0)
 				{
 	//				m_v3AngularVelocity.x = fMIN(-fMoveAmountSmall, m_v3AngularVelocity.x);
@@ -141,29 +154,42 @@ void CCamera::ProcessBuildingCollision()
 
 	// 위
 	{
-		v3CheckVector = m_v3Eye + 2.0f * m_fObjectCollisionRadius * m_v3Up;
+		XMVECTOR eye = XMLoadFloat3(&m_v3Eye);
+		XMVECTOR up = XMLoadFloat3(&m_v3Up);
+
+		XMStoreFloat3(&v3CheckVector,
+			eye + up * (2.0f * m_fObjectCollisionRadius)
+		);
+
 		s.v3Position = v3CheckVector;
 
-		std::vector<D3DXVECTOR3> kVct_kPosition;
+		std::vector<XMFLOAT3> kVct_kPosition;
 		CameraCollisionChecker kCameraCollisionChecker(&s, &kVct_kPosition);
 		rkCullingMgr.ForInRange(aVector3d, m_fObjectCollisionRadius, &kCameraCollisionChecker);
+
 		bool bCollide = kCameraCollisionChecker.m_isBlocked;
 
 		if (bCollide)
 		{
-			m_v3AngularVelocity.z = fMIN(-fMoveAmountSmall, m_v3AngularVelocity.y);
-	// 		m_v3AngularVelocity.z -= 1.0f;
+			m_v3AngularVelocity.z = std::min(-fMoveAmountSmall, m_v3AngularVelocity.y);
 		}
 	}
 
 	// 좌
 	{
-		v3CheckVector = m_v3Eye + 3.0f * m_fObjectCollisionRadius * m_v3Cross;
+		XMVECTOR eye = XMLoadFloat3(&m_v3Eye);
+		XMVECTOR cross = XMLoadFloat3(&m_v3Cross);
+
+		XMStoreFloat3(&v3CheckVector,
+			eye + cross * (3.0f * m_fObjectCollisionRadius)
+		);
+
 		s.v3Position = v3CheckVector;
 
-		std::vector<D3DXVECTOR3> kVct_kPosition;
+		std::vector<XMFLOAT3> kVct_kPosition;
 		CameraCollisionChecker kCameraCollisionChecker(&s, &kVct_kPosition);
 		rkCullingMgr.ForInRange(aVector3d, m_fObjectCollisionRadius, &kCameraCollisionChecker);
+
 		bool bCollide = kCameraCollisionChecker.m_isBlocked;
 
 		if (bCollide)
@@ -178,86 +204,94 @@ void CCamera::ProcessBuildingCollision()
 
 	// 우
 	{
-		v3CheckVector = m_v3Eye - 3.0f * m_fObjectCollisionRadius * m_v3Cross;
-		s.v3Position = v3CheckVector;
+		XMVECTOR eye = XMLoadFloat3(&m_v3Eye);
+		XMVECTOR up = XMLoadFloat3(&m_v3Up);
+		XMVECTOR view = XMLoadFloat3(&m_v3View);
+		XMVECTOR cross = XMLoadFloat3(&m_v3Cross);
 
-		std::vector<D3DXVECTOR3> kVct_kPosition;
-		CameraCollisionChecker kCameraCollisionChecker(&s, &kVct_kPosition);
-		rkCullingMgr.ForInRange(aVector3d, m_fObjectCollisionRadius, &kCameraCollisionChecker);
-		bool bCollide = kCameraCollisionChecker.m_isBlocked;
+		std::vector<XMFLOAT3> kVct_kPosition;
 
-		if (bCollide)
+		// LEFT
 		{
-			if (m_v3AngularVelocity.x < 0.0f)
+			XMStoreFloat3(&v3CheckVector,
+				eye - cross * (3.0f * m_fObjectCollisionRadius)
+			);
+
+			s.v3Position = v3CheckVector;
+
+			CameraCollisionChecker checker(&s, &kVct_kPosition);
+			rkCullingMgr.ForInRange(aVector3d, m_fObjectCollisionRadius, &checker);
+
+			if (checker.m_isBlocked)
 			{
-				m_v3AngularVelocity.x = 0.0f;
-				m_v3AngularVelocity.y += fMoveAmountLarge;
+				if (m_v3AngularVelocity.x < 0.0f)
+				{
+					m_v3AngularVelocity.x = 0.0f;
+					m_v3AngularVelocity.y += fMoveAmountLarge;
+				}
 			}
 		}
-	}
 
-	// 아래
-	{
-		v3CheckVector = m_v3Eye - 2.0f * m_fTerrainCollisionRadius * m_v3Up;
-		s.v3Position = v3CheckVector;
-
-		std::vector<D3DXVECTOR3> kVct_kPosition;
-		CameraCollisionChecker kCameraCollisionChecker(&s, &kVct_kPosition);
-		rkCullingMgr.ForInRange(aVector3d, m_fObjectCollisionRadius, &kCameraCollisionChecker);
-		bool bCollide = kCameraCollisionChecker.m_isBlocked;
-
-		if (bCollide)
+		// DOWN
 		{
-			if (m_v3AngularVelocity.z < 0.0f)
+			XMStoreFloat3(&v3CheckVector,
+				eye - up * (2.0f * m_fTerrainCollisionRadius)
+			);
+
+			s.v3Position = v3CheckVector;
+
+			CameraCollisionChecker checker(&s, &kVct_kPosition);
+			rkCullingMgr.ForInRange(aVector3d, m_fObjectCollisionRadius, &checker);
+
+			if (checker.m_isBlocked)
 			{
-				m_v3AngularVelocity.z = 0.0f;
-				m_v3AngularVelocity.y += fMoveAmountLarge;
+				if (m_v3AngularVelocity.z < 0.0f)
+				{
+					m_v3AngularVelocity.z = 0.0f;
+					m_v3AngularVelocity.y += fMoveAmountLarge;
+				}
 			}
 		}
-	}
 
-	// 앞
-	{
-		v3CheckVector = m_v3Eye + 4.0f * m_fObjectCollisionRadius * m_v3View;
-		s.v3Position = v3CheckVector;
-
-		std::vector<D3DXVECTOR3> kVct_kPosition;
-		CameraCollisionChecker kCameraCollisionChecker(&s, &kVct_kPosition);
-		rkCullingMgr.ForInRange(aVector3d, m_fObjectCollisionRadius, &kCameraCollisionChecker);
-		bool bCollide = kCameraCollisionChecker.m_isBlocked;
-
-		if (bCollide)
+		// FRONT
 		{
-			if (m_v3AngularVelocity.y < 0.0f)
-			{
-				m_v3AngularVelocity.y = 0.0f;
-				m_v3AngularVelocity.z += fMoveAmountLarge;
-			}
+			XMStoreFloat3(&v3CheckVector,
+				eye + view * (4.0f * m_fObjectCollisionRadius)
+			);
 
-			if (kVct_kPosition.size() > 1)
+			s.v3Position = v3CheckVector;
+
+			CameraCollisionChecker checker(&s, &kVct_kPosition);
+			rkCullingMgr.ForInRange(aVector3d, m_fObjectCollisionRadius, &checker);
+
+			bool bCollide = checker.m_isBlocked;
+
+			if (bCollide)
 			{
-	//			m_v3AngularVelocity.z = fMAX(fMoveAmountLarge, m_v3AngularVelocity.z);
- 				m_v3AngularVelocity.z += fMoveAmountLarge;
-			}
-			else
-			{
-				auto d3dd = (kVct_kPosition[0] - m_v3Eye);
-				D3DXVec3Cross(&v3CheckVector, &d3dd, &m_v3View);
-				float fDot = D3DXVec3Dot(&v3CheckVector, &m_v3Up);
-				if (fDot < 0)
+				if (m_v3AngularVelocity.y < 0.0f)
 				{
-	// 				m_v3AngularVelocity.x = fMIN(-fMoveAmountSmall, m_v3AngularVelocity.x);
-					m_v3AngularVelocity.x -= fMoveAmountSmall;
+					m_v3AngularVelocity.y = 0.0f;
+					m_v3AngularVelocity.z += fMoveAmountLarge;
 				}
-				else if(fDot > 0)
+
+				if (kVct_kPosition.size() > 1)
 				{
-	// 				m_v3AngularVelocity.x = fMAX(fMoveAmountSmall, m_v3AngularVelocity.x);
-					m_v3AngularVelocity.x += fMoveAmountSmall;
+					m_v3AngularVelocity.z += fMoveAmountLarge;
 				}
-				else
+				else if (!kVct_kPosition.empty())
 				{
-	//				m_v3AngularVelocity.z = fMAX(fMoveAmountSmall, m_v3AngularVelocity.z);
-					m_v3AngularVelocity.z += fMoveAmountSmall;
+					XMVECTOR hit = XMLoadFloat3(&kVct_kPosition[0]);
+					XMVECTOR d = hit - eye;
+
+					XMVECTOR cros = XMVector3Cross(d, view);
+					float fDot = XMVectorGetX(XMVector3Dot(cros, up));
+
+					if (fDot < 0)
+						m_v3AngularVelocity.x -= fMoveAmountSmall;
+					else if (fDot > 0)
+						m_v3AngularVelocity.x += fMoveAmountSmall;
+					else
+						m_v3AngularVelocity.z += fMoveAmountSmall;
 				}
 			}
 		}
@@ -266,40 +300,42 @@ void CCamera::ProcessBuildingCollision()
 
 void CCamera::Update()
 {
-// 	ProcessBuildingCollision();
-
 	RotateEyeAroundTarget(m_v3AngularVelocity.z, m_v3AngularVelocity.x);
 
-	float fNewDistance=fMAX(CAMERA_MIN_DISTANCE, fMIN( CAMERA_MAX_DISTANCE, GetDistance() - m_v3AngularVelocity.y ) );
-	SetDistance(fNewDistance);
-	
+	float dist = GetDistance();
+	float newDist = std::clamp(dist - m_v3AngularVelocity.y,
+		CAMERA_MIN_DISTANCE,
+		CAMERA_MAX_DISTANCE);
+
+	SetDistance(newDist);
+
 	if (m_bProcessTerrainCollision)
- 		ProcessTerrainCollision();
+		ProcessTerrainCollision();
 
-	m_v3AngularVelocity *= 0.5f;
-	if (fabs(m_v3AngularVelocity.x) < 1.0f)
-		m_v3AngularVelocity.x = 0.0f;
-	if (fabs(m_v3AngularVelocity.y) < 1.0f)
-		m_v3AngularVelocity.y = 0.0f;
-	if (fabs(m_v3AngularVelocity.z) < 1.0f)
-		m_v3AngularVelocity.z = 0.0f;
+	XMVECTOR v = XMLoadFloat3(&m_v3AngularVelocity);
+	v = XMVectorScale(v, 0.5f);
+	XMStoreFloat3(&m_v3AngularVelocity, v);
 
-	const float CAMERA_MOVABLE_DISTANCE = CAMERA_MAX_DISTANCE - CAMERA_MIN_DISTANCE;
-	const float CAMERA_TARGET_DELTA = CAMERA_TARGET_FACE - CAMERA_TARGET_STANDARD;
-	float fCameraCurMovableDistance=CAMERA_MAX_DISTANCE - GetDistance();
-	float fNewTargetHeight = CAMERA_TARGET_STANDARD + CAMERA_TARGET_DELTA * fCameraCurMovableDistance / CAMERA_MOVABLE_DISTANCE;
+	if (fabs(m_v3AngularVelocity.x) < 1.0f) m_v3AngularVelocity.x = 0.0f;
+	if (fabs(m_v3AngularVelocity.y) < 1.0f) m_v3AngularVelocity.y = 0.0f;
+	if (fabs(m_v3AngularVelocity.z) < 1.0f) m_v3AngularVelocity.z = 0.0f;
 
-	SetTargetHeight(fNewTargetHeight);
+	const float movable = CAMERA_MAX_DISTANCE - CAMERA_MIN_DISTANCE;
+	const float delta = CAMERA_TARGET_FACE - CAMERA_TARGET_STANDARD;
 
-	// Cinematic
+	float cur = CAMERA_MAX_DISTANCE - GetDistance();
+	float target = CAMERA_TARGET_STANDARD + delta * cur / movable;
+
+	SetTargetHeight(target);
+
 #ifdef __20040725_CAMERA_WORK__
 	m_MovementPosition += m_MovementSpeed;
-	
-	if (0.0f != m_MovementPosition.m_fViewDir)
+
+	if (m_MovementPosition.m_fViewDir != 0.0f)
 		MoveFront(m_MovementPosition.m_fViewDir);
-	if (0.0f != m_MovementPosition.m_fCrossDir)
+	if (m_MovementPosition.m_fCrossDir != 0.0f)
 		MoveAlongCross(m_MovementPosition.m_fCrossDir);
-	if (0.0f != m_MovementPosition.m_fUpDir)
+	if (m_MovementPosition.m_fUpDir != 0.0f)
 		MoveVertical(m_MovementPosition.m_fUpDir);
 #endif
 }

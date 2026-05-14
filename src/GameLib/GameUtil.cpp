@@ -3,76 +3,107 @@
 
 #include "GameUtil.h"
 
-bool DetectCollisionDynamicZCylinderVSDynamicZCylinder(const CDynamicSphereInstance & c_rSphere1, const CDynamicSphereInstance & c_rSphere2)
+bool DetectCollisionDynamicZCylinderVSDynamicZCylinder(
+	const CDynamicSphereInstance& c_rSphere1,
+	const CDynamicSphereInstance& c_rSphere2)
 {
-	CDynamicSphereInstance c_rCylinder1=c_rSphere1;
-	CDynamicSphereInstance c_rCylinder2=c_rSphere2;
+	CDynamicSphereInstance c_rCylinder1 = c_rSphere1;
+	CDynamicSphereInstance c_rCylinder2 = c_rSphere2;
 
-	c_rCylinder1.v3Position.z=0;
-	c_rCylinder1.v3LastPosition.z=0;
+	c_rCylinder1.v3Position.z = 0.0f;
+	c_rCylinder1.v3LastPosition.z = 0.0f;
 
-	c_rCylinder2.v3Position.z=0;
-	c_rCylinder2.v3LastPosition.z=0;
+	c_rCylinder2.v3Position.z = 0.0f;
+	c_rCylinder2.v3LastPosition.z = 0.0f;
 
-	float r = c_rCylinder1.fRadius+c_rCylinder2.fRadius;
-	float rsq = r*r;
+	float r = c_rCylinder1.fRadius + c_rCylinder2.fRadius;
+	float rsq = r * r;
 
-	// AABB check
-	D3DXVECTOR3 mi1=c_rCylinder1.v3LastPosition, mi2 = c_rCylinder1.v3Position;
-	D3DXVECTOR3 mi3=c_rCylinder2.v3LastPosition, mi4 = c_rCylinder2.v3Position;
-	if (mi1.x>mi2.x) std::swap(mi1.x,mi2.x);
-	if (mi1.y>mi2.y) std::swap(mi1.y,mi2.y);
-	if (mi1.z>mi2.z) std::swap(mi1.z,mi2.z);
-	if (mi3.x>mi4.x) std::swap(mi3.x,mi4.x);
-	if (mi3.y>mi4.y) std::swap(mi3.y,mi4.y);
-	if (mi3.z>mi4.z) std::swap(mi3.z,mi4.z);
+	XMFLOAT3 mi1 = c_rCylinder1.v3LastPosition;
+	XMFLOAT3 mi2 = c_rCylinder1.v3Position;
+	XMFLOAT3 mi3 = c_rCylinder2.v3LastPosition;
+	XMFLOAT3 mi4 = c_rCylinder2.v3Position;
+
+	if (mi1.x > mi2.x) std::swap(mi1.x, mi2.x);
+	if (mi1.y > mi2.y) std::swap(mi1.y, mi2.y);
+	if (mi1.z > mi2.z) std::swap(mi1.z, mi2.z);
+
+	if (mi3.x > mi4.x) std::swap(mi3.x, mi4.x);
+	if (mi3.y > mi4.y) std::swap(mi3.y, mi4.y);
+	if (mi3.z > mi4.z) std::swap(mi3.z, mi4.z);
+
 	mi1.x -= c_rCylinder1.fRadius; mi1.y -= c_rCylinder1.fRadius; mi1.z -= c_rCylinder1.fRadius;
 	mi2.x += c_rCylinder1.fRadius; mi2.y += c_rCylinder1.fRadius; mi2.z += c_rCylinder1.fRadius;
+
 	mi3.x -= c_rCylinder2.fRadius; mi3.y -= c_rCylinder2.fRadius; mi3.z -= c_rCylinder2.fRadius;
 	mi4.x += c_rCylinder2.fRadius; mi4.y += c_rCylinder2.fRadius; mi4.z += c_rCylinder2.fRadius;
-	if (mi4.x<mi1.x || mi2.x<mi3.x) return false;
-	if (mi4.y<mi1.y || mi2.y<mi3.y) return false;
-	if (mi4.z<mi1.z || mi2.z<mi3.z) return false;
-	
-	D3DXVECTOR3 vA, vB;
-	IntersectLineSegments(c_rCylinder1.v3LastPosition, c_rCylinder1.v3Position,
+
+	if (mi4.x < mi1.x || mi2.x < mi3.x) return false;
+	if (mi4.y < mi1.y || mi2.y < mi3.y) return false;
+	if (mi4.z < mi1.z || mi2.z < mi3.z) return false;
+
+	XMFLOAT3 vA, vB;
+
+	IntersectLineSegments(
+		c_rCylinder1.v3LastPosition, c_rCylinder1.v3Position,
 		c_rCylinder2.v3LastPosition, c_rCylinder2.v3Position,
-		vA, vB);
-	const auto vv = (vA - vB);
-	return (D3DXVec3LengthSq(&vv)<=rsq);
+		vA, vB
+	);
+
+	XMFLOAT3 d;
+	XMStoreFloat3(&d,
+		XMLoadFloat3(&vA) - XMLoadFloat3(&vB));
+
+	float distSq = XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&d)));
+
+	return distSq <= rsq;
 }
 
-bool DetectCollisionDynamicSphereVSDynamicSphere(const CDynamicSphereInstance & c_rSphere1, const CDynamicSphereInstance & c_rSphere2)
+bool DetectCollisionDynamicSphereVSDynamicSphere(
+	const CDynamicSphereInstance& c_rSphere1,
+	const CDynamicSphereInstance& c_rSphere2)
 {
-	float r = c_rSphere1.fRadius+c_rSphere2.fRadius;
-	float rsq = r*r;
+	float r = c_rSphere1.fRadius + c_rSphere2.fRadius;
+	float rsq = r * r;
 
-	// using gpg line-collision
+	XMFLOAT3 mi1 = c_rSphere1.v3LastPosition;
+	XMFLOAT3 mi2 = c_rSphere1.v3Position;
+	XMFLOAT3 mi3 = c_rSphere2.v3LastPosition;
+	XMFLOAT3 mi4 = c_rSphere2.v3Position;
 
-	// AABB check
+	if (mi1.x > mi2.x) std::swap(mi1.x, mi2.x);
+	if (mi1.y > mi2.y) std::swap(mi1.y, mi2.y);
+	if (mi1.z > mi2.z) std::swap(mi1.z, mi2.z);
 
-	D3DXVECTOR3 mi1=c_rSphere1.v3LastPosition, mi2 = c_rSphere1.v3Position;
-	D3DXVECTOR3 mi3=c_rSphere2.v3LastPosition, mi4 = c_rSphere2.v3Position;
-	if (mi1.x>mi2.x) std::swap(mi1.x,mi2.x);
-	if (mi1.y>mi2.y) std::swap(mi1.y,mi2.y);
-	if (mi1.z>mi2.z) std::swap(mi1.z,mi2.z);
-	if (mi3.x>mi4.x) std::swap(mi3.x,mi4.x);
-	if (mi3.y>mi4.y) std::swap(mi3.y,mi4.y);
-	if (mi3.z>mi4.z) std::swap(mi3.z,mi4.z);
+	if (mi3.x > mi4.x) std::swap(mi3.x, mi4.x);
+	if (mi3.y > mi4.y) std::swap(mi3.y, mi4.y);
+	if (mi3.z > mi4.z) std::swap(mi3.z, mi4.z);
+
 	mi1.x -= c_rSphere1.fRadius; mi1.y -= c_rSphere1.fRadius; mi1.z -= c_rSphere1.fRadius;
 	mi2.x += c_rSphere1.fRadius; mi2.y += c_rSphere1.fRadius; mi2.z += c_rSphere1.fRadius;
+
 	mi3.x -= c_rSphere2.fRadius; mi3.y -= c_rSphere2.fRadius; mi3.z -= c_rSphere2.fRadius;
 	mi4.x += c_rSphere2.fRadius; mi4.y += c_rSphere2.fRadius; mi4.z += c_rSphere2.fRadius;
-	if (mi4.x<mi1.x || mi2.x<mi3.x) return false;
-	if (mi4.y<mi1.y || mi2.y<mi3.y) return false;
-	if (mi4.z<mi1.z || mi2.z<mi3.z) return false;
-	
-	D3DXVECTOR3 vA, vB;
-	IntersectLineSegments(c_rSphere1.v3LastPosition, c_rSphere1.v3Position,
+
+	if (mi4.x < mi1.x || mi2.x < mi3.x) return false;
+	if (mi4.y < mi1.y || mi2.y < mi3.y) return false;
+	if (mi4.z < mi1.z || mi2.z < mi3.z) return false;
+
+	XMFLOAT3 vA, vB;
+
+	IntersectLineSegments(
+		c_rSphere1.v3LastPosition, c_rSphere1.v3Position,
 		c_rSphere2.v3LastPosition, c_rSphere2.v3Position,
-		vA, vB);
-	const auto vvv = (vA - vB);
-	return (D3DXVec3LengthSq(&vvv)<=rsq);
+		vA, vB
+	);
+
+	XMFLOAT3 d;
+	XMStoreFloat3(&d,
+		XMLoadFloat3(&vA) - XMLoadFloat3(&vB));
+
+	float distSq = XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&d)));
+
+	return distSq <= rsq;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,13 +156,21 @@ float GetInterpolatedRotation(float begin, float end, float curRate)
 
 float GetDegreeFromPosition(float x, float y)
 {
-	D3DXVECTOR3 vtDir(floor(x), floor(y), 0.0f);
-	D3DXVec3Normalize(&vtDir, &vtDir);
+	XMFLOAT3 vtDir(floor(x), floor(y), 0.0f);
 
-	D3DXVECTOR3 vtStan(0, -1, 0);
-	float ret = D3DXToDegree(acosf(D3DXVec3Dot(&vtDir, &vtStan)));
+	XMVECTOR v = XMVector3Normalize(XMLoadFloat3(&vtDir));
 
-	if (vtDir.x < 0.0f)
+	XMVECTOR vStan = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
+
+	float dot = XMVectorGetX(XMVector3Dot(v, vStan));
+	dot = std::clamp(dot, -1.0f, 1.0f);
+
+	float ret = XMConvertToDegrees(acosf(dot));
+
+	XMFLOAT3 dir;
+	XMStoreFloat3(&dir, v);
+
+	if (dir.x < 0.0f)
 		ret = 360.0f - ret;
 
 	return ret;

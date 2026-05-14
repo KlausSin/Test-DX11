@@ -179,7 +179,7 @@ void CActorInstance::SetMoveSpeed(float fMovSpd)
 	}
 }
 
-void CActorInstance::SetFishingPosition(D3DXVECTOR3 & rv3Position)
+void CActorInstance::SetFishingPosition(XMFLOAT3 & rv3Position)
 {
 	m_v3FishingPosition = rv3Position;
 }
@@ -446,8 +446,9 @@ void CActorInstance::__AccumulationMovement(float fRot)
 	if (CRaceMotionData::NAME_WAIT == __GetCurrentMotionIndex())
 		return;
 
-	D3DXMATRIX s_matRotationZ;
-	D3DXMatrixRotationZ(&s_matRotationZ, D3DXToRadian(fRot));
+	XMFLOAT4X4 s_matRotationZ;
+	XMStoreFloat4x4(&s_matRotationZ, XMMatrixRotationZ(XMConvertToRadians(fRot)));
+
 	UpdateTransform(&s_matRotationZ, GetAverageSecondElapsed());
 
 	AddMovement(s_matRotationZ._41, s_matRotationZ._42, s_matRotationZ._43);
@@ -492,7 +493,7 @@ void CActorInstance::OnUpdateCollisionData(const CStaticCollisionDataVector * ps
 	for(it = pscdVector->begin();it!=pscdVector->end();++it)
 	{
 		const CStaticCollisionData & c_rColliData = *it;
-		const D3DXMATRIX & c_rMatrix = GetTransform();
+		const XMFLOAT4X4 & c_rMatrix = GetTransform();
 		AddCollision(&c_rColliData, &c_rMatrix);
 	}
 }
@@ -616,37 +617,40 @@ void CActorInstance::AdjustDynamicCollisionMovement(const CActorInstance * c_pAc
 	}
 	else
 	{
+		float move_length = XMVectorGetX(XMVector3Length(XMLoadFloat3(&m_v3Movement)));
 
-		float move_length = D3DXVec3Length(&m_v3Movement);
-		if (move_length>gc_fActorSlideMoveSpeed)
-			m_v3Movement*=gc_fActorSlideMoveSpeed/move_length;
+		if (move_length > gc_fActorSlideMoveSpeed)
+			XMStoreFloat3(&m_v3Movement, XMLoadFloat3(&m_v3Movement) * (gc_fActorSlideMoveSpeed / move_length));
 
 		TCollisionPointInstanceListIterator itMain = m_BodyPointInstanceList.begin();
 		for (; itMain != m_BodyPointInstanceList.end(); ++itMain)
 		{
-			CDynamicSphereInstanceVector & c_rMainSphereVector = (*itMain).SphereInstanceVector;
+			CDynamicSphereInstanceVector& c_rMainSphereVector = (*itMain).SphereInstanceVector;
 			for (DWORD i = 0; i < c_rMainSphereVector.size(); ++i)
 			{
-				CDynamicSphereInstance & c_rMainSphere = c_rMainSphereVector[i];
+				CDynamicSphereInstance& c_rMainSphere = c_rMainSphereVector[i];
 
 				TCollisionPointInstanceList::const_iterator itOpp = c_pActorInstance->m_BodyPointInstanceList.begin();
-				for(;itOpp != c_pActorInstance->m_BodyPointInstanceList.end();++itOpp)
+				for (; itOpp != c_pActorInstance->m_BodyPointInstanceList.end(); ++itOpp)
 				{
 					CSphereCollisionInstance s;
-					s.GetAttribute().fRadius=itOpp->SphereInstanceVector[0].fRadius;
-					s.GetAttribute().v3Position=itOpp->SphereInstanceVector[0].v3Position;
-					D3DXVECTOR3 v3Delta = s.GetCollisionMovementAdjust(c_rMainSphere);
-					m_v3Movement+=v3Delta;
-					c_rMainSphere.v3Position+=v3Delta;
+					s.GetAttribute().fRadius = itOpp->SphereInstanceVector[0].fRadius;
+					s.GetAttribute().v3Position = itOpp->SphereInstanceVector[0].v3Position;
 
-					if (v3Delta.x !=0.0f || v3Delta.y !=0.0f || v3Delta.z !=0.0f )
+					XMFLOAT3 v3Delta = s.GetCollisionMovementAdjust(c_rMainSphere);
+
+					XMStoreFloat3(&m_v3Movement, XMLoadFloat3(&m_v3Movement) + XMLoadFloat3(&v3Delta));
+					XMStoreFloat3(&c_rMainSphere.v3Position, XMLoadFloat3(&c_rMainSphere.v3Position) + XMLoadFloat3(&v3Delta));
+
+					if (v3Delta.x != 0.0f || v3Delta.y != 0.0f || v3Delta.z != 0.0f)
 					{
-						move_length = D3DXVec3Length(&m_v3Movement);
-						if (move_length>gc_fActorSlideMoveSpeed)
+						move_length = XMVectorGetX(XMVector3Length(XMLoadFloat3(&m_v3Movement)));
+
+						if (move_length > gc_fActorSlideMoveSpeed)
 						{
-							m_v3Movement*=gc_fActorSlideMoveSpeed/move_length;
+							XMStoreFloat3(&m_v3Movement, XMLoadFloat3(&m_v3Movement) * (gc_fActorSlideMoveSpeed / move_length));
 							c_rMainSphere.v3Position = c_rMainSphere.v3LastPosition;
-							c_rMainSphere.v3Position+=m_v3Movement;
+							XMStoreFloat3(&c_rMainSphere.v3Position, XMLoadFloat3(&c_rMainSphere.v3Position) + XMLoadFloat3(&m_v3Movement));
 						}
 					}
 				}
@@ -665,7 +669,7 @@ void CActorInstance::UpdateSplashArea()
 	if (m_kSplashArea.SphereInstanceVector.size() != c_pAttackingData->CollisionData.SphereDataVector.size())
 		return;
 
-	float fRadian = D3DXToRadian(270.0f + 360.0f - GetRotation());
+	float fRadian = XMConvertToRadians(270.0f + 360.0f - GetRotation());
 
 	for (DWORD i = 0; i < c_pAttackingData->CollisionData.SphereDataVector.size(); ++i)
 	{
@@ -686,7 +690,7 @@ void CActorInstance::UpdateSplashArea()
 }
 // END OF celine skill fix
 
-void CActorInstance::__AdjustCollisionMovement(const CGraphicObjectInstance * c_pGraphicObjectInstance)
+void CActorInstance::__AdjustCollisionMovement(const CGraphicObjectInstance* c_pGraphicObjectInstance)
 {
 	if (m_pkHorse)
 	{
@@ -694,49 +698,39 @@ void CActorInstance::__AdjustCollisionMovement(const CGraphicObjectInstance * c_
 		return;
 	}
 
-	// Body는 하나임을 가정합니다.
-
-	if (m_v3Movement.x == 0.0f && m_v3Movement.y == 0.0f && m_v3Movement.z == 0.0f) 
+	if (m_v3Movement.x == 0.0f && m_v3Movement.y == 0.0f && m_v3Movement.z == 0.0f)
 		return;
 
-	float move_length = D3DXVec3Length(&m_v3Movement);
-	if (move_length>gc_fActorSlideMoveSpeed)
-		m_v3Movement*=gc_fActorSlideMoveSpeed/move_length;
+	float move_length = XMVectorGetX(XMVector3Length(XMLoadFloat3(&m_v3Movement)));
+
+	if (move_length > gc_fActorSlideMoveSpeed)
+		XMStoreFloat3(&m_v3Movement, XMLoadFloat3(&m_v3Movement) * (gc_fActorSlideMoveSpeed / move_length));
 
 	TCollisionPointInstanceListIterator itMain = m_BodyPointInstanceList.begin();
 	for (; itMain != m_BodyPointInstanceList.end(); ++itMain)
 	{
-		CDynamicSphereInstanceVector & c_rMainSphereVector = (*itMain).SphereInstanceVector;
+		CDynamicSphereInstanceVector& c_rMainSphereVector = (*itMain).SphereInstanceVector;
+
 		for (DWORD i = 0; i < c_rMainSphereVector.size(); ++i)
 		{
-			CDynamicSphereInstance & c_rMainSphere = c_rMainSphereVector[i];
+			CDynamicSphereInstance& c_rMainSphere = c_rMainSphereVector[i];
 
-			D3DXVECTOR3 v3Delta = c_pGraphicObjectInstance->GetCollisionMovementAdjust(c_rMainSphere);
-			m_v3Movement+=v3Delta;
-			c_rMainSphere.v3Position+=v3Delta;
+			XMFLOAT3 v3Delta = c_pGraphicObjectInstance->GetCollisionMovementAdjust(c_rMainSphere);
 
-			if (v3Delta.x !=0.0f || v3Delta.y !=0.0f || v3Delta.z !=0.0f )
+			XMStoreFloat3(&m_v3Movement, XMLoadFloat3(&m_v3Movement) + XMLoadFloat3(&v3Delta));
+			XMStoreFloat3(&c_rMainSphere.v3Position, XMLoadFloat3(&c_rMainSphere.v3Position) + XMLoadFloat3(&v3Delta));
+
+			if (v3Delta.x != 0.0f || v3Delta.y != 0.0f || v3Delta.z != 0.0f)
 			{
-				move_length = D3DXVec3Length(&m_v3Movement);
-				if (move_length>gc_fActorSlideMoveSpeed)
+				move_length = XMVectorGetX(XMVector3Length(XMLoadFloat3(&m_v3Movement)));
+
+				if (move_length > gc_fActorSlideMoveSpeed)
 				{
-					m_v3Movement*=gc_fActorSlideMoveSpeed/move_length;
+					XMStoreFloat3(&m_v3Movement, XMLoadFloat3(&m_v3Movement) * (gc_fActorSlideMoveSpeed / move_length));
 					c_rMainSphere.v3Position = c_rMainSphere.v3LastPosition;
-					c_rMainSphere.v3Position+=m_v3Movement;
+					XMStoreFloat3(&c_rMainSphere.v3Position, XMLoadFloat3(&c_rMainSphere.v3Position) + XMLoadFloat3(&m_v3Movement));
 				}
 			}
-
-			/*if (c_pObjectInstance->CollisionDynamicSphere(c_rMainSphere))
-			{
-				const D3DXVECTOR3 & c_rv3Position = c_pObjectInstance->GetPosition();
-				//if (GetVector3Distance(c_rMainSphere.v3Position, c_rv3Position) <
-				//	GetVector3Distance(c_rMainSphere.v3LastPosition, c_rv3Position))
-				{
-					return TRUE;
-				}
-
-				return FALSE;
-			}*/
 		}
 	}
 }
@@ -766,29 +760,32 @@ bool CActorInstance::IntersectDefendingSphere()
 {
 	for (TCollisionPointInstanceList::iterator it = m_DefendingPointInstanceList.begin(); it != m_DefendingPointInstanceList.end(); ++it)
 	{
-		CDynamicSphereInstanceVector & rSphereInstanceVector = (*it).SphereInstanceVector;
+		CDynamicSphereInstanceVector& rSphereInstanceVector = (*it).SphereInstanceVector;
 
 		CDynamicSphereInstanceVector::iterator it2 = rSphereInstanceVector.begin();
 		for (; it2 != rSphereInstanceVector.end(); ++it2)
 		{
-			CDynamicSphereInstance & rInstance = *it2;
-			D3DXVECTOR3 v3SpherePosition = rInstance.v3Position;
+			CDynamicSphereInstance& rInstance = *it2;
+			XMFLOAT3 v3SpherePosition = rInstance.v3Position;
 			float fRadius = rInstance.fRadius;
 
-			D3DXVECTOR3 v3Orig;
-			D3DXVECTOR3 v3Dir;
+			XMFLOAT3 v3Orig;
+			XMFLOAT3 v3Dir;
 			float fRange;
+
 			ms_Ray.GetStartPoint(&v3Orig);
 			ms_Ray.GetDirection(&v3Dir, &fRange);
 
-			D3DXVECTOR3 v3Distance = v3Orig - v3SpherePosition;
-			float b = D3DXVec3Dot(&v3Dir, &v3Distance);
-			float c = D3DXVec3Dot(&v3Distance, &v3Distance) - fRadius*fRadius;
+			const XMVECTOR v3Distance = XMLoadFloat3(&v3Orig) - XMLoadFloat3(&v3SpherePosition);
 
-			if (b*b - c >= 0)
+			float b = XMVectorGetX(XMVector3Dot(XMLoadFloat3(&v3Dir), v3Distance));
+			float c = XMVectorGetX(XMVector3Dot(v3Distance, v3Distance)) - fRadius * fRadius;
+
+			if (b * b - c >= 0.0f)
 				return true;
 		}
 	}
+
 	return false;
 }
 
@@ -905,7 +902,7 @@ void CActorInstance::__InitializeStateData()
 
 	m_iRenderMode = RENDER_MODE_NORMAL;
 	m_fAlphaValue = 0.0f;
-	m_AddColor = D3DXCOLOR(0.0f, 0.0f, 0.0f, 1.0f);
+	m_AddColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 	
 	m_dwMtrlColor=0xffffffff;
 	m_dwMtrlAlpha=0xff000000;
@@ -963,7 +960,7 @@ void CActorInstance::__Initialize()
 
 	m_pFlyEventHandler = 0;
 
-	m_v3FishingPosition = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+	m_v3FishingPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	m_iFishingEffectID = -1;
 
 	m_pkHorse = NULL;

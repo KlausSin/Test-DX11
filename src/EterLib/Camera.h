@@ -62,7 +62,7 @@ class CCamera
 		float m_fDistanceBackup;
 		float m_fTargetZBackUp;
 
-		D3DXVECTOR3 m_v3EyeBackup;
+		XMFLOAT3 m_v3EyeBackup;
 
 		unsigned long m_ulNumScreenBuilding;
 
@@ -71,19 +71,20 @@ class CCamera
 		bool m_isLock;
 
 		// Attributes for view matrix
-		D3DXVECTOR3 m_v3Eye;
-		D3DXVECTOR3 m_v3Target;
-		D3DXVECTOR3 m_v3Up;
-		
+		XMFLOAT3 m_v3Eye;
+		XMFLOAT3 m_v3Target;
+		XMFLOAT3 m_v3Up;
+
 		// m_v3View = m_v3Target - m_v3Eye
-		D3DXVECTOR3 m_v3View;
+		XMFLOAT3 m_v3View;
+
 		// m_v3Cross = Cross(m_v3Up, m_v3View)
-		D3DXVECTOR3 m_v3Cross;
-		
-		//ViewMatrixes
-		D3DXMATRIX m_matView;
-		D3DXMATRIX m_matInverseView;
-		D3DXMATRIX m_matBillboard; // Special matrix for billboarding effects
+		XMFLOAT3 m_v3Cross;
+
+		// ViewMatrixes
+		XMFLOAT4X4 m_matView;
+		XMFLOAT4X4 m_matInverseView;
+		XMFLOAT4X4 m_matBillboard;
 
 		//추가분
 		float m_fPitch;
@@ -125,16 +126,16 @@ class CCamera
 
 //	protected:
 		// 물리
-		D3DXVECTOR3		m_v3AngularAcceleration;
-		D3DXVECTOR3		m_v3AngularVelocity;
+		XMFLOAT3		m_v3AngularAcceleration;
+		XMFLOAT3		m_v3AngularVelocity;
 
 		float			m_fResistance;
 	public:
 		//////////////////////////////////////////////////////////////////////////
 		// 물리
 		//////////////////////////////////////////////////////////////////////////
-		void SetAngularAcceleration(D3DXVECTOR3 v3AngularAcceleration) { m_v3AngularAcceleration = v3AngularAcceleration; }
-		
+		void SetAngularAcceleration(XMFLOAT3 v3AngularAcceleration) { m_v3AngularAcceleration = v3AngularAcceleration; }
+
 		//////////////////////////////////////////////////////////////////////////
 		// AI
 		//////////////////////////////////////////////////////////////////////////
@@ -165,21 +166,21 @@ class CCamera
 		// properties
 		//////////////////////////////////////////////////////////////////////////
 		
-		const D3DXVECTOR3 & GetEye() const		{ return m_v3Eye; }
-		const D3DXVECTOR3 & GetTarget() const	{ return m_v3Target; }
-		const D3DXVECTOR3 & GetUp() const		{ return m_v3Up; }
-		const D3DXVECTOR3 & GetView() const		{ return m_v3View; }
-		const D3DXVECTOR3 & GetCross() const	{ return m_v3Cross; }
-		
-		const D3DXMATRIX & GetViewMatrix() const		{ return m_matView; }
-		const D3DXMATRIX & GetInverseViewMatrix() const	{ return m_matInverseView; }
-		const D3DXMATRIX & GetBillboardMatrix()const	{ return m_matBillboard; }
-		
-		void SetViewParams(const D3DXVECTOR3 & v3Eye, const D3DXVECTOR3& v3Target, const D3DXVECTOR3& v3Up );
-		
-		void SetEye(const D3DXVECTOR3 & v3Eye);
-		void SetTarget(const D3DXVECTOR3 & v3Target);
-		void SetUp(const D3DXVECTOR3 & v3Up);
+		const XMFLOAT3& GetEye() const { return m_v3Eye; }
+		const XMFLOAT3& GetTarget() const { return m_v3Target; }
+		const XMFLOAT3& GetUp() const { return m_v3Up; }
+		const XMFLOAT3& GetView() const { return m_v3View; }
+		const XMFLOAT3& GetCross() const { return m_v3Cross; }
+
+		const XMFLOAT4X4& GetViewMatrix() const { return m_matView; }
+		const XMFLOAT4X4& GetInverseViewMatrix() const { return m_matInverseView; }
+		const XMFLOAT4X4& GetBillboardMatrix() const { return m_matBillboard; }
+
+		void SetViewParams(const XMFLOAT3& v3Eye, const XMFLOAT3& v3Target, const XMFLOAT3& v3Up);
+
+		void SetEye(const XMFLOAT3& v3Eye);
+		void SetTarget(const XMFLOAT3& v3Target);
+		void SetUp(const XMFLOAT3& v3Up);
 
 		float GetPitch() const { return m_fPitch; }
 		float GetRoll() const { return m_fRoll; }
@@ -194,7 +195,7 @@ class CCamera
 		//////////////////////////////////////////////////////////////////////////
 		
 		// 말그대로 이동... 카메라 위치와 타겟 위치가 모두 달라진다.
-		void Move(const D3DXVECTOR3 & v3Displacement);
+		void Move(const XMFLOAT3 & v3Displacement);
 		// 줌.. 카메라 위치만 이동.. 타겟 위치는 고정...
 		void Zoom(float fRatio);
 
@@ -222,7 +223,7 @@ class CCamera
 		void RotateEyeAroundTarget(float fPitchDegree, float fRollDegree);
 
 		// 도는 중심점을 따로 지정 그 점을 중심으로 돈다. 타겟 점도 달라지겠죠?
-		void RotateEyeAroundPoint(const D3DXVECTOR3 & v3Point, float fPitchDegree, float fRollDegree);
+		void RotateEyeAroundPoint(const XMFLOAT3 & v3Point, float fPitchDegree, float fRollDegree);
 
 	protected:
 		void SetViewMatrix();

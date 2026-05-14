@@ -27,27 +27,35 @@ void CActorInstance::__OnMoving()
 {
 	assert(!IsPushing());
 
-	IEventHandler& rkEventHandler=__GetEventHandlerRef();
+	IEventHandler& rkEventHandler = __GetEventHandlerRef();
 
-	const TPixelPosition& c_rkPPosCur=NEW_GetCurPixelPositionRef();
-	const TPixelPosition& c_rkPPosDst=NEW_GetDstPixelPositionRef();
+	const XMFLOAT3& cur = NEW_GetCurPixelPositionRef();
+	const XMFLOAT3& dst = NEW_GetDstPixelPositionRef();
 
-	TPixelPosition kPPosDir=c_rkPPosDst-c_rkPPosCur;
-	float distance=sqrt(kPPosDir.x*kPPosDir.x+kPPosDir.y*kPPosDir.y);
+	XMVECTOR vCur = XMLoadFloat3(&cur);
+	XMVECTOR vDst = XMLoadFloat3(&dst);
+
+	XMVECTOR dir = vDst - vCur;
+
+	float distance = XMVectorGetX(XMVector3Length(dir));
 
 	IEventHandler::SState kState;
 
-	if (distance>1000.0f)
+	if (distance > 1000.0f)
 	{
-		D3DXVec3Normalize(&kPPosDir, &kPPosDir);
-		D3DXVec3Scale(&kPPosDir, &kPPosDir, 1000.0f);
-		D3DXVec3Add(&kState.kPPosSelf, &kPPosDir, &c_rkPPosCur);
+		XMVECTOR n = XMVector3Normalize(dir);
+		XMVECTOR scaled = n * 1000.0f;
+
+		XMVECTOR result = vCur + scaled;
+
+		XMStoreFloat3(&kState.kPPosSelf, result);
 	}
 	else
 	{
-		kState.kPPosSelf=c_rkPPosDst;
+		XMStoreFloat3(&kState.kPPosSelf, vDst);
 	}
-	kState.fAdvRotSelf=GetAdvancingRotation();
+
+	kState.fAdvRotSelf = GetAdvancingRotation();
 	rkEventHandler.OnMoving(kState);
 }
 

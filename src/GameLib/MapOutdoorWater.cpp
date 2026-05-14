@@ -32,7 +32,7 @@ void CMapOutdoor::RenderWater(const RenderContext& ctx)
 
     auto& state = STATEMANAGER.GetStateCache();
 
-    D3DXMATRIX matTexTransformWater;
+    XMFLOAT4X4 matTexTransformWater;
 
     state.Push();
     STATEMANAGER.GetSampler().Push(0);
@@ -46,9 +46,13 @@ void CMapOutdoor::RenderWater(const RenderContext& ctx)
 
     STATEMANAGER.SetTexture(0, m_WaterInstances[frame].GetTexturePointer()->GetSRV());
 
-    D3DXMatrixScaling(&matTexTransformWater, m_fWaterTexCoordBase, -m_fWaterTexCoordBase, 0.0f);
+    XMMATRIX scale = XMMatrixScaling(m_fWaterTexCoordBase, -m_fWaterTexCoordBase, 0.0f);
 
-    D3DXMatrixMultiply(&matTexTransformWater, &ctx.Frame.ViewInverse, &matTexTransformWater);
+    XMMATRIX viewInv = XMLoadFloat4x4(&ctx.Frame.ViewInverse);
+
+    XMMATRIX result = viewInv * scale;
+
+    XMStoreFloat4x4(&matTexTransformWater, result);
 
     STATEMANAGER.GetTransform().Push();
     STATEMANAGER.GetTransform().SetTexture0(matTexTransformWater);

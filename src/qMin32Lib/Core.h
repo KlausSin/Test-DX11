@@ -38,7 +38,7 @@ enum ED3D11VertexFormat
 	VF_PD,		// Position + Diffuse
 	VF_SCREEN,	// Pre-transformed: XYZRHW + Diffuse + Specular + Tex2
 	VF_PT,		// Position + TexCoord (effects, snow, minimap)
-	
+
 	VF_SKYBOX,
 	VF_TERRAIN,
 	VF_EFFECT,
@@ -50,12 +50,31 @@ enum ED3D11VertexFormat
 	VF_COUNT
 };
 
+static DWORD ColorToUint(const DirectX::XMFLOAT4& c)
+{
+	return
+		(static_cast<DWORD>(c.w * 255.0f) << 24) |
+		(static_cast<DWORD>(c.x * 255.0f) << 16) |
+		(static_cast<DWORD>(c.y * 255.0f) << 8) | 
+		(static_cast<DWORD>(c.z * 255.0f)); 
+}
+
+static XMFLOAT4 UintColor(DWORD c)
+{
+	return XMFLOAT4(
+		((c >> 16) & 0xff) / 255.0f,
+		((c >> 8) & 0xff) / 255.0f,
+		((c >> 0) & 0xff) / 255.0f,
+		((c >> 24) & 0xff) / 255.0f
+	);
+}
+
 struct D3DMATERIAL11
 {
-	D3DXCOLOR Diffuse;
-	D3DXCOLOR Ambient;
-	D3DXCOLOR Specular;
-	D3DXCOLOR Emissive;
+	XMFLOAT4 Diffuse;
+	XMFLOAT4 Ambient;
+	XMFLOAT4 Specular;
+	XMFLOAT4 Emissive;
 	float Power;
 
 	D3DMATERIAL11()
@@ -79,14 +98,14 @@ struct D3DLIGHT11
 {
 	D3DLIGHTTYPE11 Type;
 
-	D3DXCOLOR Diffuse;
-	D3DXCOLOR Specular;
-	D3DXCOLOR Ambient;
+	XMFLOAT4 Diffuse;
+	XMFLOAT4 Specular;
+	XMFLOAT4 Ambient;
 
-	D3DXVECTOR3 Position;
+	XMFLOAT3 Position;
 	float Range;
 
-	D3DXVECTOR3 Direction;
+	XMFLOAT3 Direction;
 	float Falloff;
 
 	float Attenuation0;
@@ -125,13 +144,13 @@ struct RenderFrameContext
 	ID3D11Device* Device = nullptr;
 	ID3D11DeviceContext* DeviceContext = nullptr;
 
-	D3DXMATRIX View{};
-	D3DXMATRIX Projection{};
-	D3DXMATRIX ViewProjection{};
-	D3DXMATRIX ViewInverse{};
+	XMFLOAT4X4 View{};
+	XMFLOAT4X4 Projection{};
+	XMFLOAT4X4 ViewProjection{};
+	XMFLOAT4X4 ViewInverse{};
 
-	D3DXVECTOR3 Eye{};
-	D3DXVECTOR3 Target{};
+	XMFLOAT3 Eye{};
+	XMFLOAT3 Target{};
 
 	float DeltaTime = 0.0f;
 	float Time = 0.0f;
@@ -145,23 +164,23 @@ struct RenderFrameContext
 	bool DrawShadow = false;
 	bool DrawCharacterShadow = false;
 	ID3D11ShaderResourceView* CharacterShadowTexture = nullptr;
-	D3DXMATRIX DynamicShadowMatrix{};
+	XMFLOAT4X4 DynamicShadowMatrix{};
 
 	static RenderFrameContext Default()
 	{
 		RenderFrameContext ctx;
-		D3DXMatrixIdentity(&ctx.View);
-		D3DXMatrixIdentity(&ctx.Projection);
-		D3DXMatrixIdentity(&ctx.ViewProjection);
-		D3DXMatrixIdentity(&ctx.ViewInverse);
-		D3DXMatrixIdentity(&ctx.DynamicShadowMatrix);
+		XMStoreFloat4x4(&ctx.View, XMMatrixIdentity());
+		XMStoreFloat4x4(&ctx.Projection, XMMatrixIdentity());
+		XMStoreFloat4x4(&ctx.ViewProjection, XMMatrixIdentity());
+		XMStoreFloat4x4(&ctx.ViewInverse, XMMatrixIdentity());
+		XMStoreFloat4x4(&ctx.DynamicShadowMatrix, XMMatrixIdentity());
 		return ctx;
 	}
 };
 
 struct RenderObjectContext
 {
-	D3DXMATRIX World{};
+	XMFLOAT4X4 World{};
 	bool AlphaBlend = false;
 	bool AlphaTest = true;
 	bool TwoSided = false;
@@ -170,7 +189,7 @@ struct RenderObjectContext
 	static RenderObjectContext Default()
 	{
 		RenderObjectContext ctx;
-		D3DXMatrixIdentity(&ctx.World);
+		XMStoreFloat4x4(&ctx.World, XMMatrixIdentity());
 		return ctx;
 	}
 };

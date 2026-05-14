@@ -52,8 +52,9 @@ public:
 struct FUpdate
 {
 	float fElapsedTime;
-	D3DXMATRIX * pmatWorld;
-	void operator() (CGrannyModelInstance * pInstance)
+	XMFLOAT4X4* pmatWorld;
+
+	void operator()(CGrannyModelInstance* pInstance)
 	{
 		pInstance->Update(CGrannyModelInstance::ANIFPS_MIN);
 		pInstance->UpdateLocalTime(fElapsedTime);
@@ -105,25 +106,28 @@ void CDungeonBlock::OnRenderShadow(const RenderContext& ctx)
 
 struct FBoundBox
 {
-	D3DXVECTOR3 * m_pv3Min;
-	D3DXVECTOR3 * m_pv3Max;
+	XMFLOAT3* m_pv3Min;
+	XMFLOAT3* m_pv3Max;
 
-	FBoundBox(D3DXVECTOR3 * pv3Min, D3DXVECTOR3 * pv3Max)
+	FBoundBox(XMFLOAT3* pv3Min, XMFLOAT3* pv3Max)
 	{
 		m_pv3Min = pv3Min;
 		m_pv3Max = pv3Max;
 	}
-	void operator() (CGrannyModelInstance * pInstance)
+
+	void operator()(CGrannyModelInstance* pInstance)
 	{
 		pInstance->GetBoundBox(m_pv3Min, m_pv3Max);
 	}
 };
 
-bool CDungeonBlock::GetBoundingSphere(D3DXVECTOR3 & v3Center, float & fRadius)
+bool CDungeonBlock::GetBoundingSphere(XMFLOAT3& v3Center, float& fRadius)
 {
 	v3Center = m_v3Center;
 	fRadius = m_fRadius;
-	D3DXVec3TransformCoord(&v3Center, &v3Center, &GetTransform());
+
+	XMStoreFloat3(&v3Center, XMVector3TransformCoord(XMLoadFloat3(&v3Center), XMLoadFloat4x4(&GetTransform())));
+
 	return true;
 }
 
@@ -152,12 +156,15 @@ bool CDungeonBlock::OnGetObjectHeight(float fX, float fY, float * pfHeight)
 
 void CDungeonBlock::BuildBoundingSphere()
 {
-	D3DXVECTOR3 v3Min, v3Max;
+	XMFLOAT3 v3Min, v3Max;
 	for_each(m_ModelInstanceContainer.begin(), m_ModelInstanceContainer.end(), FBoundBox(&v3Min, &v3Max));
 
-	m_v3Center = (v3Min+v3Max) * 0.5f;
-	const auto vv = (v3Max - v3Min);
-	m_fRadius = D3DXVec3Length(&vv)*0.5f + 150.0f; // extra length for attached objects
+	XMStoreFloat3(&m_v3Center, (XMLoadFloat3(&v3Min) + XMLoadFloat3(&v3Max)) * 0.5f);
+
+	XMFLOAT3 vv;
+	XMStoreFloat3(&vv, XMLoadFloat3(&v3Max) - XMLoadFloat3(&v3Min));
+
+	m_fRadius = XMVectorGetX(XMVector3Length(XMLoadFloat3(&vv))) * 0.5f + 150.0f;
 }
 
 bool CDungeonBlock::Intersect(float * pfu, float * pfv, float * pft)
@@ -173,7 +180,7 @@ bool CDungeonBlock::Intersect(float * pfu, float * pfv, float * pft)
 	return false;
 }
 
-void CDungeonBlock::GetBoundBox(D3DXVECTOR3 * pv3Min, D3DXVECTOR3 * pv3Max)
+void CDungeonBlock::GetBoundBox(XMFLOAT3 * pv3Min, XMFLOAT3 * pv3Max)
 {
 	pv3Min->x = +10000000.0f;
 	pv3Min->y = +10000000.0f;
@@ -187,8 +194,8 @@ void CDungeonBlock::GetBoundBox(D3DXVECTOR3 * pv3Min, D3DXVECTOR3 * pv3Max)
 	{
 		CDungeonModelInstance * pInstance = *itor;
 
-		D3DXVECTOR3 v3Min;
-		D3DXVECTOR3 v3Max;
+		XMFLOAT3 v3Min;
+		XMFLOAT3 v3Max;
 		pInstance->GetBoundBox(&v3Min, &v3Max);
 
 		pv3Min->x = std::min(v3Min.x, pv3Min->x);
@@ -227,7 +234,7 @@ bool CDungeonBlock::Load(const char * c_szFileName)
 
 void CDungeonBlock::__Initialize()
 {
-	m_v3Center = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+	m_v3Center = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	m_fRadius = 0.0f;
 
 	m_pThing = NULL;

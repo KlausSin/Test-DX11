@@ -39,7 +39,13 @@ void CActorInstance::OnRender(const RenderContext& ctx)
 
 	D3DMATERIAL11 kMtrl = STATEMANAGER.GetLight().GetMaterial();
 
-	kMtrl.Diffuse=D3DXCOLOR(m_dwMtrlColor);	
+	kMtrl.Diffuse = XMFLOAT4(
+		((m_dwMtrlColor >> 16) & 0xFF) / 255.0f,
+		((m_dwMtrlColor >> 8) & 0xFF) / 255.0f,
+		((m_dwMtrlColor >> 0) & 0xFF) / 255.0f,
+		((m_dwMtrlColor >> 24) & 0xFF) / 255.0f
+	);
+
 	STATEMANAGER.GetLight().SetMaterial(kMtrl);
 
 	// 현재는 이렇게.. 최종적인 형태는 Diffuse와 Blend의 분리로..
@@ -91,26 +97,26 @@ void CActorInstance::OnRender(const RenderContext& ctx)
 
 	STATEMANAGER.GetRaster().Restore();
 
-	kMtrl.Diffuse = D3DXCOLOR(0xffffffff);
+	kMtrl.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	STATEMANAGER.GetLight().SetMaterial(kMtrl);
 
 	if (ms_isDirLine)
 	{
-		D3DXVECTOR3 kD3DVt3Cur(m_x, m_y, m_z);
+		XMFLOAT3 kD3DVt3Cur(m_x, m_y, m_z);
 
-		D3DXVECTOR3 kD3DVt3LookDir(0.0f, -1.0f, 0.0f);
-		D3DXMATRIX kD3DMatLook;
-		D3DXMatrixRotationZ(&kD3DMatLook, D3DXToRadian(GetRotation()));
-		D3DXVec3TransformCoord(&kD3DVt3LookDir, &kD3DVt3LookDir, &kD3DMatLook);
-		D3DXVec3Scale(&kD3DVt3LookDir, &kD3DVt3LookDir, 200.0f);
-		D3DXVec3Add(&kD3DVt3LookDir, &kD3DVt3LookDir, &kD3DVt3Cur);
+		XMFLOAT3 kD3DVt3LookDir(0.0f, -1.0f, 0.0f);
+		XMFLOAT4X4 kD3DMatLook;
+		XMStoreFloat4x4(&kD3DMatLook, XMMatrixRotationZ(XMConvertToRadians(GetRotation())));
+		XMStoreFloat3(&kD3DVt3LookDir, XMVector3TransformCoord(XMLoadFloat3(&kD3DVt3LookDir), XMLoadFloat4x4(&kD3DMatLook)));
+		XMStoreFloat3(&kD3DVt3LookDir, XMLoadFloat3(&kD3DVt3LookDir) * 200.0f);
+		XMStoreFloat3(&kD3DVt3LookDir, XMLoadFloat3(&kD3DVt3LookDir) + XMLoadFloat3(&kD3DVt3Cur));
 
-		D3DXVECTOR3 kD3DVt3AdvDir(0.0f, -1.0f, 0.0f);
-		D3DXMATRIX kD3DMatAdv;
-		D3DXMatrixRotationZ(&kD3DMatAdv, D3DXToRadian(GetAdvancingRotation()));
-		D3DXVec3TransformCoord(&kD3DVt3AdvDir, &kD3DVt3AdvDir, &kD3DMatAdv);
-		D3DXVec3Scale(&kD3DVt3AdvDir, &kD3DVt3AdvDir, 200.0f);
-		D3DXVec3Add(&kD3DVt3AdvDir, &kD3DVt3AdvDir, &kD3DVt3Cur);
+		XMFLOAT3 kD3DVt3AdvDir(0.0f, -1.0f, 0.0f);
+		XMFLOAT4X4 kD3DMatAdv;
+		XMStoreFloat4x4(&kD3DMatAdv, XMMatrixRotationZ(XMConvertToRadians(GetAdvancingRotation())));
+		XMStoreFloat3(&kD3DVt3AdvDir, XMVector3TransformCoord(XMLoadFloat3(&kD3DVt3AdvDir), XMLoadFloat4x4(&kD3DMatAdv)));
+		XMStoreFloat3(&kD3DVt3AdvDir, XMLoadFloat3(&kD3DVt3AdvDir) * 200.0f);
+		XMStoreFloat3(&kD3DVt3AdvDir, XMLoadFloat3(&kD3DVt3AdvDir) + XMLoadFloat3(&kD3DVt3Cur));
 
 		static CScreen s_kScreen;
 
@@ -159,7 +165,7 @@ void CActorInstance::BeginBlendRender()
 	STATEMANAGER.GetBlend().SetSrcBlend(D3D11_BLEND_SRC_ALPHA);
 	STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_INV_SRC_ALPHA);
 
-	_mgr->GetCbMgr()->SetTextureFactor(D3DXCOLOR(1.0f, 1.0f, 1.0f, m_fAlphaValue));
+	_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(XMFLOAT4(1.0f, 1.0f, 1.0f, m_fAlphaValue)));
 }
 
 void CActorInstance::EndBlendRender()
@@ -169,7 +175,7 @@ void CActorInstance::EndBlendRender()
 
 void CActorInstance::BeginAddRender()
 {
-	_mgr->GetCbMgr()->SetTextureFactor(m_AddColor);
+	_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(m_AddColor));
 
 	STATEMANAGER.GetBlend().Push();
 	STATEMANAGER.GetBlend().SetBlendEnable(false);
@@ -210,15 +216,15 @@ void CActorInstance::SetRenderMode(int iRenderMode)
 	}
 }
 
-void CActorInstance::SetAddColor(const D3DXCOLOR & c_rColor)
+void CActorInstance::SetAddColor(const XMFLOAT4 & c_rColor)
 {
 	m_AddColor = c_rColor;
-	m_AddColor.a = 1.0f;
+	m_AddColor.w = 1.0f;
 }
 
 void CActorInstance::BeginModulateRender()
 {
-	_mgr->GetCbMgr()->SetTextureFactor(m_AddColor);
+	_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(m_AddColor));
 
 	STATEMANAGER.GetBlend().Push();
 	STATEMANAGER.GetBlend().SetBlendEnable(false);
@@ -266,7 +272,7 @@ void CActorInstance::RenderCollisionData()
 
 	s_Screen.SetDiffuseColor(1.0f, isShow() ? 1.0f : 0.0f, 0.0f);
 
-	D3DXVECTOR3 center;
+	XMFLOAT3 center;
 	float r;
 	GetBoundingSphere(center, r);
 	s_Screen.RenderCircle3d(center.x, center.y, center.z, r);

@@ -6,8 +6,8 @@ void CGrannyModelInstance::MakeBoundBox(TBoundBox* pBoundBox,
 										 const float* mat, 
 										 const float* OBBMin, 
 										 const float* OBBMax, 
-										 D3DXVECTOR3* vtMin, 
-										 D3DXVECTOR3* vtMax)
+										 XMFLOAT3* vtMin, 
+										 XMFLOAT3* vtMax)
 {
 	pBoundBox->sx = OBBMin[0] * mat[0] + OBBMin[1] * mat[4] + OBBMin[2] * mat[8] + mat[12];
 	pBoundBox->sy = OBBMin[0] * mat[1] + OBBMin[1] * mat[5] + OBBMin[2] * mat[9] + mat[13];
@@ -32,20 +32,18 @@ void CGrannyModelInstance::MakeBoundBox(TBoundBox* pBoundBox,
 	vtMax->z = std::max(vtMax->z, pBoundBox->ez);
 }
 
-bool CGrannyModelInstance::Intersect(const D3DXMATRIX * c_pMatrix,
-									 float * /*pu*/, float * /*pv*/, float * pt)
+bool CGrannyModelInstance::Intersect(const XMFLOAT4X4* c_pMatrix, float* /*pu*/, float* /*pv*/, float* pt)
 {
 	if (!m_pgrnModelInstance)
 		return false;
 
 	float u, v, t;
-	bool ret = false;
 	*pt = 100000000.0f;
 
-	float max = 10000000.0f;
-	D3DXVECTOR3 vtMin, vtMax;
-	vtMin.x = vtMin.y = vtMin.z = max;
-	vtMax.x = vtMax.y = vtMax.z = -max;
+	const float max = 10000000.0f;
+
+	XMFLOAT3 vtMin(max, max, max);
+	XMFLOAT3 vtMax(-max, -max, -max);
 
 	static stl_stack_pool<TBoundBox> s_boundBoxPool(1024);
 	s_boundBoxPool.clear();
@@ -54,47 +52,47 @@ bool CGrannyModelInstance::Intersect(const D3DXMATRIX * c_pMatrix,
 
 	for (int m = 0; m < meshCount; ++m)
 	{
-		//const CGrannyMesh * pMesh = m_pModel->GetMeshPointer(m);
-		const granny_mesh * pgrnMesh = m_pModel->GetGrannyModelPointer()->MeshBindings[m].Mesh;
+		const granny_mesh* pgrnMesh = m_pModel->GetGrannyModelPointer()->MeshBindings[m].Mesh;
 
 		for (int b = 0; b < pgrnMesh->BoneBindingCount; ++b)
 		{
 			const granny_bone_binding& rgrnBoneBinding = pgrnMesh->BoneBindings[b];
 
-			TBoundBox * pBoundBox = s_boundBoxPool.alloc();
+			TBoundBox* pBoundBox = s_boundBoxPool.alloc();
 
-			// WORK
-			float * Transform = GrannyGetWorldPose4x4(__GetWorldPosePtr(), __GetMeshBoneIndices(m)[b]);
-			// END_OF_WORK
+			float* Transform = GrannyGetWorldPose4x4(__GetWorldPosePtr(), __GetMeshBoneIndices(m)[b]);
 
-			MakeBoundBox(pBoundBox,
-						 Transform,
-						 rgrnBoneBinding.OBBMin,
-						 rgrnBoneBinding.OBBMax,
-						 &vtMin,
-						 &vtMax);
+			MakeBoundBox(
+				pBoundBox,
+				Transform,
+				rgrnBoneBinding.OBBMin,
+				rgrnBoneBinding.OBBMax,
+				&vtMin,
+				&vtMax);
 
 			pBoundBox->meshIndex = m;
 			pBoundBox->boneIndex = b;
 		}
 	}
 
-	if (!IntersectCube(c_pMatrix,
-					   vtMin.x, vtMin.y, vtMin.z,
-					   vtMax.x, vtMax.y, vtMax.z,
-					   ms_vtPickRayOrig, ms_vtPickRayDir,
-					   &u, &v, &t))
+	if (!IntersectCube(
+		c_pMatrix,
+		vtMin.x, vtMin.y, vtMin.z,
+		vtMax.x, vtMax.y, vtMax.z,
+		ms_vtPickRayOrig,
+		ms_vtPickRayDir,
+		&u, &v, &t))
 	{
-		return ret;
+		return false;
 	}
 
+	*pt = t;
 	return true;
-
 }
 
 #include "EterBase/Timer.h"
 
-void CGrannyModelInstance::GetBoundBox(D3DXVECTOR3* vtMin, D3DXVECTOR3* vtMax)
+void CGrannyModelInstance::GetBoundBox(XMFLOAT3* vtMin, XMFLOAT3* vtMax)
 {
 	if (!m_pgrnModelInstance)
 		return;
@@ -124,7 +122,7 @@ void CGrannyModelInstance::GetBoundBox(D3DXVECTOR3* vtMin, D3DXVECTOR3* vtMax)
 	}
 }
 
-bool CGrannyModelInstance::GetMeshMatrixPointer(int iMesh, const D3DXMATRIX ** c_ppMatrix) const
+bool CGrannyModelInstance::GetMeshMatrixPointer(int iMesh, const XMFLOAT4X4** c_ppMatrix) const
 {
 	if (!m_pgrnModelInstance)
 		return false;
@@ -134,10 +132,9 @@ bool CGrannyModelInstance::GetMeshMatrixPointer(int iMesh, const D3DXMATRIX ** c
 	if (meshCount <= 0)
 		return false;
 
-	// WORK
-	//const CGrannyMesh * pMesh = m_pModel->GetMeshPointer(iMesh);
-	*c_ppMatrix = (D3DXMATRIX *)GrannyGetWorldPose4x4(__GetWorldPosePtr(), __GetMeshBoneIndices(iMesh)[0]);
-	// END_OF_WORK
+	*c_ppMatrix = reinterpret_cast<const XMFLOAT4X4*>(
+		GrannyGetWorldPose4x4(__GetWorldPosePtr(), __GetMeshBoneIndices(iMesh)[0])
+		);
 
 	return true;
 }

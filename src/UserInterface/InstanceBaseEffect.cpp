@@ -15,11 +15,10 @@ float CInstanceBase::ms_fHorseDustGap;
 DWORD CInstanceBase::ms_adwCRCAffectEffect[CInstanceBase::EFFECT_NUM];
 std::string CInstanceBase::ms_astAffectEffectAttachBone[EFFECT_NUM];
 
-#define BYTE_COLOR_TO_D3DX_COLOR(r, g, b) D3DXCOLOR(float(r)/255.0f, float(g)/255.0f, float(b)/255.0f, 1.0f)
+#define BYTE_COLOR_TO_XM_COLOR(r, g, b) XMFLOAT4(float(r)/255.0f, float(g)/255.0f, float(b)/255.0f, 1.0f)
 
-
-D3DXCOLOR g_akD3DXClrTitle[CInstanceBase::TITLE_NUM];
-D3DXCOLOR g_akD3DXClrName[CInstanceBase::NAMECOLOR_NUM];
+XMFLOAT4 g_akD3DXClrTitle[CInstanceBase::TITLE_NUM];
+XMFLOAT4 g_akD3DXClrName[CInstanceBase::NAMECOLOR_NUM];
 
 std::map<int, std::string> g_TitleNameMap;
 std::set<DWORD> g_kSet_dwPVPReadyKey;
@@ -53,13 +52,12 @@ void  CInstanceBase::SetEmpireNameMode(bool isEnable)
 	}
 }
 
-const D3DXCOLOR& CInstanceBase::GetIndexedNameColor(UINT eNameColor)
+const XMFLOAT4& CInstanceBase::GetIndexedNameColor(UINT eNameColor)
 {
-	if (eNameColor>=NAMECOLOR_NUM)
-	{
-		static D3DXCOLOR s_kD3DXClrNameDefault(0xffffffff);
-		return s_kD3DXClrNameDefault;
-	}
+	static XMFLOAT4 s_kClrNameDefault(1.0f, 1.0f, 1.0f, 1.0f);
+
+	if (eNameColor >= NAMECOLOR_NUM)
+		return s_kClrNameDefault;
 
 	return g_akD3DXClrName[eNameColor];
 }
@@ -82,13 +80,10 @@ void CInstanceBase::AddDamageEffect(DWORD damage, BYTE flag, BOOL bSelf, BOOL bT
 
 void CInstanceBase::ProcessDamage()
 {
-	if(m_DamageQueue.empty())
+	if (m_DamageQueue.empty())
 		return;
 
-	TraceError("ProcessDamage: Queue not empty, processing...");
-
 	SEffectDamage sDamage = m_DamageQueue.front();
-
 	m_DamageQueue.pop_front();
 
 	DWORD damage = sDamage.damage;
@@ -96,127 +91,106 @@ void CInstanceBase::ProcessDamage()
 	BOOL bSelf = sDamage.bSelf;
 	BOOL bTarget = sDamage.bTarget;
 
-	TraceError("ProcessDamage: damage=%u flag=%u bSelf=%d bTarget=%d", damage, flag, bSelf, bTarget);
+	CCamera* cam = CCameraManager::Instance().GetCurrentCamera();
 
-	CCamera * pCamera = CCameraManager::Instance().GetCurrentCamera();
-	float cameraAngle = GetDegreeFromPosition2(pCamera->GetTarget().x,pCamera->GetTarget().y,pCamera->GetEye().x,pCamera->GetEye().y);
+	XMFLOAT3 camTarget = cam->GetTarget();
+	XMFLOAT3 camEye = cam->GetEye();
 
-	DWORD FONT_WIDTH = 30;
+	float cameraAngle = GetDegreeFromPosition2(
+		camTarget.x, camTarget.y,
+		camEye.x, camEye.y
+	);
 
-	CEffectManager& rkEftMgr=CEffectManager::Instance();
+	const float FONT_WIDTH = 30.0f;
 
-	D3DXVECTOR3 v3Pos = m_GraphicThingInstance.GetPosition();
-	v3Pos.z += float(m_GraphicThingInstance.GetHeight());
+	CEffectManager& mgr = CEffectManager::Instance();
 
-	D3DXVECTOR3 v3Rot = D3DXVECTOR3(0.0f, 0.0f, cameraAngle);
+	XMFLOAT3 pos = m_GraphicThingInstance.GetPosition();
+	pos.z += (float)m_GraphicThingInstance.GetHeight();
 
-	if ( (flag & DAMAGE_DODGE) || (flag & DAMAGE_BLOCK) )
+	XMFLOAT3 rot = XMFLOAT3(0.0f, 0.0f, cameraAngle);
+
+	if (flag & DAMAGE_DODGE || flag & DAMAGE_BLOCK)
 	{
-		TraceError("ProcessDamage: DODGE or BLOCK");
-		if(bSelf)
-			rkEftMgr.CreateEffect(ms_adwCRCAffectEffect[EFFECT_DAMAGE_MISS],v3Pos,v3Rot);
+		if (bSelf)
+			mgr.CreateEffect(ms_adwCRCAffectEffect[EFFECT_DAMAGE_MISS], pos, rot);
 		else
-			rkEftMgr.CreateEffect(ms_adwCRCAffectEffect[EFFECT_DAMAGE_TARGETMISS],v3Pos,v3Rot);
-		//__AttachEffect(EFFECT_DAMAGE_MISS);
+			mgr.CreateEffect(ms_adwCRCAffectEffect[EFFECT_DAMAGE_TARGETMISS], pos, rot);
 		return;
 	}
 	else if (flag & DAMAGE_CRITICAL)
 	{
-		TraceError("ProcessDamage: CRITICAL");
-		//rkEftMgr.CreateEffect(ms_adwCRCAffectEffect[EFFECT_DAMAGE_CRITICAL],v3Pos,v3Rot);
-		//return; 숫자도 표시.
+		// optional effect
 	}
 
 	std::string strDamageType;
 	DWORD rdwCRCEft = 0;
-	/*
-	if ( (flag & DAMAGE_POISON) )
+
+	if (bSelf)
 	{
-		strDamageType = "poison_";
-		rdwCRCEft = EFFECT_DAMAGE_POISON;
+		strDamageType = "damage_";
+		rdwCRCEft = m_bDamageEffectType ? EFFECT_DAMAGE_SELFDAMAGE2 : EFFECT_DAMAGE_SELFDAMAGE;
+		m_bDamageEffectType = !m_bDamageEffectType;
+	}
+	else if (!bTarget ||
+		(IsAffect(AFFECT_INVISIBILITY) || IsAffect(AFFECT_EUNHYEONG)))
+	{
+		strDamageType = "nontarget_";
+		rdwCRCEft = EFFECT_DAMAGE_NOT_TARGET;
+		return;
 	}
 	else
-	*/
 	{
-		if (bSelf)
-		{
-			TraceError("ProcessDamage: bSelf path - damage_");
-			strDamageType = "damage_";
-
-			if (m_bDamageEffectType == 0)
-				rdwCRCEft = EFFECT_DAMAGE_SELFDAMAGE;
-			else
-				rdwCRCEft = EFFECT_DAMAGE_SELFDAMAGE2;
-
-			m_bDamageEffectType = !m_bDamageEffectType;
-		}
-		else if (!bTarget || ((IsAffect(AFFECT_INVISIBILITY) || IsAffect(AFFECT_EUNHYEONG)) && bTarget))
-		{
-			TraceError("ProcessDamage: non-target path (early return) bTarget=%d INVIS=%d EUNHYEONG=%d",
-				bTarget, IsAffect(AFFECT_INVISIBILITY), IsAffect(AFFECT_EUNHYEONG));
-			strDamageType = "nontarget_";
-			rdwCRCEft = EFFECT_DAMAGE_NOT_TARGET;
-
-			return;//현재 적용 안됨.
-		}
-		else
-		{
-			TraceError("ProcessDamage: target path - target_");
-			strDamageType = "target_";
-			rdwCRCEft = EFFECT_DAMAGE_TARGET;
-		}
+		strDamageType = "target_";
+		rdwCRCEft = EFFECT_DAMAGE_TARGET;
 	}
-	
-	TraceError("ProcessDamage: Creating effect strDamageType=%s rdwCRCEft=%u effectCRC=%u",
-		strDamageType.c_str(), rdwCRCEft, ms_adwCRCAffectEffect[rdwCRCEft]);
 
-	DWORD index = 0;
-	DWORD num = 0;
 	std::vector<std::string> textures;
 
-	while (damage > 0)
+	DWORD idx = 0;
+
+	while (damage > 0 && idx <= 7)
 	{
-		if (index > 7)
-		{
-			TraceError("ProcessDamage무한루프 가능성");
-
-			break;
-		}
-
-		num = damage%10;
+		DWORD num = damage % 10;
 		damage /= 10;
-		char numBuf[MAX_PATH];
-		sprintf(numBuf, "%d.dds", num);
-		textures.push_back("d:/ymir work/effect/affect/damagevalue/"  +strDamageType + numBuf);
 
-		TraceError("ProcessDamage: texture path=%s", textures.back().c_str());
+		char buf[32];
+		sprintf(buf, "%d.dds", num);
 
-		rkEftMgr.SetEffectTextures(ms_adwCRCAffectEffect[rdwCRCEft],textures);
+		textures.push_back(
+			"d:/ymir work/effect/affect/damagevalue/" +
+			strDamageType + buf
+		);
 
-		D3DXMATRIX matrix, matTrans;
-		D3DXMatrixIdentity(&matrix);
+		mgr.SetEffectTextures(ms_adwCRCAffectEffect[rdwCRCEft], textures);
 
-		matrix._41 = v3Pos.x;
-		matrix._42 = v3Pos.y;
-		matrix._43 = v3Pos.z;
+		XMFLOAT4X4 matWorld;
+		XMStoreFloat4x4(&matWorld,
+			XMMatrixTranslation(pos.x, pos.y, pos.z)
+		);
 
-		D3DXMatrixTranslation(&matrix, v3Pos.x, v3Pos.y, v3Pos.z);
-		D3DXMatrixMultiply(&matrix, &pCamera->GetInverseViewMatrix(), &matrix);
-		D3DXMatrixTranslation(&matTrans, FONT_WIDTH * index, 0, 0);
+		XMMATRIX invView = XMLoadFloat4x4(&cam->GetInverseViewMatrix());
+		XMMATRIX view = XMLoadFloat4x4(&cam->GetViewMatrix());
 
-		matTrans._41 = -matTrans._41;
-		matrix = matTrans*matrix;
+		XMMATRIX m = XMLoadFloat4x4(&matWorld);
+		m = invView * m;
 
-		D3DXMatrixMultiply(&matrix, &pCamera->GetViewMatrix(), &matrix);
+		XMMATRIX offset = XMMatrixTranslation(-FONT_WIDTH * idx, 0.0f, 0.0f);
+		m = offset * m;
+		m = view * m;
 
-		DWORD effectResult = rkEftMgr.CreateEffect(ms_adwCRCAffectEffect[rdwCRCEft], D3DXVECTOR3(matrix._41, matrix._42, matrix._43)
-			,v3Rot);
-		TraceError("ProcessDamage: CreateEffect returned %u", effectResult);	
-		
+		XMFLOAT3 out;
+		XMStoreFloat3(&out, XMVectorSet(
+			XMVectorGetX(m.r[3]),
+			XMVectorGetY(m.r[3]),
+			XMVectorGetZ(m.r[3]),
+			0.0f));
+
+		mgr.CreateEffect(ms_adwCRCAffectEffect[rdwCRCEft], out, rot);
+
 		textures.clear();
-
-		index++;
-	}	
+		++idx;
+	}
 }
 
 void CInstanceBase::AttachSpecialEffect(DWORD effect)
@@ -236,7 +210,7 @@ void CInstanceBase::SkillUp()
 
 void CInstanceBase::CreateSpecialEffect(DWORD iEffectIndex)
 {
-	const D3DXMATRIX & c_rmatGlobal = m_GraphicThingInstance.GetTransform();
+	const XMFLOAT4X4 & c_rmatGlobal = m_GraphicThingInstance.GetTransform();
 
 	DWORD dwEffectIndex = CEffectManager::Instance().GetEmptyIndex();
 	DWORD dwEffectCRC = ms_adwCRCAffectEffect[iEffectIndex];
@@ -526,7 +500,7 @@ bool CInstanceBase::IsPVPInstance(CInstanceBase& rkInstSel)
 											//__FindDUELKey(dwVIDSrc, dwVIDDst);
 }
 
-const D3DXCOLOR& CInstanceBase::GetNameColor()
+const XMFLOAT4& CInstanceBase::GetNameColor()
 {
 	return GetIndexedNameColor(GetNameColorIndex());
 }
@@ -536,54 +510,41 @@ UINT CInstanceBase::GetNameColorIndex()
 	if (IsPC())
 	{
 		if (m_isKiller)
-		{
 			return NAMECOLOR_PK;
-		}
 
 		if (__IsExistMainInstance() && !__IsMainInstance())
-		{			
-			CInstanceBase* pkInstMain=__GetMainInstancePtr();
-			if (!pkInstMain)
+		{
+			CInstanceBase* main = __GetMainInstancePtr();
+			if (!main)
 			{
-				TraceError("CInstanceBase::GetNameColorIndex - MainInstance is NULL");
+				TraceError("MainInstance is NULL");
 				return NAMECOLOR_PC;
 			}
-			DWORD dwVIDMain=pkInstMain->GetVirtualID();
-			DWORD dwVIDSelf=GetVirtualID();
 
-			if (pkInstMain->GetDuelMode())
+			DWORD vidMain = main->GetVirtualID();
+			DWORD vidSelf = GetVirtualID();
+
+			if (main->GetDuelMode())
 			{
-				switch(pkInstMain->GetDuelMode())
+				switch (main->GetDuelMode())
 				{
 				case DUEL_CANNOTATTACK:
 					return NAMECOLOR_PC + GetEmpireID();
+
 				case DUEL_START:
-					if(__FindDUELKey(dwVIDMain, dwVIDSelf))
+					if (__FindDUELKey(vidMain, vidSelf))
 						return NAMECOLOR_PVP;
-					else
-						return NAMECOLOR_PC + GetEmpireID();
+					return NAMECOLOR_PC + GetEmpireID();
 				}
 			}
 
-			if (pkInstMain->IsSameEmpire(*this))
+			if (main->IsSameEmpire(*this))
 			{
-				if (__FindPVPKey(dwVIDMain, dwVIDSelf))
-				{
+				if (__FindPVPKey(vidMain, vidSelf))
 					return NAMECOLOR_PVP;
-				}
 
-				DWORD dwGuildIDMain=pkInstMain->GetGuildID();
-				DWORD dwGuildIDSelf=GetGuildID();
-				if (__FindGVGKey(dwGuildIDMain, dwGuildIDSelf))
-				{
+				if (__FindGVGKey(main->GetGuildID(), GetGuildID()))
 					return NAMECOLOR_PVP;
-				}
-				/*
-				if (__FindDUELKey(dwVIDMain, dwVIDSelf))
-				{
-					return NAMECOLOR_PVP;
-				}
-				*/
 			}
 			else
 			{
@@ -591,40 +552,48 @@ UINT CInstanceBase::GetNameColorIndex()
 			}
 		}
 
-		IAbstractPlayer& rPlayer=IAbstractPlayer::GetSingleton();
+		IAbstractPlayer& rPlayer = IAbstractPlayer::GetSingleton();
 		if (rPlayer.IsPartyMemberByVID(GetVirtualID()))
 			return NAMECOLOR_PARTY;
 
 		return NAMECOLOR_PC + GetEmpireID();
-		
 	}
 	else if (IsNPC())
-	{
 		return NAMECOLOR_NPC;
-	}
-	else if (IsEnemy())
-	{
-		return NAMECOLOR_MOB;
-	}
-	else if (IsPoly())
-	{
-		return NAMECOLOR_MOB;
-	}
 
+	else if (IsEnemy() || IsPoly())
+		return NAMECOLOR_MOB;
 
-	return D3DXCOLOR(0xffffffff);
+	return NAMECOLOR_PC;
 }
 
-const D3DXCOLOR& CInstanceBase::GetTitleColor()
+const XMFLOAT4& CInstanceBase::GetTitleColor()
 {
 	UINT uGrade = GetAlignmentGrade();
-	if ( uGrade >= TITLE_NUM)
+
+	static XMFLOAT4 s_kClrTitleDefault(1.0f, 1.0f, 1.0f, 1.0f);
+
+	if (uGrade >= TITLE_NUM)
+		return s_kClrTitleDefault;
+
+	static XMFLOAT4 cache[TITLE_NUM];
+	static bool init = false;
+
+	if (!init)
 	{
-		static D3DXCOLOR s_kD3DXClrTitleDefault(0xffffffff);
-		return s_kD3DXClrTitleDefault;
+		for (int i = 0; i < TITLE_NUM; ++i)
+		{
+			cache[i] = XMFLOAT4(
+				g_akD3DXClrTitle[i].x,
+				g_akD3DXClrTitle[i].y,
+				g_akD3DXClrTitle[i].z,
+				g_akD3DXClrTitle[i].w
+			);
+		}
+		init = true;
 	}
 
-	return g_akD3DXClrTitle[uGrade];
+	return cache[uGrade];
 }
 
 void CInstanceBase::AttachTextTail()
@@ -635,20 +604,23 @@ void CInstanceBase::AttachTextTail()
 		return;
 	}
 
-	m_isTextTail=true;
+	m_isTextTail = true;
 
-	DWORD dwVID=GetVirtualID();
+	DWORD dwVID = GetVirtualID();
 
-	float fTextTailHeight=IsMountingHorse() ? 110.0f : 10.0f;
+	float fTextTailHeight = IsMountingHorse() ? 110.0f : 10.0f;
 
-	static D3DXCOLOR s_kD3DXClrTextTail=D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
-	CPythonTextTail::Instance().RegisterCharacterTextTail(m_dwGuildID, dwVID, s_kD3DXClrTextTail, fTextTailHeight);
+	static XMFLOAT4 s_kClrTextTail = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
-	// CHARACTER_LEVEL
+	CPythonTextTail::Instance().RegisterCharacterTextTail(
+		m_dwGuildID,
+		dwVID,
+		s_kClrTextTail,
+		fTextTailHeight
+	);
+
 	if (m_dwLevel)
-	{
 		UpdateTextTailLevel(m_dwLevel);
-	}
 }
 
 void CInstanceBase::DetachTextTail()
@@ -662,9 +634,10 @@ void CInstanceBase::DetachTextTail()
 
 void CInstanceBase::UpdateTextTailLevel(DWORD level)
 {
-	static D3DXCOLOR s_kPlayerLevelColor = D3DXCOLOR(152.0f/255.0f, 255.0f/255.0f, 51.0f/255.0f, 1.0f);
+	static XMFLOAT4 s_kPlayerLevelColor(152.0f / 255.0f, 1.0f, 51.0f / 255.0f, 1.0f);
+
 #ifdef WJ_SHOW_MOB_INFO
-	static D3DXCOLOR s_kMobLevelColor = D3DXCOLOR(119.0f/255.0f, 246.0f/255.0f, 168.0f/255.0f, 1.0f);
+	static XMFLOAT4 s_kMobLevelColor(119.0f / 255.0f, 246.0f / 255.0f, 168.0f / 255.0f, 1.0f);
 #endif
 
 	m_dwLevel = level;
@@ -1003,20 +976,31 @@ void CInstanceBase::SetEmoticon(UINT eEmoticon)
 	}
 	if (IsPossibleEmoticon())
 	{
-		D3DXVECTOR3 v3Pos = m_GraphicThingInstance.GetPosition();
-		v3Pos.z += float(m_GraphicThingInstance.GetHeight());
+		XMVECTOR pos = XMLoadFloat3(&m_GraphicThingInstance.GetPosition());
+		float height = (float)m_GraphicThingInstance.GetHeight();
 
-		//CEffectManager& rkEftMgr=CEffectManager::Instance();
-		CCamera * pCamera = CCameraManager::Instance().GetCurrentCamera();
-		
-		D3DXVECTOR3 v3Dir = (pCamera->GetEye()-v3Pos)*9/10;	
-		v3Pos = pCamera->GetEye()-v3Dir;
+		pos = XMVectorSetZ(pos, XMVectorGetZ(pos) + height);
 
-		v3Pos = D3DXVECTOR3(0,0,0);
-		v3Pos.z += float(m_GraphicThingInstance.GetHeight());
+		CCamera* cam = CCameraManager::Instance().GetCurrentCamera();
 
-		//rkEftMgr.CreateEffect(ms_adwCRCAffectEffect[EFFECT_EMOTICON+eEmoticon],v3Pos,D3DXVECTOR3(0,0,0));
-		m_GraphicThingInstance.AttachEffectByID(0, NULL, ms_adwCRCAffectEffect[EFFECT_EMOTICON+eEmoticon],&v3Pos);
+		XMVECTOR eye = XMLoadFloat3(&cam->GetEye());
+
+		XMVECTOR dir = (eye - pos) * 0.9f;
+		pos = eye - dir;
+
+		pos = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+		pos = XMVectorSetZ(pos, height);
+
+		XMFLOAT3 v3Pos;
+		XMStoreFloat3(&v3Pos, pos);
+
+		m_GraphicThingInstance.AttachEffectByID(
+			0,
+			NULL,
+			ms_adwCRCAffectEffect[EFFECT_EMOTICON + eEmoticon],
+			&v3Pos
+		);
+
 		m_dwEmoticonTime = ELTimer_GetMSec();
 	}
 }
@@ -1162,14 +1146,14 @@ void CInstanceBase::RegisterTitleName(int iIndex, const char * c_szTitleName)
 	g_TitleNameMap[iIndex] = c_szTitleName;
 }
 
-D3DXCOLOR __RGBToD3DXColoru(UINT r, UINT g, UINT b)
+XMFLOAT4 __RGBToXMFLOAT4(UINT r, UINT g, UINT b)
 {
-	DWORD dwColor=0xff;dwColor<<=8;
-	dwColor|=r;dwColor<<=8;
-	dwColor|=g;dwColor<<=8;
-	dwColor|=b;
-
-	return D3DXCOLOR(dwColor);
+	return XMFLOAT4(
+		r / 255.0f,
+		g / 255.0f,
+		b / 255.0f,
+		1.0f
+	);
 }
 
 bool CInstanceBase::RegisterNameColor(UINT uIndex, UINT r, UINT g, UINT b)
@@ -1177,7 +1161,7 @@ bool CInstanceBase::RegisterNameColor(UINT uIndex, UINT r, UINT g, UINT b)
 	if (uIndex>=NAMECOLOR_NUM)
 		return false;
 
-	g_akD3DXClrName[uIndex]=__RGBToD3DXColoru(r, g, b);
+	g_akD3DXClrName[uIndex]= __RGBToXMFLOAT4(r, g, b);
 	return true;
 }
 
@@ -1186,6 +1170,6 @@ bool CInstanceBase::RegisterTitleColor(UINT uIndex, UINT r, UINT g, UINT b)
 	if (uIndex>=TITLE_NUM)
 		return false;
 
-	g_akD3DXClrTitle[uIndex]=__RGBToD3DXColoru(r, g, b);
+	g_akD3DXClrTitle[uIndex]= __RGBToXMFLOAT4(r, g, b);
 	return true;	
 }

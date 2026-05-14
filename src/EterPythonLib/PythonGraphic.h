@@ -45,8 +45,8 @@ class CPythonGraphic : public CScreen, public CSingleton<CPythonGraphic>
 	protected:
 		typedef struct SState
 		{
-			D3DXMATRIX matView;
-			D3DXMATRIX matProj;
+			XMFLOAT4X4 matView;
+			XMFLOAT4X4 matProj;
 		} TState;
 
 		DWORD		m_lightColor;
@@ -55,7 +55,7 @@ class CPythonGraphic : public CScreen, public CSingleton<CPythonGraphic>
 	protected:
 		std::stack<TState>						m_stateStack;
 
-		D3DXMATRIX								m_SaveWorldMatrix;
+		XMFLOAT4X4									m_SaveWorldMatrix;
 
 		CCullingManager							m_CullingManager;
 

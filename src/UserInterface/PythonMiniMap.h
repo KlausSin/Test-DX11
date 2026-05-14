@@ -210,13 +210,13 @@ class CPythonMiniMap : public CScreen, public CSingleton<CPythonMiniMap>
 		VBufferPtr						m_VertexBuffer;
 		IBufferPtr						m_IndexBuffer;
 
-		D3DXMATRIX						m_matIdentity;
-		D3DXMATRIX						m_matWorld;
-		D3DXMATRIX						m_matMiniMapCover;
+		XMFLOAT4X4 m_matIdentity{};
+		XMFLOAT4X4 m_matWorld{};
+		XMFLOAT4X4 m_matMiniMapCover{};
 
 		bool							m_bShowAtlas;
 		CGraphicExpandedImageInstance	m_AtlasImageInstance;
-		D3DXMATRIX						m_matWorldAtlas;
+		XMFLOAT4X4						m_matWorldAtlas;
 		CGraphicExpandedImageInstance	m_AtlasPlayerMark;
 
 		float							m_fAtlasScreenX;
@@ -253,7 +253,7 @@ class CPythonMiniMap : public CScreen, public CSingleton<CPythonMiniMap>
 		// SignalPoint
 		struct TSignalPoint
 		{
-			D3DXVECTOR2 v2Pos;
+			XMFLOAT2 v2Pos;
 			unsigned int id;
 		};
 		std::vector<TSignalPoint>				m_SignalPointVector;

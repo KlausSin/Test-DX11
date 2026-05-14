@@ -8,10 +8,10 @@
 
 CGraphicImageInstance CGrannyMaterial::ms_akSphereMapInstance[SPHEREMAP_NUM];
 
-D3DXVECTOR3 CGrannyMaterial::ms_v3SpecularTrans(0.0f, 0.0f, 0.0f);
-D3DXMATRIX CGrannyMaterial::ms_matSpecular;
+XMFLOAT3 CGrannyMaterial::ms_v3SpecularTrans(0.0f, 0.0f, 0.0f);
+XMFLOAT4X4 CGrannyMaterial::ms_matSpecular;
 
-D3DXCOLOR g_fSpecularColor = D3DXCOLOR(0.0f, 0.0f, 0.0f, 0.0f);
+XMFLOAT4 g_fSpecularColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 extern const std::string& GetModelLocalPath();
 
@@ -32,9 +32,15 @@ void CGrannyMaterial::TranslateSpecularMatrix(float fAddX, float fAddY, float fA
     if (ms_v3SpecularTrans.z >= SPECULAR_TRANSLATE_MAX)
         ms_v3SpecularTrans.z = 0.0f;
 
-    D3DXMatrixTranslation(&ms_matSpecular, ms_v3SpecularTrans.x, ms_v3SpecularTrans.y, ms_v3SpecularTrans.z);
+    XMStoreFloat4x4(
+        &ms_matSpecular,
+        XMMatrixTranslation(
+            ms_v3SpecularTrans.x,
+            ms_v3SpecularTrans.y,
+            ms_v3SpecularTrans.z
+        )
+    );
 }
-
 CGrannyMaterial::CGrannyMaterial()
 {
     Initialize();

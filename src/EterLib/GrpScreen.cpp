@@ -93,7 +93,7 @@ void CScreen::RenderBar3d(float sx, float sy, float sz, float ex, float ey, floa
 	}
 }
 
-void CScreen::RenderBar3d(const D3DXVECTOR3 * c_pv3Positions)
+void CScreen::RenderBar3d(const XMFLOAT3 * c_pv3Positions)
 {
 	assert(ms_lpd3d11Device != NULL);
 	
@@ -158,7 +158,7 @@ void CScreen::RenderLineCube(float sx, float sy, float sz, float ex, float ey, f
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
 		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
-		STATEMANAGER.GetTransform().SetWorld(*ms_lpd3dMatStack->GetTop());
+		STATEMANAGER.GetTransform().SetWorld(ms_matStack.back());
 		SetDefaultIndexBuffer(DEFAULT_IB_LINE_CUBE);
 
 		STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_LINELIST, 0, 0, 4 * 3);
@@ -185,34 +185,44 @@ void CScreen::RenderCube(float sx, float sy, float sz, float ex, float ey, float
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
 		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
-		STATEMANAGER.GetTransform().SetWorld(*ms_lpd3dMatStack->GetTop());
+		STATEMANAGER.GetTransform().SetWorld(ms_matStack.back());
 
 		SetDefaultIndexBuffer(DEFAULT_IB_FILL_CUBE);
 		STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, 0, 0, 4 * 3);
 	}
 }
 
-void CScreen::RenderCube(float sx, float sy, float sz, float ex, float ey, float ez, D3DXMATRIX matRotation)
+void CScreen::RenderCube(float sx, float sy, float sz, float ex, float ey, float ez, XMFLOAT4X4 matRotation)
 {
-	D3DXVECTOR3 v3Center = D3DXVECTOR3((sx + ex) * 0.5f, (sy + ey) * 0.5f, (sz + ez) * 0.5f);
-	D3DXVECTOR3 v3Vertex[8] = 
+	XMFLOAT3 v3Center = XMFLOAT3((sx + ex) * 0.5f, (sy + ey) * 0.5f, (sz + ez) * 0.5f);
+	XMFLOAT3 v3Vertex[8] = 
 	{
-		D3DXVECTOR3(sx, sy, sz),
-		D3DXVECTOR3(ex, sy, sz),
-		D3DXVECTOR3(sx, ey, sz),
-		D3DXVECTOR3(ex, ey, sz),
-		D3DXVECTOR3(sx, sy, ez),
-		D3DXVECTOR3(ex, sy, ez),
-		D3DXVECTOR3(sx, ey, ez),
-		D3DXVECTOR3(ex, ey, ez),
+		XMFLOAT3(sx, sy, sz),
+		XMFLOAT3(ex, sy, sz),
+		XMFLOAT3(sx, ey, sz),
+		XMFLOAT3(ex, ey, sz),
+		XMFLOAT3(sx, sy, ez),
+		XMFLOAT3(ex, sy, ez),
+		XMFLOAT3(sx, ey, ez),
+		XMFLOAT3(ex, ey, ez),
 	};
 	TPDTVertex vertices[8];
 
-	for(int i = 0; i < 8; i++)
+	for (int i = 0; i < 8; ++i)
 	{
-		v3Vertex[i] = v3Vertex[i] - v3Center;
-		D3DXVec3TransformCoord(&v3Vertex[i], &v3Vertex[i], &matRotation);
-		v3Vertex[i] = v3Vertex[i] + v3Center;
+		XMFLOAT3 local =
+		{
+			v3Vertex[i].x - v3Center.x,
+			v3Vertex[i].y - v3Center.y,
+			v3Vertex[i].z - v3Center.z
+		};
+
+		XMStoreFloat3(&v3Vertex[i], XMVector3TransformCoord(XMLoadFloat3(&local), XMLoadFloat4x4(&matRotation)));
+
+		v3Vertex[i].x += v3Center.x;
+		v3Vertex[i].y += v3Center.y;
+		v3Vertex[i].z += v3Center.z;
+
 		vertices[i].position = v3Vertex[i];
 		vertices[i].diffuse = ms_diffuseColor;
 		vertices[i].texCoord = { 0.0f, 0.0f };
@@ -223,7 +233,7 @@ void CScreen::RenderCube(float sx, float sy, float sz, float ex, float ey, float
 		STATEMANAGER.SetTexture(0, NULL);
 		STATEMANAGER.SetTexture(1, NULL);
 		_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
-		STATEMANAGER.GetTransform().SetWorld(*ms_lpd3dMatStack->GetTop());
+		STATEMANAGER.GetTransform().SetWorld(ms_matStack.back());
 
 		SetDefaultIndexBuffer(DEFAULT_IB_FILL_CUBE);
 		STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, 0, 0, 4 * 3);
@@ -255,65 +265,73 @@ void CScreen::RenderCircle2d(float fx, float fy, float fz, float fRadius, int iS
 	int count;
 	float theta, delta;
 	float x, y, z;
-	std::vector<D3DXVECTOR3> pts;
+
+	std::vector<XMFLOAT3> pts;
 
 	pts.clear();
 	pts.resize(iStep);
 
-	theta = 0.0;
-	delta = 2 * D3DX_PI / float(iStep);
+	theta = 0.0f;
+	delta = 2.0f * XM_PI / float(iStep);
 
-	for (count=0; count<iStep; count++)
+	for (count = 0; count < iStep; count++)
 	{
 		x = fx + fRadius * cosf(theta);
 		y = fy + fRadius * sinf(theta);
 		z = fz;
 
-		pts[count] = D3DXVECTOR3(x, y, z);
+		pts[count] = XMFLOAT3(x, y, z);
 
 		theta += delta;
 	}
-	for (count=0; count<iStep - 1; count++)
+
+	for (count = 0; count < iStep - 1; count++)
 	{
-		RenderLine3d(pts[count].x, pts[count].y, pts[count].z, pts[count + 1].x, pts[count + 1].y, pts[count + 1].z);
+		RenderLine3d(
+			pts[count].x, pts[count].y, pts[count].z,
+			pts[count + 1].x, pts[count + 1].y, pts[count + 1].z
+		);
 	}
-	RenderLine3d(pts[iStep - 1].x, pts[iStep - 1].y, pts[iStep - 1].z, pts[0].x, pts[0].y, pts[0].z);
+
+	RenderLine3d(
+		pts[iStep - 1].x, pts[iStep - 1].y, pts[iStep - 1].z,
+		pts[0].x, pts[0].y, pts[0].z
+	);
 }
 
 void CScreen::RenderCircle3d(float fx, float fy, float fz, float fRadius, int iStep)
 {
 	int count;
 	float theta, delta;
-	std::vector<D3DXVECTOR3> pts;
+	std::vector<XMFLOAT3> pts;
 
 	pts.clear();
 	pts.resize(iStep);
 
-	theta = 0.0;
-	delta = 2 * D3DX_PI / float(iStep);
+	theta = 0.0f;
+	delta = 2.0f * XM_PI / float(iStep);
 
-	const D3DXMATRIX & c_rmatInvView = CCameraManager::Instance().GetCurrentCamera()->GetBillboardMatrix();
+	const XMFLOAT4X4& c_rmatInvView = CCameraManager::Instance().GetCurrentCamera()->GetBillboardMatrix();
+	const XMMATRIX matInvView = XMLoadFloat4x4(&c_rmatInvView);
 
-	for (count=0; count<iStep; count++)
+	for (count = 0; count < iStep; count++)
 	{
-		pts[count] = D3DXVECTOR3(fRadius * cosf(theta), fRadius * sinf(theta), 0.0f);
-		D3DXVec3TransformCoord(&pts[count], &pts[count], &c_rmatInvView);
+		pts[count] = XMFLOAT3(fRadius * cosf(theta), fRadius * sinf(theta), 0.0f);
+		XMStoreFloat3(&pts[count], XMVector3TransformCoord(XMLoadFloat3(&pts[count]), matInvView));
 
 		theta += delta;
 	}
-	for (count=0; count<iStep - 1; count++)
-	{
-		RenderLine3d(fx+pts[count].x, fy+pts[count].y, fz+pts[count].z,
-					 fx+pts[count + 1].x, fy+pts[count + 1].y, fz+pts[count + 1].z);
-	}
-	RenderLine3d(fx+pts[iStep - 1].x, fy+pts[iStep - 1].y, fz+pts[iStep - 1].z,
-				 fx+pts[0].x, fy+pts[0].y, fz+pts[0].z);
+
+	for (count = 0; count < iStep - 1; count++)
+		RenderLine3d(fx + pts[count].x, fy + pts[count].y, fz + pts[count].z, fx + pts[count + 1].x, fy + pts[count + 1].y, fz + pts[count + 1].z);
+
+	RenderLine3d(fx + pts[iStep - 1].x, fy + pts[iStep - 1].y, fz + pts[iStep - 1].z, fx + pts[0].x, fy + pts[0].y, fz + pts[0].z);
 }
 
 class CD3DXMeshRenderingOption : public CScreen
 {
 public:
-	CD3DXMeshRenderingOption(D3D11_FILL_MODE eFillMode, const D3DXMATRIX& c_rmatWorld)
+	CD3DXMeshRenderingOption(D3D11_FILL_MODE eFillMode, const XMFLOAT4X4& c_rmatWorld)
 	{
 		STATEMANAGER.GetRaster().Push();
 		STATEMANAGER.GetTransform().Push();
@@ -331,39 +349,6 @@ public:
 		STATEMANAGER.GetRaster().Restore();
 	}
 };
-
-void CScreen::RenderD3DXMesh(LPD3DXMESH lpMesh, const D3DXMATRIX * c_pmatWorld, float fx, float fy, float fz, float fRadius, D3D11_FILL_MODE D3D11_FILL_MODE)
-{
-	D3DXMATRIX matTranslation;
-	D3DXMATRIX matScaling;
-
-	D3DXMatrixTranslation(&matTranslation, fx, fy, fz);
-	D3DXMatrixScaling(&matScaling, fRadius, fRadius, fRadius);
-
-	D3DXMATRIX matWorld;
-	matWorld = matScaling * matTranslation;
-
-	if (c_pmatWorld)
-	{
-		matWorld *= *c_pmatWorld;
-	}
-
-	// TODO: D3DX mesh debug rendering (sphere/cylinder) is D3D9-only.
-	// Reimplement with D3D11 buffers if collision visualization is needed.
-	(void)lpMesh;
-	(void)D3D11_FILL_MODE;
-	(void)matWorld;
-}
-
-void CScreen::RenderSphere(const D3DXMATRIX * c_pmatWorld, float fx, float fy, float fz, float fRadius, D3D11_FILL_MODE D3D11_FILL_MODE)
-{
-	RenderD3DXMesh(ms_lpSphereMesh, c_pmatWorld, fx, fy, fz, fRadius, D3D11_FILL_MODE);
-}
-
-void CScreen::RenderCylinder(const D3DXMATRIX * c_pmatWorld, float fx, float fy, float fz, float fRadius, float /*fLength*/, D3D11_FILL_MODE D3D11_FILL_MODE)
-{
-	RenderD3DXMesh(ms_lpCylinderMesh, c_pmatWorld, fx, fy, fz, fRadius, D3D11_FILL_MODE);
-}
 
 void CScreen::RenderTextureBox(float sx, float sy, float ex, float ey, float z, float su, float sv, float eu, float ev)
 {
@@ -395,25 +380,25 @@ void CScreen::RenderTextureBox(float sx, float sy, float ex, float ey, float z, 
 }
 
 
-void CScreen::RenderBillboard(D3DXVECTOR3 * Position, D3DXCOLOR & Color)
+void CScreen::RenderBillboard(XMFLOAT3 * Position, XMFLOAT4 & Color)
 {
 	assert(ms_lpd3d11Device != NULL);
 	
 	TPDTVertex vertices[4];
 	vertices[0].position = TPosition(Position[0].x, Position[0].y, Position[0].z);
-	vertices[0].diffuse = Color;
+	vertices[0].diffuse = ColorToUint(Color);
 	vertices[0].texCoord = TTextureCoordinate(0, 0);
 	
 	vertices[1].position = TPosition(Position[1].x, Position[1].y, Position[1].z);
-	vertices[1].diffuse = Color;
+	vertices[1].diffuse = ColorToUint(Color);
 	vertices[1].texCoord = TTextureCoordinate(1, 0);
 	
 	vertices[2].position = TPosition(Position[2].x, Position[2].y, Position[2].z);
-	vertices[2].diffuse = Color;
+	vertices[2].diffuse = ColorToUint(Color);
 	vertices[2].texCoord = TTextureCoordinate(0, 1);
 	
 	vertices[3].position = TPosition(Position[3].x, Position[3].y, Position[3].z);
-	vertices[3].diffuse = Color;
+	vertices[3].diffuse = ColorToUint(Color);
 	vertices[3].texCoord = TTextureCoordinate(1, 1);
 	
 			_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
@@ -468,35 +453,27 @@ void CScreen::DrawGrid(float xMin, float yMin, float xMax, float yMax, float xma
 
 void CScreen::SetCursorPosition(int x, int y, int hres, int vres)
 {
-	D3DXVECTOR3 v;
-	v.x = -(((2.0f * x) / hres) - 1) / ms_matProj._11;
-	v.y = (((2.0f * y) / vres) - 1) / ms_matProj._22;
+	XMFLOAT3 v;
+	v.x = -(((2.0f * x) / hres) - 1.0f) / ms_matProj._11;
+	v.y = (((2.0f * y) / vres) - 1.0f) / ms_matProj._22;
 	v.z = 1.0f;
 
-    D3DXMATRIX matViewInverse=ms_matInverseView;
-    //D3DXMatrixInverse(&matViewInverse, NULL, &ms_matView);
+	XMFLOAT4X4 matViewInverse = ms_matInverseView;
 
-    ms_vtPickRayDir.x = v.x * matViewInverse._11 + 
-						v.y * matViewInverse._21 +
-						v.z * matViewInverse._31;
+	ms_vtPickRayDir.x = v.x * matViewInverse._11 + v.y * matViewInverse._21 + v.z * matViewInverse._31;
+	ms_vtPickRayDir.y = v.x * matViewInverse._12 + v.y * matViewInverse._22 + v.z * matViewInverse._32;
+	ms_vtPickRayDir.z = v.x * matViewInverse._13 + v.y * matViewInverse._23 + v.z * matViewInverse._33;
 
-    ms_vtPickRayDir.y = v.x * matViewInverse._12 +
-						v.y * matViewInverse._22 +
-						v.z * matViewInverse._32;
+	ms_vtPickRayOrig.x = matViewInverse._41;
+	ms_vtPickRayOrig.y = matViewInverse._42;
+	ms_vtPickRayOrig.z = matViewInverse._43;
 
-    ms_vtPickRayDir.z = v.x * matViewInverse._13 +
-						v.y * matViewInverse._23 +
-						v.z * matViewInverse._33;
-
-    ms_vtPickRayOrig.x = matViewInverse._41;
-    ms_vtPickRayOrig.y = matViewInverse._42;
-    ms_vtPickRayOrig.z = matViewInverse._43;
-	
-//	// 2003. 9. 9 동현 추가
-//	// 지형 picking을 위한 뻘짓... ㅡㅡ; 위에 것과 통합 필요...
 	ms_Ray.SetStartPoint(ms_vtPickRayOrig);
-	ms_Ray.SetDirection(-ms_vtPickRayDir, 51200.0f);
-//	// 2003. 9. 9 동현 추가
+
+	XMFLOAT3 vNegPickRayDir;
+	XMStoreFloat3(&vNegPickRayDir, -XMLoadFloat3(&ms_vtPickRayDir));
+
+	ms_Ray.SetDirection(vNegPickRayDir, 51200.0f);
 }
 
 bool CScreen::GetCursorPosition(float* px, float* py, float* pz)
@@ -509,7 +486,7 @@ bool CScreen::GetCursorPosition(float* px, float* py, float* pz)
 
 bool CScreen::GetCursorXYPosition(float* px, float* py)
 {
-	D3DXVECTOR3 v3Eye = CCameraManager::Instance().GetCurrentCamera()->GetEye();
+	XMFLOAT3 v3Eye = CCameraManager::Instance().GetCurrentCamera()->GetEye();
 
 	TPosition posVertices[4];
 	posVertices[0] = TPosition(v3Eye.x-90000000.0f, v3Eye.y+90000000.0f, 0.0f);
@@ -538,7 +515,7 @@ bool CScreen::GetCursorXYPosition(float* px, float* py)
 
 bool CScreen::GetCursorZPosition(float* pz)
 {
-	D3DXVECTOR3 v3Eye = CCameraManager::Instance().GetCurrentCamera()->GetEye();
+	XMFLOAT3 v3Eye = CCameraManager::Instance().GetCurrentCamera()->GetEye();
 
 	TPosition posVertices[4];
 	posVertices[0] = TPosition(v3Eye.x-90000000.0f, 0.0f, v3Eye.z+90000000.0f);
@@ -672,32 +649,35 @@ void CScreen::Show(RECT * pSrcRect, HWND hWnd)
 		ms_lpd3d11SwapChain->Present(0, 0);
 }
 
-void CScreen::ProjectPosition(float x, float y, float z, float * pfX, float * pfY)
+void CScreen::ProjectPosition(float x, float y, float z, float* pfX, float* pfY)
 {
-	D3DXVECTOR3 Input(x, y, z);
-	D3DXVECTOR3 Output;
-	D3DXVec3Project(&Output, &Input, &ms_Viewport, &ms_matProj, &ms_matView, &ms_matWorld);
+	XMFLOAT3 Input(x, y, z);
+	XMFLOAT3 Output;
+
+	XMStoreFloat3(&Output, XMVector3Project(XMLoadFloat3(&Input), ms_Viewport.TopLeftX, ms_Viewport.TopLeftY, ms_Viewport.Width, ms_Viewport.Height, ms_Viewport.MinDepth, ms_Viewport.MaxDepth, XMLoadFloat4x4(&ms_matProj), XMLoadFloat4x4(&ms_matView), XMLoadFloat4x4(&ms_matWorld)));
 
 	*pfX = Output.x;
 	*pfY = Output.y;
 }
 
-void CScreen::ProjectPosition(float x, float y, float z, float * pfX, float * pfY, float * pfZ)
+void CScreen::ProjectPosition(float x, float y, float z, float* pfX, float* pfY, float* pfZ)
 {
-	D3DXVECTOR3 Input(x, y, z);
-	D3DXVECTOR3 Output;
-	D3DXVec3Project(&Output, &Input, &ms_Viewport, &ms_matProj, &ms_matView, &ms_matWorld);
+	XMFLOAT3 Input(x, y, z);
+	XMFLOAT3 Output;
+
+	XMStoreFloat3(&Output, XMVector3Project(XMLoadFloat3(&Input), ms_Viewport.TopLeftX, ms_Viewport.TopLeftY, ms_Viewport.Width, ms_Viewport.Height, ms_Viewport.MinDepth, ms_Viewport.MaxDepth, XMLoadFloat4x4(&ms_matProj), XMLoadFloat4x4(&ms_matView), XMLoadFloat4x4(&ms_matWorld)));
 
 	*pfX = Output.x;
 	*pfY = Output.y;
 	*pfZ = Output.z;
 }
 
-void CScreen::UnprojectPosition(float x, float y, float z, float * pfX, float * pfY, float * pfZ)
+void CScreen::UnprojectPosition(float x, float y, float z, float* pfX, float* pfY, float* pfZ)
 {
-	D3DXVECTOR3 Input(x, y, z);
-	D3DXVECTOR3 Output;
-	D3DXVec3Unproject(&Output, &Input, &ms_Viewport, &ms_matProj, &ms_matView, &ms_matWorld);
+	XMFLOAT3 Input(x, y, z);
+	XMFLOAT3 Output;
+
+	XMStoreFloat3(&Output, XMVector3Unproject(XMLoadFloat3(&Input), ms_Viewport.TopLeftX, ms_Viewport.TopLeftY, ms_Viewport.Width, ms_Viewport.Height, ms_Viewport.MinDepth, ms_Viewport.MaxDepth, XMLoadFloat4x4(&ms_matProj), XMLoadFloat4x4(&ms_matView), XMLoadFloat4x4(&ms_matWorld)));
 
 	*pfX = Output.x;
 	*pfY = Output.y;
@@ -723,17 +703,17 @@ void CScreen::SetBlendOperation()
 	_mgr->SetShader(VF_PDT, BLEND_MODULATE);
 }
 
-void CScreen::SetOneColorOperation(D3DXCOLOR& rColor)
+void CScreen::SetOneColorOperation(XMFLOAT4& rColor)
 {
 	STATEMANAGER.SetTexture(0, NULL);
 	STATEMANAGER.SetTexture(1, NULL);
-	ms_diffuseColor = rColor;
+	ms_diffuseColor = ColorToUint(rColor);
 	_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 }
 
-void CScreen::SetAddColorOperation(D3DXCOLOR& rColor)
+void CScreen::SetAddColorOperation(XMFLOAT4& rColor)
 {
-	ms_diffuseColor = rColor;
+	ms_diffuseColor = ColorToUint(rColor);
 	_mgr->SetShader(VF_PDT, BLEND_ADD);
 }
 
@@ -753,14 +733,11 @@ CScreen::~CScreen()
 
 void CScreen::BuildViewFrustum()
 {
-	const D3DXVECTOR3& c_rv3Eye=CCameraManager::Instance().GetCurrentCamera()->GetEye();
-	const D3DXVECTOR3& c_rv3View=CCameraManager::Instance().GetCurrentCamera()->GetView();
-	auto vv = ms_matView * ms_matProj;
-	ms_frustum.BuildViewFrustum2(
-		vv,
-		ms_fNearY,
-		ms_fFarY,
-		ms_fFieldOfView,
-		ms_fAspect,
-		c_rv3Eye, c_rv3View);
+	const XMFLOAT3& c_rv3Eye = CCameraManager::Instance().GetCurrentCamera()->GetEye();
+	const XMFLOAT3& c_rv3View = CCameraManager::Instance().GetCurrentCamera()->GetView();
+
+	XMFLOAT4X4 vv;
+	XMStoreFloat4x4(&vv, XMMatrixMultiply(XMLoadFloat4x4(&ms_matView), XMLoadFloat4x4(&ms_matProj)));
+
+	ms_frustum.BuildViewFrustum2(vv, ms_fNearY, ms_fFarY, ms_fFieldOfView, ms_fAspect, c_rv3Eye, c_rv3View);
 }

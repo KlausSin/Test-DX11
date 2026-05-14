@@ -2,20 +2,20 @@
 
 struct SParticleVertex
 {
-	D3DXVECTOR3 v3Pos;
+	XMFLOAT3 v3Pos;
 	float u, v;
 };
 
 struct BlurVertex
 {
-	D3DXVECTOR3 pos;
+	XMFLOAT3 pos;
 	FLOAT       rhw;
     DWORD       color;
 	FLOAT		tu, tv;
 
 	static const DWORD FVF;
 
-	BlurVertex(D3DXVECTOR3 p, float w,DWORD c,float u,float v):pos(p),rhw(w),color(c),tu(u),tv(v) {}
+	BlurVertex(XMFLOAT3 p, float w,DWORD c,float u,float v):pos(p),rhw(w),color(c),tu(u),tv(v) {}
 	~BlurVertex(){};
 };
 
@@ -29,12 +29,12 @@ class CSnowParticle
 		static void Delete(CSnowParticle * pSnowParticle);
 		static void DestroyPool();
 
-		void Init(const D3DXVECTOR3 & c_rv3Pos);
+		void Init(const XMFLOAT3 & c_rv3Pos);
 
-		void SetCameraVertex(const D3DXVECTOR3 & rv3Up, const D3DXVECTOR3 & rv3Cross);
+		void SetCameraVertex(const XMFLOAT3 & rv3Up, const XMFLOAT3 & rv3Cross);
 		bool IsActivate();
 
-		void Update(float fElapsedTime, const D3DXVECTOR3 & c_rv3Pos);
+		void Update(float fElapsedTime, const XMFLOAT3 & c_rv3Pos);
 		void GetVerticies(SParticleVertex & rv3Vertex1, SParticleVertex & rv3Vertex2,
 						  SParticleVertex & rv3Vertex3, SParticleVertex & rv3Vertex4);
 
@@ -44,11 +44,11 @@ class CSnowParticle
 		float m_fHalfWidth;
 		float m_fHalfHeight;
 
-		D3DXVECTOR3 m_v3Velocity;
-		D3DXVECTOR3 m_v3Position;
+		XMFLOAT3 m_v3Velocity;
+		XMFLOAT3 m_v3Position;
 
-		D3DXVECTOR3 m_v3Up;
-		D3DXVECTOR3 m_v3Cross;
+		XMFLOAT3 m_v3Up;
+		XMFLOAT3 m_v3Cross;
 
 		float m_fPeriod;
 		float m_fcurRadian;

@@ -52,7 +52,7 @@ class CTerrain : public CTerrainImpl, public CGraphicBase
 		float			GetHeight(int x, int y);
 
 		// Normal Map
-		bool			GetNormal(int ix, int iy, D3DXVECTOR3 * pv3Normal);
+		bool			GetNormal(int ix, int iy, XMFLOAT3 * pv3Normal);
 
 		// TileMap
 		BYTE *			RAW_GetTileMap()		{ return m_abyTileMap; }
@@ -133,7 +133,7 @@ class CTerrain : public CTerrainImpl, public CGraphicBase
 		CMapOutdoor *			m_pOwnerOutdoorMap;
 
 		// Picking
-		D3DXVECTOR3				m_v3Pick;
+		XMFLOAT3				m_v3Pick;
 
 		DWORD					m_dwNumTexturesShow;
 		std::vector<DWORD>		m_VectorNumShowTexture;

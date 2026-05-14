@@ -7,14 +7,7 @@
 #include "StateManager.h"
 const float gc_fReduceMove = 0.5f;
 
-//const float gc_fSlideMoveSpeed = 5.0f;
-/*inline D3DXVECTOR3 FitAtSpecifiedLength(const D3DXVECTOR3 & v3Vector, float length)
-{
-	D3DXVECTOR3 v;
-	D3DXVec3Normalize(&v,&v3Vector);
-	return v*length;
-}
-*/
+
 CDynamicPool<CSphereCollisionInstance> gs_sci;
 CDynamicPool<CCylinderCollisionInstance> gs_cci;
 CDynamicPool<CPlaneCollisionInstance> gs_pci;
@@ -32,168 +25,142 @@ void DestroyCollisionInstanceSystem()
 
 /////////////////////////////////////////////
 // Base
-CBaseCollisionInstance * CBaseCollisionInstance::BuildCollisionInstance(const CStaticCollisionData * c_pCollisionData, const D3DXMATRIX * pMat)
+CBaseCollisionInstance* CBaseCollisionInstance::BuildCollisionInstance(const CStaticCollisionData* c_pCollisionData, const XMFLOAT4X4* pMat)
 {
-	switch(c_pCollisionData->dwType)
+	XMMATRIX matWorld = XMLoadFloat4x4(pMat);
+
+	switch (c_pCollisionData->dwType)
 	{
-		case COLLISION_TYPE_PLANE:
-			{
-				CPlaneCollisionInstance * ppci = gs_pci.Alloc();
-				D3DXMATRIX matRotation;
-				D3DXMATRIX matTranslationLocal;
-				D3DXMatrixRotationQuaternion(&matRotation, &c_pCollisionData->quatRotation);
-				D3DXMatrixTranslation(&matTranslationLocal, c_pCollisionData->v3Position.x, c_pCollisionData->v3Position.y, c_pCollisionData->v3Position.z);
-				D3DXMATRIX matTransform = matRotation * matTranslationLocal * *pMat;
+	case COLLISION_TYPE_PLANE:
+	{
+		CPlaneCollisionInstance* ppci = gs_pci.Alloc();
 
-				TPlaneData & PlaneData = ppci->GetAttribute();
-				D3DXVec3TransformCoord(&PlaneData.v3Position, &c_pCollisionData->v3Position, pMat);
-				float fHalfWidth = c_pCollisionData->fDimensions[0] / 2.0f;
-				float fHalfLength = c_pCollisionData->fDimensions[1] / 2.0f;
+		XMMATRIX matRotation = XMMatrixRotationQuaternion(XMLoadFloat4(&c_pCollisionData->quatRotation));
+		XMMATRIX matTranslationLocal = XMMatrixTranslation(c_pCollisionData->v3Position.x, c_pCollisionData->v3Position.y, c_pCollisionData->v3Position.z);
+		XMMATRIX matTransform = matRotation * matTranslationLocal * matWorld;
 
-				PlaneData.v3QuadPosition[0].x = -fHalfWidth;
-				PlaneData.v3QuadPosition[0].y = -fHalfLength;
-				PlaneData.v3QuadPosition[0].z = 0.0f;
-				PlaneData.v3QuadPosition[1].x = +fHalfWidth;
-				PlaneData.v3QuadPosition[1].y = -fHalfLength;
-				PlaneData.v3QuadPosition[1].z = 0.0f;
-				PlaneData.v3QuadPosition[2].x = -fHalfWidth;
-				PlaneData.v3QuadPosition[2].y = +fHalfLength;
-				PlaneData.v3QuadPosition[2].z = 0.0f;
-				PlaneData.v3QuadPosition[3].x = +fHalfWidth;
-				PlaneData.v3QuadPosition[3].y = +fHalfLength;
-				PlaneData.v3QuadPosition[3].z = 0.0f;
-				for (DWORD i = 0; i < 4; ++i)
-					D3DXVec3TransformCoord(&PlaneData.v3QuadPosition[i], &PlaneData.v3QuadPosition[i], &matTransform);
-				D3DXVECTOR3 v3Line0 = PlaneData.v3QuadPosition[1] - PlaneData.v3QuadPosition[0];
-				D3DXVECTOR3 v3Line1 = PlaneData.v3QuadPosition[2] - PlaneData.v3QuadPosition[0];
-				D3DXVECTOR3 v3Line2 = PlaneData.v3QuadPosition[1] - PlaneData.v3QuadPosition[3];
-				D3DXVECTOR3 v3Line3 = PlaneData.v3QuadPosition[2] - PlaneData.v3QuadPosition[3];
-				D3DXVec3Normalize(&v3Line0, &v3Line0);
-				D3DXVec3Normalize(&v3Line1, &v3Line1);
-				D3DXVec3Normalize(&v3Line2, &v3Line2);
-				D3DXVec3Normalize(&v3Line3, &v3Line3);
-				D3DXVec3Cross(&PlaneData.v3Normal, &v3Line0, &v3Line1);
-				D3DXVec3Normalize(&PlaneData.v3Normal, &PlaneData.v3Normal);
+		TPlaneData& PlaneData = ppci->GetAttribute();
 
-				D3DXVec3Cross(&PlaneData.v3InsideVector[0], &PlaneData.v3Normal, &v3Line0 );
-				D3DXVec3Cross(&PlaneData.v3InsideVector[1], &v3Line1, &PlaneData.v3Normal);
-				D3DXVec3Cross(&PlaneData.v3InsideVector[2], &v3Line2, &PlaneData.v3Normal);
-				D3DXVec3Cross(&PlaneData.v3InsideVector[3], &PlaneData.v3Normal, &v3Line3);
+		XMStoreFloat3(&PlaneData.v3Position, XMVector3TransformCoord(XMLoadFloat3(&c_pCollisionData->v3Position), matWorld));
 
-				return ppci;
-			}
-			break;
-		case COLLISION_TYPE_BOX:
-			assert(false && "COLLISION_TYPE_BOX not implemented");
-			break;
-		case COLLISION_TYPE_AABB:
-			{
-				CAABBCollisionInstance * paci = gs_aci.Alloc();
-				
-				D3DXMATRIX matTranslationLocal;
-				D3DXMatrixTranslation(&matTranslationLocal, c_pCollisionData->v3Position.x, c_pCollisionData->v3Position.y, c_pCollisionData->v3Position.z);
-				D3DXMATRIX matTransform = *pMat;
+		float fHalfWidth = c_pCollisionData->fDimensions[0] / 2.0f;
+		float fHalfLength = c_pCollisionData->fDimensions[1] / 2.0f;
 
-				D3DXVECTOR3 v3Pos;
-				v3Pos.x = matTranslationLocal._41;
-				v3Pos.y = matTranslationLocal._42;
-				v3Pos.z = matTranslationLocal._43;
+		PlaneData.v3QuadPosition[0] = XMFLOAT3(-fHalfWidth, -fHalfLength, 0.0f);
+		PlaneData.v3QuadPosition[1] = XMFLOAT3(+fHalfWidth, -fHalfLength, 0.0f);
+		PlaneData.v3QuadPosition[2] = XMFLOAT3(-fHalfWidth, +fHalfLength, 0.0f);
+		PlaneData.v3QuadPosition[3] = XMFLOAT3(+fHalfWidth, +fHalfLength, 0.0f);
 
-				TAABBData & AABBData = paci->GetAttribute();
-				AABBData.v3Min.x = v3Pos.x - c_pCollisionData->fDimensions[0];
-				AABBData.v3Min.y = v3Pos.y - c_pCollisionData->fDimensions[1];
-				AABBData.v3Min.z = v3Pos.z - c_pCollisionData->fDimensions[2];
-				AABBData.v3Max.x = v3Pos.x + c_pCollisionData->fDimensions[0];
-				AABBData.v3Max.y = v3Pos.y + c_pCollisionData->fDimensions[1];
-				AABBData.v3Max.z = v3Pos.z + c_pCollisionData->fDimensions[2];
+		for (uint32_t i = 0; i < 4; ++i)
+			XMStoreFloat3(&PlaneData.v3QuadPosition[i], XMVector3TransformCoord(XMLoadFloat3(&PlaneData.v3QuadPosition[i]), matTransform));
 
-				D3DXVec3TransformCoord(&AABBData.v3Min, &AABBData.v3Min, &matTransform);
-				D3DXVec3TransformCoord(&AABBData.v3Max, &AABBData.v3Max, &matTransform);
+		XMVECTOR v3Line0 = XMVector3Normalize(XMLoadFloat3(&PlaneData.v3QuadPosition[1]) - XMLoadFloat3(&PlaneData.v3QuadPosition[0]));
+		XMVECTOR v3Line1 = XMVector3Normalize(XMLoadFloat3(&PlaneData.v3QuadPosition[2]) - XMLoadFloat3(&PlaneData.v3QuadPosition[0]));
+		XMVECTOR v3Line2 = XMVector3Normalize(XMLoadFloat3(&PlaneData.v3QuadPosition[1]) - XMLoadFloat3(&PlaneData.v3QuadPosition[3]));
+		XMVECTOR v3Line3 = XMVector3Normalize(XMLoadFloat3(&PlaneData.v3QuadPosition[2]) - XMLoadFloat3(&PlaneData.v3QuadPosition[3]));
 
-				return paci;
-			}
-			break;
-			case COLLISION_TYPE_OBB:
-			{
-				COBBCollisionInstance * poci = gs_oci.Alloc();
-				
-				D3DXMATRIX matTranslationLocal; D3DXMatrixTranslation(&matTranslationLocal, c_pCollisionData->v3Position.x, c_pCollisionData->v3Position.y, c_pCollisionData->v3Position.z);
-				D3DXMATRIX matRotation; D3DXMatrixRotationQuaternion(&matRotation, &c_pCollisionData->quatRotation);
-				
-				D3DXMATRIX matTranslationWorld; D3DXMatrixIdentity(&matTranslationWorld);
-				matTranslationWorld._41 = pMat->_41; matTranslationWorld._42 = pMat->_42; matTranslationWorld._43 = pMat->_43; matTranslationWorld._44 = pMat->_44;
-				
-				D3DXVECTOR3 v3Min, v3Max;
-				v3Min.x = c_pCollisionData->v3Position.x - c_pCollisionData->fDimensions[0];
-				v3Min.y = c_pCollisionData->v3Position.y - c_pCollisionData->fDimensions[1];
-				v3Min.z = c_pCollisionData->v3Position.z - c_pCollisionData->fDimensions[2];
-				v3Max.x = c_pCollisionData->v3Position.x + c_pCollisionData->fDimensions[0];
-				v3Max.y = c_pCollisionData->v3Position.y + c_pCollisionData->fDimensions[1];
-				v3Max.z = c_pCollisionData->v3Position.z + c_pCollisionData->fDimensions[2];
+		XMVECTOR v3Normal = XMVector3Normalize(XMVector3Cross(v3Line0, v3Line1));
+		XMStoreFloat3(&PlaneData.v3Normal, v3Normal);
 
-				D3DXVec3TransformCoord(&v3Min, &v3Min, pMat);
-				D3DXVec3TransformCoord(&v3Max, &v3Max, pMat);
-				D3DXVECTOR3 v3Position = (v3Min + v3Max) * 0.5f;
+		XMStoreFloat3(&PlaneData.v3InsideVector[0], XMVector3Cross(v3Normal, v3Line0));
+		XMStoreFloat3(&PlaneData.v3InsideVector[1], XMVector3Cross(v3Line1, v3Normal));
+		XMStoreFloat3(&PlaneData.v3InsideVector[2], XMVector3Cross(v3Line2, v3Normal));
+		XMStoreFloat3(&PlaneData.v3InsideVector[3], XMVector3Cross(v3Normal, v3Line3));
 
-				TOBBData & OBBData = poci->GetAttribute();
-				OBBData.v3Min.x = v3Position.x - c_pCollisionData->fDimensions[0];
-				OBBData.v3Min.y = v3Position.y - c_pCollisionData->fDimensions[1];
-				OBBData.v3Min.z = v3Position.z - c_pCollisionData->fDimensions[2];
-				OBBData.v3Max.x = v3Position.x + c_pCollisionData->fDimensions[0];
-				OBBData.v3Max.y = v3Position.y + c_pCollisionData->fDimensions[1];
-				OBBData.v3Max.z = v3Position.z + c_pCollisionData->fDimensions[2];
-
-				
-
-				D3DXMATRIX matTransform = *pMat;
-
-				D3DXMatrixIdentity(&OBBData.matRot); OBBData.matRot = *pMat;
-				OBBData.matRot._41 = 0; OBBData.matRot._42 = 0; OBBData.matRot._43 = 0; OBBData.matRot._44 = 1;
-
-
-
-
-				return poci;
-			}
-			break;
-		case COLLISION_TYPE_SPHERE:
-			{
-				CSphereCollisionInstance * psci = gs_sci.Alloc();
-
-				D3DXMATRIX matTranslationLocal;
-				D3DXMatrixTranslation(&matTranslationLocal, c_pCollisionData->v3Position.x, c_pCollisionData->v3Position.y, c_pCollisionData->v3Position.z);
-				matTranslationLocal = matTranslationLocal * *pMat;
-
-				TSphereData & SphereData = psci->GetAttribute();
-				SphereData.v3Position.x = matTranslationLocal._41;
-				SphereData.v3Position.y = matTranslationLocal._42;
-				SphereData.v3Position.z = matTranslationLocal._43;
-				SphereData.fRadius = c_pCollisionData->fDimensions[0];
-
-				return psci;
-			}
-			break;
-		case COLLISION_TYPE_CYLINDER:
-			{
-				CCylinderCollisionInstance * pcci = gs_cci.Alloc();
-
-				D3DXMATRIX matTranslationLocal;
-				D3DXMatrixTranslation(&matTranslationLocal, c_pCollisionData->v3Position.x, c_pCollisionData->v3Position.y, c_pCollisionData->v3Position.z);
-				matTranslationLocal = matTranslationLocal * *pMat;
-
-				TCylinderData & CylinderData = pcci->GetAttribute();
-				CylinderData.fRadius = c_pCollisionData->fDimensions[0];
-				CylinderData.fHeight = c_pCollisionData->fDimensions[1];
-				CylinderData.v3Position.x = matTranslationLocal._41;
-				CylinderData.v3Position.y = matTranslationLocal._42;
-				CylinderData.v3Position.z = matTranslationLocal._43 /*+ CylinderData.fHeight/2.0f*/;
-
-				return pcci;
-			}
-			break;
+		return ppci;
 	}
+	break;
+
+	case COLLISION_TYPE_BOX:
+		assert(false && "COLLISION_TYPE_BOX not implemented");
+		break;
+
+	case COLLISION_TYPE_AABB:
+	{
+		CAABBCollisionInstance* paci = gs_aci.Alloc();
+
+		XMFLOAT3 v3Pos = c_pCollisionData->v3Position;
+
+		TAABBData& AABBData = paci->GetAttribute();
+		AABBData.v3Min = XMFLOAT3(v3Pos.x - c_pCollisionData->fDimensions[0], v3Pos.y - c_pCollisionData->fDimensions[1], v3Pos.z - c_pCollisionData->fDimensions[2]);
+		AABBData.v3Max = XMFLOAT3(v3Pos.x + c_pCollisionData->fDimensions[0], v3Pos.y + c_pCollisionData->fDimensions[1], v3Pos.z + c_pCollisionData->fDimensions[2]);
+
+		XMStoreFloat3(&AABBData.v3Min, XMVector3TransformCoord(XMLoadFloat3(&AABBData.v3Min), matWorld));
+		XMStoreFloat3(&AABBData.v3Max, XMVector3TransformCoord(XMLoadFloat3(&AABBData.v3Max), matWorld));
+
+		return paci;
+	}
+	break;
+
+	case COLLISION_TYPE_OBB:
+	{
+		COBBCollisionInstance* poci = gs_oci.Alloc();
+
+		XMFLOAT3 v3Min(
+			c_pCollisionData->v3Position.x - c_pCollisionData->fDimensions[0],
+			c_pCollisionData->v3Position.y - c_pCollisionData->fDimensions[1],
+			c_pCollisionData->v3Position.z - c_pCollisionData->fDimensions[2]);
+
+		XMFLOAT3 v3Max(
+			c_pCollisionData->v3Position.x + c_pCollisionData->fDimensions[0],
+			c_pCollisionData->v3Position.y + c_pCollisionData->fDimensions[1],
+			c_pCollisionData->v3Position.z + c_pCollisionData->fDimensions[2]);
+
+		XMVECTOR vMin = XMVector3TransformCoord(XMLoadFloat3(&v3Min), matWorld);
+		XMVECTOR vMax = XMVector3TransformCoord(XMLoadFloat3(&v3Max), matWorld);
+		XMVECTOR vPosition = (vMin + vMax) * 0.5f;
+
+		XMFLOAT3 v3Position;
+		XMStoreFloat3(&v3Position, vPosition);
+
+		TOBBData& OBBData = poci->GetAttribute();
+		OBBData.v3Min = XMFLOAT3(v3Position.x - c_pCollisionData->fDimensions[0], v3Position.y - c_pCollisionData->fDimensions[1], v3Position.z - c_pCollisionData->fDimensions[2]);
+		OBBData.v3Max = XMFLOAT3(v3Position.x + c_pCollisionData->fDimensions[0], v3Position.y + c_pCollisionData->fDimensions[1], v3Position.z + c_pCollisionData->fDimensions[2]);
+
+		XMFLOAT4X4 matRot;
+		XMStoreFloat4x4(&matRot, matWorld);
+		matRot._41 = 0.0f;
+		matRot._42 = 0.0f;
+		matRot._43 = 0.0f;
+		matRot._44 = 1.0f;
+		OBBData.matRot = matRot;
+
+		return poci;
+	}
+	break;
+
+	case COLLISION_TYPE_SPHERE:
+	{
+		CSphereCollisionInstance* psci = gs_sci.Alloc();
+
+		XMMATRIX matTranslationLocal = XMMatrixTranslation(c_pCollisionData->v3Position.x, c_pCollisionData->v3Position.y, c_pCollisionData->v3Position.z) * matWorld;
+
+		TSphereData& SphereData = psci->GetAttribute();
+		SphereData.v3Position = XMFLOAT3(XMVectorGetX(matTranslationLocal.r[3]), XMVectorGetY(matTranslationLocal.r[3]), XMVectorGetZ(matTranslationLocal.r[3]));
+		SphereData.fRadius = c_pCollisionData->fDimensions[0];
+
+		return psci;
+	}
+	break;
+
+	case COLLISION_TYPE_CYLINDER:
+	{
+		CCylinderCollisionInstance* pcci = gs_cci.Alloc();
+
+		XMMATRIX matTranslationLocal = XMMatrixTranslation(c_pCollisionData->v3Position.x, c_pCollisionData->v3Position.y, c_pCollisionData->v3Position.z) * matWorld;
+
+		TCylinderData& CylinderData = pcci->GetAttribute();
+		CylinderData.fRadius = c_pCollisionData->fDimensions[0];
+		CylinderData.fHeight = c_pCollisionData->fDimensions[1];
+		CylinderData.v3Position = XMFLOAT3(XMVectorGetX(matTranslationLocal.r[3]), XMVectorGetY(matTranslationLocal.r[3]), XMVectorGetZ(matTranslationLocal.r[3]));
+
+		return pcci;
+	}
+	break;
+	}
+
 	assert(false && "NOT_REACHED");
-	return 0;
+	return nullptr;
 }
 
 void CBaseCollisionInstance::Destroy()
@@ -218,7 +185,6 @@ void CSphereCollisionInstance::Render(D3D11_FILL_MODE D3D11_FILL_MODE)
 {
 	static CScreen s;
 	_mgr->GetCbMgr()->SetTextureFactor(0xffffffff);
-	s.RenderSphere(NULL, m_attribute.v3Position.x, m_attribute.v3Position.y, m_attribute.v3Position.z, m_attribute.fRadius, D3D11_FILL_MODE);
 }
 
 void CSphereCollisionInstance::OnDestroy()
@@ -226,13 +192,13 @@ void CSphereCollisionInstance::OnDestroy()
 	gs_sci.Free(this);
 }
 
-bool CSphereCollisionInstance::OnMovementCollisionDynamicSphere(const CDynamicSphereInstance & s) const 
+bool CSphereCollisionInstance::OnMovementCollisionDynamicSphere(const CDynamicSphereInstance& s) const
 {
-	if (square_distance_between_linesegment_and_point(s.v3LastPosition,s.v3Position,m_attribute.v3Position) < (m_attribute.fRadius+s.fRadius)*(m_attribute.fRadius+s.fRadius))
+	const float fRadiusSum = m_attribute.fRadius + s.fRadius;
+
+	if (square_distance_between_linesegment_and_point(s.v3LastPosition, s.v3Position, m_attribute.v3Position) < fRadiusSum * fRadiusSum)
 	{
-		// NOTE : 거리가 가까워 졌을때만.. - [levites]
-		if (GetVector3Distance(s.v3Position, m_attribute.v3Position) <
-			GetVector3Distance(s.v3LastPosition, m_attribute.v3Position))
+		if (GetVector3Distance(s.v3Position, m_attribute.v3Position) < GetVector3Distance(s.v3LastPosition, m_attribute.v3Position))
 			return true;
 	}
 
@@ -251,46 +217,45 @@ bool CSphereCollisionInstance::OnCollisionDynamicSphere(const CDynamicSphereInst
 	return false;
 }
 
-D3DXVECTOR3 CSphereCollisionInstance::OnGetCollisionMovementAdjust(const CDynamicSphereInstance & s) const
+XMFLOAT3 CSphereCollisionInstance::OnGetCollisionMovementAdjust(const CDynamicSphereInstance& s) const
 {
-	const auto _vv__ = (s.v3Position - m_attribute.v3Position);
-	if (D3DXVec3LengthSq(&_vv__)>=(s.fRadius+m_attribute.fRadius)*(m_attribute.fRadius+s.fRadius))
-		return D3DXVECTOR3(0.0f,0.0f,0.0f);
-	D3DXVECTOR3 c;
-	const auto _vv__2 = (s.v3Position - s.v3LastPosition);
-	const auto _vv_s_2 = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-	D3DXVec3Cross(&c, &_vv__2, &_vv_s_2);
-	
-	float sum = - D3DXVec3Dot(&c,&_vv__);
-	float mul = (s.fRadius+m_attribute.fRadius)*(s.fRadius+m_attribute.fRadius)-D3DXVec3LengthSq(&_vv__);
+	const XMVECTOR vPos = XMLoadFloat3(&s.v3Position);
+	const XMVECTOR vLastPos = XMLoadFloat3(&s.v3LastPosition);
+	const XMVECTOR vAttrPos = XMLoadFloat3(&m_attribute.v3Position);
 
-	if (sum*sum-4*mul<=0)
-		return D3DXVECTOR3(0.0f,0.0f,0.0f);
-	float sq = sqrt(sum*sum-4*mul);
-	float t1=-sum-sq, t2=-sum+sq;
-	t1*=0.5f;
-	t2*=0.5f;
+	const XMVECTOR _vv__ = vPos - vAttrPos;
+	const float fRadiusSum = s.fRadius + m_attribute.fRadius;
 
-	if (fabs(t1)<=fabs(t2))
-	{
-		return (gc_fReduceMove*t1)*c;
-	}
+	if (XMVectorGetX(XMVector3LengthSq(_vv__)) >= fRadiusSum * fRadiusSum)
+		return XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+	XMVECTOR c;
+	const XMVECTOR _vv__2 = vPos - vLastPos;
+	const XMVECTOR _vv_s_2 = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+
+	c = XMVector3Cross(_vv__2, _vv_s_2);
+
+	float sum = -XMVectorGetX(XMVector3Dot(c, _vv__));
+	float mul = fRadiusSum * fRadiusSum - XMVectorGetX(XMVector3LengthSq(_vv__));
+
+	if (sum * sum - 4.0f * mul <= 0.0f)
+		return XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+	float sq = sqrtf(sum * sum - 4.0f * mul);
+	float t1 = -sum - sq;
+	float t2 = -sum + sq;
+
+	t1 *= 0.5f;
+	t2 *= 0.5f;
+
+	XMFLOAT3 result;
+
+	if (fabsf(t1) <= fabsf(t2))
+		XMStoreFloat3(&result, c * (gc_fReduceMove * t1));
 	else
-		return (gc_fReduceMove*t2)*c;
+		XMStoreFloat3(&result, c * (gc_fReduceMove * t2));
 
-	/*
-	D3DXVECTOR3 p1 = s.v3Position+t1*c;
-	D3DXVECTOR3 p2 = s.v3Position+t2*c;
-	
-	if (D3DXVec3LengthSq(&(p2-s.v3Position))>D3DXVec3LengthSq(&(p1-s.v3Position)))
-	{
-		return p1-s.v3Position;
-	}
-	else
-	{
-		return p2-s.v3Position;
-	}
-	*/
+	return result;
 }
 
 /////////////////////////////////////////////
@@ -305,30 +270,36 @@ const TPlaneData & CPlaneCollisionInstance::GetAttribute() const
 	return m_attribute;
 }
 
-bool CPlaneCollisionInstance::OnMovementCollisionDynamicSphere(const CDynamicSphereInstance & s) const
+bool CPlaneCollisionInstance::OnMovementCollisionDynamicSphere(const CDynamicSphereInstance& s) const
 {
-	D3DXVECTOR3 v3SpherePosition = s.v3Position - m_attribute.v3Position;
-	D3DXVECTOR3 v3SphereLastPosition = s.v3LastPosition - m_attribute.v3Position;
+	const XMVECTOR vPos = XMLoadFloat3(&s.v3Position);
+	const XMVECTOR vLastPos = XMLoadFloat3(&s.v3LastPosition);
+	const XMVECTOR vPlanePos = XMLoadFloat3(&m_attribute.v3Position);
+	const XMVECTOR vNormal = XMLoadFloat3(&m_attribute.v3Normal);
 
-	float fPosition1 = D3DXVec3Dot(&m_attribute.v3Normal, &v3SpherePosition);
-	float fPosition2 = D3DXVec3Dot(&m_attribute.v3Normal, &v3SphereLastPosition);
+	const XMVECTOR v3SpherePosition = vPos - vPlanePos;
+	const XMVECTOR v3SphereLastPosition = vLastPos - vPlanePos;
 
-	if (fPosition1 >0.0f && fPosition2 < 0.0f  || fPosition1 <0.0f && fPosition2 >0.0f 
-		|| (fPosition1) <= s.fRadius && fPosition1 >= -s.fRadius)
+	float fPosition1 = XMVectorGetX(XMVector3Dot(vNormal, v3SpherePosition));
+	float fPosition2 = XMVectorGetX(XMVector3Dot(vNormal, v3SphereLastPosition));
+
+	if ((fPosition1 > 0.0f && fPosition2 < 0.0f) || (fPosition1 < 0.0f && fPosition2 > 0.0f) || (fPosition1 <= s.fRadius && fPosition1 >= -s.fRadius))
 	{
-		D3DXVECTOR3 v3QuadPosition1 = s.v3Position - m_attribute.v3QuadPosition[0];
-		D3DXVECTOR3 v3QuadPosition2 = s.v3Position - m_attribute.v3QuadPosition[3];
+		const XMVECTOR vQuad0 = XMLoadFloat3(&m_attribute.v3QuadPosition[0]);
+		const XMVECTOR vQuad3 = XMLoadFloat3(&m_attribute.v3QuadPosition[3]);
 
-		if (D3DXVec3Dot(&v3QuadPosition1, &m_attribute.v3InsideVector[0]) > - s.fRadius/*0.0f*/)
-			if (D3DXVec3Dot(&v3QuadPosition1, &m_attribute.v3InsideVector[1]) > -s.fRadius/*0.0f*/)
-				if (D3DXVec3Dot(&v3QuadPosition2, &m_attribute.v3InsideVector[2]) > - s.fRadius/*0.0f*/)
-					if (D3DXVec3Dot(&v3QuadPosition2, &m_attribute.v3InsideVector[3]) > - s.fRadius/*0.0f*/)
+		const XMVECTOR v3QuadPosition1 = vPos - vQuad0;
+		const XMVECTOR v3QuadPosition2 = vPos - vQuad3;
+
+		if (XMVectorGetX(XMVector3Dot(v3QuadPosition1, XMLoadFloat3(&m_attribute.v3InsideVector[0]))) > -s.fRadius)
+			if (XMVectorGetX(XMVector3Dot(v3QuadPosition1, XMLoadFloat3(&m_attribute.v3InsideVector[1]))) > -s.fRadius)
+				if (XMVectorGetX(XMVector3Dot(v3QuadPosition2, XMLoadFloat3(&m_attribute.v3InsideVector[2]))) > -s.fRadius)
+					if (XMVectorGetX(XMVector3Dot(v3QuadPosition2, XMLoadFloat3(&m_attribute.v3InsideVector[3]))) > -s.fRadius)
 					{
-						// NOTE : 거리가 가까워 졌을때만.. - [levites]
-						const auto _vv__3 = (s.v3Position - m_attribute.v3Position);
-						const auto _vv__4 = (s.v3LastPosition - m_attribute.v3Position);
-						if (fabs(D3DXVec3Dot(&_vv__3, &m_attribute.v3Normal)) <
-							fabs(D3DXVec3Dot(&_vv__4, &m_attribute.v3Normal)))
+						const XMVECTOR _vv__3 = vPos - vPlanePos;
+						const XMVECTOR _vv__4 = vLastPos - vPlanePos;
+
+						if (fabsf(XMVectorGetX(XMVector3Dot(_vv__3, vNormal))) < fabsf(XMVectorGetX(XMVector3Dot(_vv__4, vNormal))))
 							return true;
 					}
 	}
@@ -336,52 +307,58 @@ bool CPlaneCollisionInstance::OnMovementCollisionDynamicSphere(const CDynamicSph
 	return false;
 }
 
-bool CPlaneCollisionInstance::OnCollisionDynamicSphere(const CDynamicSphereInstance & s) const
+bool CPlaneCollisionInstance::OnCollisionDynamicSphere(const CDynamicSphereInstance& s) const
 {
-	//Tracef("OnCollisionDynamicSphere\n");
-	
-	D3DXVECTOR3 v3SpherePosition = s.v3Position - m_attribute.v3Position;
-	D3DXVECTOR3 v3SphereLastPosition = s.v3LastPosition - m_attribute.v3Position;
-	
-	float fPosition1 = D3DXVec3Dot(&m_attribute.v3Normal, &v3SpherePosition);
-	float fPosition2 = D3DXVec3Dot(&m_attribute.v3Normal, &v3SphereLastPosition);
-	
-	if (fPosition1 >0.0f && fPosition2 < 0.0f  || fPosition1 <0.0f && fPosition2 >0.0f 
-		|| (fPosition1) <= s.fRadius && fPosition1 >= -s.fRadius)
+	const XMVECTOR vPos = XMLoadFloat3(&s.v3Position);
+	const XMVECTOR vLastPos = XMLoadFloat3(&s.v3LastPosition);
+	const XMVECTOR vPlanePos = XMLoadFloat3(&m_attribute.v3Position);
+	const XMVECTOR vNormal = XMLoadFloat3(&m_attribute.v3Normal);
+
+	const XMVECTOR v3SpherePosition = vPos - vPlanePos;
+	const XMVECTOR v3SphereLastPosition = vLastPos - vPlanePos;
+
+	float fPosition1 = XMVectorGetX(XMVector3Dot(vNormal, v3SpherePosition));
+	float fPosition2 = XMVectorGetX(XMVector3Dot(vNormal, v3SphereLastPosition));
+
+	if ((fPosition1 > 0.0f && fPosition2 < 0.0f) || (fPosition1 < 0.0f && fPosition2 > 0.0f) || (fPosition1 <= s.fRadius && fPosition1 >= -s.fRadius))
 	{
-		D3DXVECTOR3 v3QuadPosition1 = s.v3Position - m_attribute.v3QuadPosition[0];
-		D3DXVECTOR3 v3QuadPosition2 = s.v3Position - m_attribute.v3QuadPosition[3];
-		
-		if (D3DXVec3Dot(&v3QuadPosition1, &m_attribute.v3InsideVector[0]) > - s.fRadius/*0.0f*/)
-			if (D3DXVec3Dot(&v3QuadPosition1, &m_attribute.v3InsideVector[1]) > -s.fRadius/*0.0f*/)
-				if (D3DXVec3Dot(&v3QuadPosition2, &m_attribute.v3InsideVector[2]) > - s.fRadius/*0.0f*/)
-					if (D3DXVec3Dot(&v3QuadPosition2, &m_attribute.v3InsideVector[3]) > - s.fRadius/*0.0f*/)
-					{
+		const XMVECTOR v3QuadPosition1 = vPos - XMLoadFloat3(&m_attribute.v3QuadPosition[0]);
+		const XMVECTOR v3QuadPosition2 = vPos - XMLoadFloat3(&m_attribute.v3QuadPosition[3]);
+
+		if (XMVectorGetX(XMVector3Dot(v3QuadPosition1, XMLoadFloat3(&m_attribute.v3InsideVector[0]))) > -s.fRadius)
+			if (XMVectorGetX(XMVector3Dot(v3QuadPosition1, XMLoadFloat3(&m_attribute.v3InsideVector[1]))) > -s.fRadius)
+				if (XMVectorGetX(XMVector3Dot(v3QuadPosition2, XMLoadFloat3(&m_attribute.v3InsideVector[2]))) > -s.fRadius)
+					if (XMVectorGetX(XMVector3Dot(v3QuadPosition2, XMLoadFloat3(&m_attribute.v3InsideVector[3]))) > -s.fRadius)
 						return true;
-					}
 	}
-	
+
 	return false;
 }
 
-D3DXVECTOR3 CPlaneCollisionInstance::OnGetCollisionMovementAdjust(const CDynamicSphereInstance & s) const
+XMFLOAT3 CPlaneCollisionInstance::OnGetCollisionMovementAdjust(const CDynamicSphereInstance& s) const
 {
-	D3DXVECTOR3 advance = s.v3Position-s.v3LastPosition;
+	const XMVECTOR vPos = XMLoadFloat3(&s.v3Position);
+	const XMVECTOR vLastPos = XMLoadFloat3(&s.v3LastPosition);
+	const XMVECTOR vPlanePos = XMLoadFloat3(&m_attribute.v3Position);
+	const XMVECTOR vNormal = XMLoadFloat3(&m_attribute.v3Normal);
 
-	float d = D3DXVec3Dot(&m_attribute.v3Normal, &advance);
-	if (d>=-0.0001 && d<=0.0001)
-		return D3DXVECTOR3(0.0f,0.0f,0.0f);
-	const auto vv = (s.v3Position - m_attribute.v3Position);
-	float t= - D3DXVec3Dot(&m_attribute.v3Normal, &vv)/d;
+	const XMVECTOR advance = vPos - vLastPos;
 
-	if (D3DXVec3Dot(&m_attribute.v3Normal, &advance)>=0)
-	{
-		return t*advance -s.fRadius*m_attribute.v3Normal;
-	}
+	float d = XMVectorGetX(XMVector3Dot(vNormal, advance));
+	if (d >= -0.0001f && d <= 0.0001f)
+		return XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+	const XMVECTOR vv = vPos - vPlanePos;
+	float t = -XMVectorGetX(XMVector3Dot(vNormal, vv)) / d;
+
+	XMFLOAT3 result;
+
+	if (XMVectorGetX(XMVector3Dot(vNormal, advance)) >= 0.0f)
+		XMStoreFloat3(&result, advance * t - vNormal * s.fRadius);
 	else
-	{
-		return t*advance +s.fRadius*m_attribute.v3Normal;
-	}
+		XMStoreFloat3(&result, advance * t + vNormal * s.fRadius);
+
+	return result;
 }
 
 void CPlaneCollisionInstance::Render(D3D11_FILL_MODE /*D3D11_FILL_MODE*/)
@@ -407,7 +384,7 @@ const TCylinderData & CCylinderCollisionInstance::GetAttribute() const
 	return m_attribute;
 }
 
-bool CCylinderCollisionInstance::CollideCylinderVSDynamicSphere(const TCylinderData & c_rattribute, const CDynamicSphereInstance & s) const
+bool CCylinderCollisionInstance::CollideCylinderVSDynamicSphere(const TCylinderData& c_rattribute, const CDynamicSphereInstance& s) const
 {
 	if (s.v3Position.z + s.fRadius < c_rattribute.v3Position.z)
 		return false;
@@ -415,46 +392,56 @@ bool CCylinderCollisionInstance::CollideCylinderVSDynamicSphere(const TCylinderD
 	if (s.v3Position.z - s.fRadius > c_rattribute.v3Position.z + c_rattribute.fHeight)
 		return false;
 
-	D3DXVECTOR3 oa, ob;
-	IntersectLineSegments(c_rattribute.v3Position, D3DXVECTOR3(c_rattribute.v3Position.x,c_rattribute.v3Position.y,c_rattribute.v3Position.z+c_rattribute.fHeight), s.v3LastPosition, s.v3Position, oa, ob);
-	const auto vv = (oa - ob);
-	return (D3DXVec3LengthSq(&vv)<=(c_rattribute.fRadius+s.fRadius)*(c_rattribute.fRadius+s.fRadius));
+	XMFLOAT3 oa, ob;
+
+	IntersectLineSegments(
+		c_rattribute.v3Position,
+		XMFLOAT3(c_rattribute.v3Position.x, c_rattribute.v3Position.y, c_rattribute.v3Position.z + c_rattribute.fHeight),
+		s.v3LastPosition,
+		s.v3Position,
+		oa,
+		ob
+	);
+
+	const XMVECTOR vv = XMLoadFloat3(&oa) - XMLoadFloat3(&ob);
+	const float fRadiusSum = c_rattribute.fRadius + s.fRadius;
+
+	return XMVectorGetX(XMVector3LengthSq(vv)) <= fRadiusSum * fRadiusSum;
 }
 
-bool CCylinderCollisionInstance::OnMovementCollisionDynamicSphere(const CDynamicSphereInstance & s) const
+bool CCylinderCollisionInstance::OnMovementCollisionDynamicSphere(const CDynamicSphereInstance& s) const
 {
 	if (CollideCylinderVSDynamicSphere(m_attribute, s))
 	{
-		// NOTE : 거리가 가까워 졌을때만.. - [levites]
-		if (GetVector3Distance(s.v3Position, m_attribute.v3Position) <
-			GetVector3Distance(s.v3LastPosition, m_attribute.v3Position))
+		if (GetVector3Distance(s.v3Position, m_attribute.v3Position) < GetVector3Distance(s.v3LastPosition, m_attribute.v3Position))
 			return true;
 	}
 
-	
-	// NOTE : 이동 거리가 클 경우 빈틈없이 (원 크기 단위로) 이동하면서 전부 체크 해 본다 - [levites]
-	D3DXVECTOR3 v3Distance = s.v3Position - s.v3LastPosition;
-	float fDistance = D3DXVec3Length(&v3Distance);
-	if (s.fRadius<=0.0001f)
+	const XMVECTOR vDistance = XMLoadFloat3(&s.v3Position) - XMLoadFloat3(&s.v3LastPosition);
+	float fDistance = XMVectorGetX(XMVector3Length(vDistance));
+
+	if (s.fRadius <= 0.0001f)
 		return false;
-	if (fDistance >= s.fRadius*2.0f)
+
+	if (fDistance >= s.fRadius * 2.0f)
 	{
-		TCylinderData cylinder;
-		cylinder = m_attribute;
+		TCylinderData cylinder = m_attribute;
 		cylinder.v3Position = s.v3LastPosition;
-		
-		int iStep = fDistance / s.fRadius*2.0f;
-		D3DXVECTOR3 v3Step = v3Distance / float(iStep);
-		
+
+		int iStep = int(fDistance / s.fRadius * 2.0f);
+
+		XMFLOAT3 v3Step;
+		XMStoreFloat3(&v3Step, vDistance / float(iStep));
+
 		for (int i = 0; i < iStep; ++i)
 		{
-			cylinder.v3Position += v3Step;
+			XMStoreFloat3(&cylinder.v3Position, XMLoadFloat3(&cylinder.v3Position) + XMLoadFloat3(&v3Step));
+
 			if (CollideCylinderVSDynamicSphere(cylinder, s))
 				return true;
-				
 		}
 	}
-	
+
 	return false;
 }
 
@@ -465,49 +452,49 @@ bool CCylinderCollisionInstance::OnCollisionDynamicSphere(const CDynamicSphereIn
 	return (CollideCylinderVSDynamicSphere(m_attribute, s));
 }
 
-D3DXVECTOR3 CCylinderCollisionInstance::OnGetCollisionMovementAdjust(const CDynamicSphereInstance & s) const
+XMFLOAT3 CCylinderCollisionInstance::OnGetCollisionMovementAdjust(const CDynamicSphereInstance& s) const
 {
-	D3DXVECTOR3 v3Position = m_attribute.v3Position;
+	XMFLOAT3 v3Position = m_attribute.v3Position;
 	v3Position.z = s.v3Position.z;
-	const auto vv = (s.v3Position - v3Position);
-	if (D3DXVec3LengthSq(&vv)>=(s.fRadius+m_attribute.fRadius)*(m_attribute.fRadius+s.fRadius))
-		return D3DXVECTOR3(0.0f,0.0f,0.0f);
-	D3DXVECTOR3 c;
-	D3DXVECTOR3 advance = s.v3Position - s.v3LastPosition;
-	advance.z = 0;
-	const auto vssa = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-	D3DXVec3Cross(&c, &advance, &vssa);
-	
-	const auto svsvs = (s.v3Position - v3Position);
-	float sum = - D3DXVec3Dot(&c,&svsvs);
-	float mul = (s.fRadius+m_attribute.fRadius)*(s.fRadius+m_attribute.fRadius)-D3DXVec3LengthSq(&svsvs);
 
-	if (sum*sum-4*mul<=0)
-		return D3DXVECTOR3(0.0f,0.0f,0.0f);
-	float sq = sqrt(sum*sum-4*mul);
-	float t1=-sum-sq, t2=-sum+sq;
-	t1*=0.5f;
-	t2*=0.5f;
-	
+	const XMVECTOR vPos = XMLoadFloat3(&s.v3Position);
+	const XMVECTOR vCylPos = XMLoadFloat3(&v3Position);
 
-	if (fabs(t1)<=fabs(t2))
-	{
-		return (gc_fReduceMove*t1)*c;
-	}
+	const XMVECTOR vv = vPos - vCylPos;
+	const float fRadiusSum = s.fRadius + m_attribute.fRadius;
+
+	if (XMVectorGetX(XMVector3LengthSq(vv)) >= fRadiusSum * fRadiusSum)
+		return XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+	XMVECTOR advance = vPos - XMLoadFloat3(&s.v3LastPosition);
+	advance = XMVectorSetZ(advance, 0.0f);
+
+	const XMVECTOR vssa = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+	const XMVECTOR c = XMVector3Cross(advance, vssa);
+
+	const XMVECTOR svsvs = vPos - vCylPos;
+
+	float sum = -XMVectorGetX(XMVector3Dot(c, svsvs));
+	float mul = fRadiusSum * fRadiusSum - XMVectorGetX(XMVector3LengthSq(svsvs));
+
+	if (sum * sum - 4.0f * mul <= 0.0f)
+		return XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+	float sq = sqrtf(sum * sum - 4.0f * mul);
+	float t1 = -sum - sq;
+	float t2 = -sum + sq;
+
+	t1 *= 0.5f;
+	t2 *= 0.5f;
+
+	XMFLOAT3 result;
+
+	if (fabsf(t1) <= fabsf(t2))
+		XMStoreFloat3(&result, c * (gc_fReduceMove * t1));
 	else
-		return (gc_fReduceMove*t2)*c;
+		XMStoreFloat3(&result, c * (gc_fReduceMove * t2));
 
-	/*D3DXVECTOR3 p1 = s.v3Position+t1*c;
-	D3DXVECTOR3 p2 = s.v3Position+t2*c;
-	
-	if (D3DXVec3LengthSq(&(p2-s.v3Position))>D3DXVec3LengthSq(&(p1-s.v3Position)))
-	{
-		return p1-s.v3Position;
-	}
-	else
-	{
-		return p2-s.v3Position;
-	}*/
+	return result;
 }
 
 void CCylinderCollisionInstance::Render(D3D11_FILL_MODE D3D11_FILL_MODE)
@@ -515,7 +502,6 @@ void CCylinderCollisionInstance::Render(D3D11_FILL_MODE D3D11_FILL_MODE)
 	static CScreen s;
 	_mgr->GetCbMgr()->SetTextureFactor(0xffffffff);
 
-	s.RenderCylinder(NULL, m_attribute.v3Position.x, m_attribute.v3Position.y, m_attribute.v3Position.z+m_attribute.fHeight/2, m_attribute.fRadius, m_attribute.fHeight, D3D11_FILL_MODE);
 }
 
 void CCylinderCollisionInstance::OnDestroy()
@@ -536,112 +522,104 @@ const TAABBData & CAABBCollisionInstance::GetAttribute() const
 	return m_attribute;
 }
 
-bool CAABBCollisionInstance::OnMovementCollisionDynamicSphere(const CDynamicSphereInstance & s) const
+bool CAABBCollisionInstance::OnMovementCollisionDynamicSphere(const CDynamicSphereInstance& s) const
 {
-	D3DXVECTOR3 v;
-	D3DXVECTOR3 v3center = (m_attribute.v3Min + m_attribute.v3Max) * 0.5f;
+	XMFLOAT3 v;
+	XMFLOAT3 v3center;
 
-	memcpy(&v, &s.v3Position, sizeof(D3DXVECTOR3));
+	XMStoreFloat3(&v3center, (XMLoadFloat3(&m_attribute.v3Min) + XMLoadFloat3(&m_attribute.v3Max)) * 0.5f);
 
-	if(v.x < m_attribute.v3Min.x) v.x = m_attribute.v3Min.x;
-	if(v.x > m_attribute.v3Max.x) v.x = m_attribute.v3Max.x;
-	if(v.y < m_attribute.v3Min.y) v.x = m_attribute.v3Min.y;
-	if(v.y > m_attribute.v3Max.y) v.x = m_attribute.v3Max.y;
-	if(v.z < m_attribute.v3Min.z) v.z = m_attribute.v3Min.z;
-	if(v.z > m_attribute.v3Max.z) v.z = m_attribute.v3Max.z;
+	v = s.v3Position;
 
-	if(GetVector3Distance(v, s.v3Position) <= s.fRadius * s.fRadius)
-	{
-		
+	if (v.x < m_attribute.v3Min.x) v.x = m_attribute.v3Min.x;
+	if (v.x > m_attribute.v3Max.x) v.x = m_attribute.v3Max.x;
+	if (v.y < m_attribute.v3Min.y) v.x = m_attribute.v3Min.y;
+	if (v.y > m_attribute.v3Max.y) v.x = m_attribute.v3Max.y;
+	if (v.z < m_attribute.v3Min.z) v.z = m_attribute.v3Min.z;
+	if (v.z > m_attribute.v3Max.z) v.z = m_attribute.v3Max.z;
+
+	if (GetVector3Distance(v, s.v3Position) <= s.fRadius * s.fRadius)
 		return true;
-	}
 
+	v = s.v3LastPosition;
 
-	memcpy(&v, &s.v3LastPosition, sizeof(D3DXVECTOR3));
+	if (v.x < m_attribute.v3Min.x) v.x = m_attribute.v3Min.x;
+	if (v.x > m_attribute.v3Max.x) v.x = m_attribute.v3Max.x;
+	if (v.y < m_attribute.v3Min.y) v.x = m_attribute.v3Min.y;
+	if (v.y > m_attribute.v3Max.y) v.x = m_attribute.v3Max.y;
+	if (v.z < m_attribute.v3Min.z) v.z = m_attribute.v3Min.z;
+	if (v.z > m_attribute.v3Max.z) v.z = m_attribute.v3Max.z;
 
-	if(v.x < m_attribute.v3Min.x) v.x = m_attribute.v3Min.x;
-	if(v.x > m_attribute.v3Max.x) v.x = m_attribute.v3Max.x;
-	if(v.y < m_attribute.v3Min.y) v.x = m_attribute.v3Min.y;
-	if(v.y > m_attribute.v3Max.y) v.x = m_attribute.v3Max.y;
-	if(v.z < m_attribute.v3Min.z) v.z = m_attribute.v3Min.z;
-	if(v.z > m_attribute.v3Max.z) v.z = m_attribute.v3Max.z;
-
-	if(GetVector3Distance(v, s.v3LastPosition) <= s.fRadius * s.fRadius)
-	{
-		
+	if (GetVector3Distance(v, s.v3LastPosition) <= s.fRadius * s.fRadius)
 		return true;
-	}
 
 	return false;
 }
 
-bool CAABBCollisionInstance::OnCollisionDynamicSphere(const CDynamicSphereInstance & s) const
+bool CAABBCollisionInstance::OnCollisionDynamicSphere(const CDynamicSphereInstance& s) const
 {
-	D3DXVECTOR3 v;
-	memcpy(&v, &s.v3Position, sizeof(D3DXVECTOR3));
+	XMFLOAT3 v = s.v3Position;
 
-	if(v.x < m_attribute.v3Min.x) v.x = m_attribute.v3Min.x;
-	if(v.x > m_attribute.v3Max.x) v.x = m_attribute.v3Max.x;
-	if(v.y < m_attribute.v3Min.y) v.x = m_attribute.v3Min.y;
-	if(v.y > m_attribute.v3Max.y) v.x = m_attribute.v3Max.y;
-	if(v.z < m_attribute.v3Min.z) v.z = m_attribute.v3Min.z;
-	if(v.z > m_attribute.v3Max.z) v.z = m_attribute.v3Max.z;
+	if (v.x < m_attribute.v3Min.x) v.x = m_attribute.v3Min.x;
+	if (v.x > m_attribute.v3Max.x) v.x = m_attribute.v3Max.x;
+	if (v.y < m_attribute.v3Min.y) v.x = m_attribute.v3Min.y;
+	if (v.y > m_attribute.v3Max.y) v.x = m_attribute.v3Max.y;
+	if (v.z < m_attribute.v3Min.z) v.z = m_attribute.v3Min.z;
+	if (v.z > m_attribute.v3Max.z) v.z = m_attribute.v3Max.z;
 
-	if(v.x > m_attribute.v3Min.x && v.x < m_attribute.v3Max.x &&
+	if (v.x > m_attribute.v3Min.x && v.x < m_attribute.v3Max.x &&
 		v.y > m_attribute.v3Min.y && v.y < m_attribute.v3Max.y &&
-		v.z > m_attribute.v3Min.z && v.z < m_attribute.v3Max.z) { return true; }
+		v.z > m_attribute.v3Min.z && v.z < m_attribute.v3Max.z)
+		return true;
 
-	if(GetVector3Distance(v, s.v3Position) <= s.fRadius * s.fRadius) { return true; }
+	if (GetVector3Distance(v, s.v3Position) <= s.fRadius * s.fRadius)
+		return true;
 
+	v = s.v3LastPosition;
 
-	memcpy(&v, &s.v3LastPosition, sizeof(D3DXVECTOR3));
+	if (v.x < m_attribute.v3Min.x) v.x = m_attribute.v3Min.x;
+	if (v.x > m_attribute.v3Max.x) v.x = m_attribute.v3Max.x;
+	if (v.y < m_attribute.v3Min.y) v.x = m_attribute.v3Min.y;
+	if (v.y > m_attribute.v3Max.y) v.x = m_attribute.v3Max.y;
+	if (v.z < m_attribute.v3Min.z) v.z = m_attribute.v3Min.z;
+	if (v.z > m_attribute.v3Max.z) v.z = m_attribute.v3Max.z;
 
-	if(v.x < m_attribute.v3Min.x) v.x = m_attribute.v3Min.x;
-	if(v.x > m_attribute.v3Max.x) v.x = m_attribute.v3Max.x;
-	if(v.y < m_attribute.v3Min.y) v.x = m_attribute.v3Min.y;
-	if(v.y > m_attribute.v3Max.y) v.x = m_attribute.v3Max.y;
-	if(v.z < m_attribute.v3Min.z) v.z = m_attribute.v3Min.z;
-	if(v.z > m_attribute.v3Max.z) v.z = m_attribute.v3Max.z;
-	
-
-
-	if(v.x > m_attribute.v3Min.x && v.x < m_attribute.v3Max.x &&
+	if (v.x > m_attribute.v3Min.x && v.x < m_attribute.v3Max.x &&
 		v.y > m_attribute.v3Min.y && v.y < m_attribute.v3Max.y &&
-		v.z > m_attribute.v3Min.z && v.z < m_attribute.v3Max.z) { return true; }
+		v.z > m_attribute.v3Min.z && v.z < m_attribute.v3Max.z)
+		return true;
 
-	if(GetVector3Distance(v, s.v3LastPosition) <= s.fRadius * s.fRadius) { return true; }
-
-	
+	if (GetVector3Distance(v, s.v3LastPosition) <= s.fRadius * s.fRadius)
+		return true;
 
 	return false;
 }
 
-D3DXVECTOR3 CAABBCollisionInstance::OnGetCollisionMovementAdjust(const CDynamicSphereInstance & s) const
+XMFLOAT3 CAABBCollisionInstance::OnGetCollisionMovementAdjust(const CDynamicSphereInstance& s) const
 {
-	
-	D3DXVECTOR3 v3Temp;
-	if(s.v3Position.x + s.fRadius <= m_attribute.v3Min.x)		{ v3Temp.x = m_attribute.v3Min.x; }
-	else if(s.v3Position.x - s.fRadius >= m_attribute.v3Max.x)	{ v3Temp.x = m_attribute.v3Max.x; }
-	else if(s.v3Position.x + s.fRadius >= m_attribute.v3Min.x && s.v3Position.x + s.fRadius <= m_attribute.v3Max.x) { v3Temp.x = s.v3Position.x + s.fRadius; }
-	else																											{ v3Temp.x = s.v3Position.x - s.fRadius; }
+	XMFLOAT3 v3Temp;
 
-	if(s.v3Position.y + s.fRadius <= m_attribute.v3Min.y)		{ v3Temp.y = m_attribute.v3Min.y; }
-	else if(s.v3Position.y - s.fRadius >= m_attribute.v3Max.y)	{ v3Temp.y = m_attribute.v3Max.y; }
-	else if(s.v3Position.y + s.fRadius >= m_attribute.v3Min.y && s.v3Position.y + s.fRadius <= m_attribute.v3Max.y) { v3Temp.y = s.v3Position.y + s.fRadius; }
-	else																											{ v3Temp.y = s.v3Position.y - s.fRadius; }
-	
-	if(s.v3Position.z + s.fRadius <= m_attribute.v3Min.z)		{ v3Temp.z = m_attribute.v3Min.z; }
-	else if(s.v3Position.z - s.fRadius >= m_attribute.v3Max.z)	{ v3Temp.z = m_attribute.v3Max.z; }
-	else if(s.v3Position.z + s.fRadius >= m_attribute.v3Min.z && s.v3Position.z + s.fRadius <= m_attribute.v3Max.z) { v3Temp.z = s.v3Position.z + s.fRadius; }
-	else																											{ v3Temp.z = s.v3Position.z - s.fRadius; }
+	if (s.v3Position.x + s.fRadius <= m_attribute.v3Min.x) { v3Temp.x = m_attribute.v3Min.x; }
+	else if (s.v3Position.x - s.fRadius >= m_attribute.v3Max.x) { v3Temp.x = m_attribute.v3Max.x; }
+	else if (s.v3Position.x + s.fRadius >= m_attribute.v3Min.x && s.v3Position.x + s.fRadius <= m_attribute.v3Max.x) { v3Temp.x = s.v3Position.x + s.fRadius; }
+	else { v3Temp.x = s.v3Position.x - s.fRadius; }
 
-	
-	const auto vv = (v3Temp - s.v3Position);
-	if(D3DXVec3LengthSq(&vv) < s.fRadius * s.fRadius)
-		return D3DXVECTOR3(.0f, .0f, .0f);
-	
-	return D3DXVECTOR3(.0f, .0f, .0f);
-	
+	if (s.v3Position.y + s.fRadius <= m_attribute.v3Min.y) { v3Temp.y = m_attribute.v3Min.y; }
+	else if (s.v3Position.y - s.fRadius >= m_attribute.v3Max.y) { v3Temp.y = m_attribute.v3Max.y; }
+	else if (s.v3Position.y + s.fRadius >= m_attribute.v3Min.y && s.v3Position.y + s.fRadius <= m_attribute.v3Max.y) { v3Temp.y = s.v3Position.y + s.fRadius; }
+	else { v3Temp.y = s.v3Position.y - s.fRadius; }
+
+	if (s.v3Position.z + s.fRadius <= m_attribute.v3Min.z) { v3Temp.z = m_attribute.v3Min.z; }
+	else if (s.v3Position.z - s.fRadius >= m_attribute.v3Max.z) { v3Temp.z = m_attribute.v3Max.z; }
+	else if (s.v3Position.z + s.fRadius >= m_attribute.v3Min.z && s.v3Position.z + s.fRadius <= m_attribute.v3Max.z) { v3Temp.z = s.v3Position.z + s.fRadius; }
+	else { v3Temp.z = s.v3Position.z - s.fRadius; }
+
+	const XMVECTOR vv = XMLoadFloat3(&v3Temp) - XMLoadFloat3(&s.v3Position);
+
+	if (XMVectorGetX(XMVector3LengthSq(vv)) < s.fRadius * s.fRadius)
+		return XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+	return XMFLOAT3(0.0f, 0.0f, 0.0f);
 }
 
 void CAABBCollisionInstance::Render(D3D11_FILL_MODE D3D11_FILL_MODE)
@@ -672,80 +650,104 @@ const TOBBData & COBBCollisionInstance::GetAttribute() const
 	return m_attribute;
 }
 
-bool COBBCollisionInstance::OnMovementCollisionDynamicSphere(const CDynamicSphereInstance & s) const
+bool COBBCollisionInstance::OnMovementCollisionDynamicSphere(const CDynamicSphereInstance& s) const
 {
-	D3DXVECTOR3 v3Center = 0.5f * (m_attribute.v3Min + m_attribute.v3Max);
-	D3DXVECTOR3 v3Sphere = s.v3Position - v3Center;
-	D3DXVec3TransformCoord(&v3Sphere, &v3Sphere, &m_attribute.matRot);
-	v3Sphere = v3Sphere + v3Center;
-	
-	D3DXVECTOR3 v3Point = v3Sphere;
-	if(v3Point.x < m_attribute.v3Min.x) { v3Point.x = m_attribute.v3Min.x; }
-	if(v3Point.x > m_attribute.v3Max.x) { v3Point.x = m_attribute.v3Max.x; }
-	if(v3Point.y < m_attribute.v3Min.y) { v3Point.y = m_attribute.v3Min.y; }
-	if(v3Point.y > m_attribute.v3Max.y) { v3Point.y = m_attribute.v3Max.y; }
-	if(v3Point.z < m_attribute.v3Min.z) { v3Point.z = m_attribute.v3Min.z; }
-	if(v3Point.z > m_attribute.v3Max.z) { v3Point.z = m_attribute.v3Max.z; }
-	
-	if(GetVector3Distance(v3Point, v3Sphere) <= s.fRadius * s.fRadius) { return true; }
+	XMFLOAT3 v3Center;
+	XMStoreFloat3(&v3Center, (XMLoadFloat3(&m_attribute.v3Min) + XMLoadFloat3(&m_attribute.v3Max)) * 0.5f);
 
-	v3Sphere = s.v3LastPosition - v3Center;
-	D3DXVec3TransformCoord(&v3Sphere, &v3Sphere, &m_attribute.matRot);
-	v3Sphere = v3Sphere + v3Center;
-	
+	XMMATRIX matRot = XMLoadFloat4x4(&m_attribute.matRot);
+
+	XMVECTOR vSphere = XMLoadFloat3(&s.v3Position) - XMLoadFloat3(&v3Center);
+	vSphere = XMVector3TransformCoord(vSphere, matRot);
+	vSphere += XMLoadFloat3(&v3Center);
+
+	XMFLOAT3 v3Sphere;
+	XMStoreFloat3(&v3Sphere, vSphere);
+
+	XMFLOAT3 v3Point = v3Sphere;
+
+	if (v3Point.x < m_attribute.v3Min.x) { v3Point.x = m_attribute.v3Min.x; }
+	if (v3Point.x > m_attribute.v3Max.x) { v3Point.x = m_attribute.v3Max.x; }
+	if (v3Point.y < m_attribute.v3Min.y) { v3Point.y = m_attribute.v3Min.y; }
+	if (v3Point.y > m_attribute.v3Max.y) { v3Point.y = m_attribute.v3Max.y; }
+	if (v3Point.z < m_attribute.v3Min.z) { v3Point.z = m_attribute.v3Min.z; }
+	if (v3Point.z > m_attribute.v3Max.z) { v3Point.z = m_attribute.v3Max.z; }
+
+	if (GetVector3Distance(v3Point, v3Sphere) <= s.fRadius * s.fRadius)
+		return true;
+
+	vSphere = XMLoadFloat3(&s.v3LastPosition) - XMLoadFloat3(&v3Center);
+	vSphere = XMVector3TransformCoord(vSphere, matRot);
+	vSphere += XMLoadFloat3(&v3Center);
+
+	XMStoreFloat3(&v3Sphere, vSphere);
+
 	v3Point = v3Sphere;
-	if(v3Point.x < m_attribute.v3Min.x) { v3Point.x = m_attribute.v3Min.x; }
-	if(v3Point.x > m_attribute.v3Max.x) { v3Point.x = m_attribute.v3Max.x; }
-	if(v3Point.y < m_attribute.v3Min.y) { v3Point.y = m_attribute.v3Min.y; }
-	if(v3Point.y > m_attribute.v3Max.y) { v3Point.y = m_attribute.v3Max.y; }
-	if(v3Point.z < m_attribute.v3Min.z) { v3Point.z = m_attribute.v3Min.z; }
-	if(v3Point.z > m_attribute.v3Max.z) { v3Point.z = m_attribute.v3Max.z; }
-	
-	if(GetVector3Distance(v3Point, v3Sphere) <= s.fRadius * s.fRadius) { return true; }
+
+	if (v3Point.x < m_attribute.v3Min.x) { v3Point.x = m_attribute.v3Min.x; }
+	if (v3Point.x > m_attribute.v3Max.x) { v3Point.x = m_attribute.v3Max.x; }
+	if (v3Point.y < m_attribute.v3Min.y) { v3Point.y = m_attribute.v3Min.y; }
+	if (v3Point.y > m_attribute.v3Max.y) { v3Point.y = m_attribute.v3Max.y; }
+	if (v3Point.z < m_attribute.v3Min.z) { v3Point.z = m_attribute.v3Min.z; }
+	if (v3Point.z > m_attribute.v3Max.z) { v3Point.z = m_attribute.v3Max.z; }
+
+	if (GetVector3Distance(v3Point, v3Sphere) <= s.fRadius * s.fRadius)
+		return true;
 
 	return false;
 }
 
-bool COBBCollisionInstance::OnCollisionDynamicSphere(const CDynamicSphereInstance & s) const
+bool COBBCollisionInstance::OnCollisionDynamicSphere(const CDynamicSphereInstance& s) const
 {
-	
-	D3DXVECTOR3 v3Center = 0.5f * (m_attribute.v3Min + m_attribute.v3Max);
-	D3DXVECTOR3 v3Sphere = s.v3Position - v3Center;
-	D3DXVec3TransformCoord(&v3Sphere, &v3Sphere, &m_attribute.matRot);
-	v3Sphere = v3Sphere + v3Center;
+	XMFLOAT3 v3Center;
+	XMStoreFloat3(&v3Center, (XMLoadFloat3(&m_attribute.v3Min) + XMLoadFloat3(&m_attribute.v3Max)) * 0.5f);
 
-	D3DXVECTOR3 v3Point = v3Sphere;
-	if(v3Point.x < m_attribute.v3Min.x) { v3Point.x = m_attribute.v3Min.x; }
-	if(v3Point.x > m_attribute.v3Max.x) { v3Point.x = m_attribute.v3Max.x; }
-	if(v3Point.y < m_attribute.v3Min.y) { v3Point.y = m_attribute.v3Min.y; }
-	if(v3Point.y > m_attribute.v3Max.y) { v3Point.y = m_attribute.v3Max.y; }
-	if(v3Point.z < m_attribute.v3Min.z) { v3Point.z = m_attribute.v3Min.z; }
-	if(v3Point.z > m_attribute.v3Max.z) { v3Point.z = m_attribute.v3Max.z; }
-	
-	if(GetVector3Distance(v3Point, v3Sphere) <= s.fRadius * s.fRadius) { return true; }
+	XMMATRIX matRot = XMLoadFloat4x4(&m_attribute.matRot);
 
-	v3Sphere = s.v3LastPosition - v3Center;
-	D3DXVec3TransformCoord(&v3Sphere, &v3Sphere, &m_attribute.matRot);
-	v3Sphere = v3Sphere + v3Center;
-	
+	XMVECTOR vSphere = XMLoadFloat3(&s.v3Position) - XMLoadFloat3(&v3Center);
+	vSphere = XMVector3TransformCoord(vSphere, matRot);
+	vSphere += XMLoadFloat3(&v3Center);
+
+	XMFLOAT3 v3Sphere;
+	XMStoreFloat3(&v3Sphere, vSphere);
+
+	XMFLOAT3 v3Point = v3Sphere;
+
+	if (v3Point.x < m_attribute.v3Min.x) { v3Point.x = m_attribute.v3Min.x; }
+	if (v3Point.x > m_attribute.v3Max.x) { v3Point.x = m_attribute.v3Max.x; }
+	if (v3Point.y < m_attribute.v3Min.y) { v3Point.y = m_attribute.v3Min.y; }
+	if (v3Point.y > m_attribute.v3Max.y) { v3Point.y = m_attribute.v3Max.y; }
+	if (v3Point.z < m_attribute.v3Min.z) { v3Point.z = m_attribute.v3Min.z; }
+	if (v3Point.z > m_attribute.v3Max.z) { v3Point.z = m_attribute.v3Max.z; }
+
+	if (GetVector3Distance(v3Point, v3Sphere) <= s.fRadius * s.fRadius)
+		return true;
+
+	vSphere = XMLoadFloat3(&s.v3LastPosition) - XMLoadFloat3(&v3Center);
+	vSphere = XMVector3TransformCoord(vSphere, matRot);
+	vSphere += XMLoadFloat3(&v3Center);
+
+	XMStoreFloat3(&v3Sphere, vSphere);
+
 	v3Point = v3Sphere;
-	if(v3Point.x < m_attribute.v3Min.x) { v3Point.x = m_attribute.v3Min.x; }
-	if(v3Point.x > m_attribute.v3Max.x) { v3Point.x = m_attribute.v3Max.x; }
-	if(v3Point.y < m_attribute.v3Min.y) { v3Point.y = m_attribute.v3Min.y; }
-	if(v3Point.y > m_attribute.v3Max.y) { v3Point.y = m_attribute.v3Max.y; }
-	if(v3Point.z < m_attribute.v3Min.z) { v3Point.z = m_attribute.v3Min.z; }
-	if(v3Point.z > m_attribute.v3Max.z) { v3Point.z = m_attribute.v3Max.z; }
-	
-	if(GetVector3Distance(v3Point, v3Sphere) <= s.fRadius * s.fRadius) { return true; }
 
+	if (v3Point.x < m_attribute.v3Min.x) { v3Point.x = m_attribute.v3Min.x; }
+	if (v3Point.x > m_attribute.v3Max.x) { v3Point.x = m_attribute.v3Max.x; }
+	if (v3Point.y < m_attribute.v3Min.y) { v3Point.y = m_attribute.v3Min.y; }
+	if (v3Point.y > m_attribute.v3Max.y) { v3Point.y = m_attribute.v3Max.y; }
+	if (v3Point.z < m_attribute.v3Min.z) { v3Point.z = m_attribute.v3Min.z; }
+	if (v3Point.z > m_attribute.v3Max.z) { v3Point.z = m_attribute.v3Max.z; }
+
+	if (GetVector3Distance(v3Point, v3Sphere) <= s.fRadius * s.fRadius)
+		return true;
 
 	return false;
 }
 
-D3DXVECTOR3 COBBCollisionInstance::OnGetCollisionMovementAdjust(const CDynamicSphereInstance & s) const
+XMFLOAT3 COBBCollisionInstance::OnGetCollisionMovementAdjust(const CDynamicSphereInstance & s) const
 {
 
-	return D3DXVECTOR3(.0f, .0f, .0f);
+	return XMFLOAT3(.0f, .0f, .0f);
 	
 }
 

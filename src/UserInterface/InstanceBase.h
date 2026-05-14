@@ -430,7 +430,7 @@ class CInstanceBase
 		static void SetHorseDustGap(float fDustGap);
 
 		static void SetEmpireNameMode(bool isEnable);
-		static const D3DXCOLOR& GetIndexedNameColor(UINT eNameColor);
+		static const XMFLOAT4& GetIndexedNameColor(UINT eNameColor);
 
 	public:
 		void SetMainInstance();
@@ -514,7 +514,7 @@ class CInstanceBase
 		void					RegisterBoundingSphere();
 
 		// Temporary
-		void					GetBoundBox(D3DXVECTOR3 * vtMin, D3DXVECTOR3 * vtMax);
+		void					GetBoundBox(XMFLOAT3 * vtMin, XMFLOAT3 * vtMax);
 
 		void					SetNameString(const char* c_szName, int len);
 		bool					SetRace(DWORD dwRaceIndex);
@@ -752,7 +752,7 @@ class CInstanceBase
 		void					SetAddRenderMode();
 		void					SetModulateRenderMode();
 		void					SetRenderMode(int iRenderMode);
-		void					SetAddColor(const D3DXCOLOR & c_rColor);
+		void					SetAddColor(const XMFLOAT4 & c_rColor);
 
 		// Position
 		void					SCRIPT_SetPixelPosition(float fx, float fy);
@@ -1119,8 +1119,8 @@ class CInstanceBase
 
 		UINT GetNameColorIndex();
 
-		const D3DXCOLOR& GetNameColor();
-		const D3DXCOLOR& GetTitleColor();
+		const XMFLOAT4& GetNameColor();
+		const XMFLOAT4& GetTitleColor();
 
 	protected:
 		static DWORD __GetPVPKey(DWORD dwSrcVID, DWORD dwDstVID);

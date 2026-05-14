@@ -58,7 +58,7 @@ void CFlyTrace::Destroy()
 	__Initialize();
 }
 
-void CFlyTrace::UpdateNewPosition(const D3DXVECTOR3 & v3Position)
+void CFlyTrace::UpdateNewPosition(const XMFLOAT3 & v3Position)
 {
 	m_TimePositionDeque.push_front(TTimePosition(CTimer::Instance().GetCurrentSecond(),v3Position));
 	//Tracenf("%f %f",m_TimePositionDeque.back().first, CTimer::Instance().GetCurrentSecond());
@@ -89,11 +89,11 @@ void CFlyTrace::Update()
 
 struct TFlyVertex
 {
-	D3DXVECTOR3 p;
+	XMFLOAT3 p;
 	DWORD c;
-	D3DXVECTOR2 t;
+	XMFLOAT2 t;
 	TFlyVertex(){};
-	TFlyVertex(const D3DXVECTOR3& p, DWORD c, const D3DXVECTOR2 & t):p(p),c(c),t(t){}
+	TFlyVertex(const XMFLOAT3& p, DWORD c, const XMFLOAT2 & t):p(p),c(c),t(t){}
 };
 
 struct TFlyVertexSet
@@ -138,8 +138,8 @@ void CFlyTrace::Render()
 	_mgr->GetCbMgr()->SetAlphaRef(0x00000000);
 	_mgr->GetCbMgr()->SetLightingEnable(false);
 
-	D3DXMATRIX matWorld;
-	D3DXMatrixIdentity(&matWorld);
+	XMFLOAT4X4 matWorld;
+	XMStoreFloat4x4(&matWorld, XMMatrixIdentity());
 
 	STATEMANAGER.GetTransform().SetWorld(matWorld);
 
@@ -147,7 +147,7 @@ void CFlyTrace::Render()
 	STATEMANAGER.SetTexture(1, NULL);
 	_mgr->SetShader(VF_PDT, BLEND_UI_DIFFUSE);
 
-	D3DXMATRIX m;
+	XMFLOAT4X4 m;
 	CScreen s;
 	s.UpdateViewMatrix();
 
@@ -158,27 +158,31 @@ void CFlyTrace::Render()
 		return;
 	}
 
-	const D3DXMATRIX& M = pCurrentCamera->GetViewMatrix();
-	D3DXMatrixIdentity(&m);
+	XMStoreFloat4x4(&m, XMMatrixIdentity());
 
-	D3DXVECTOR3 F(pCurrentCamera->GetView());
+	XMFLOAT3 F = pCurrentCamera->GetView();
 	m._31 = F.x;
 	m._32 = F.y;
 	m._33 = F.z;
 
 	Frustum& frustum = s.GetFrustum();
 
-	TTimePositionDeque::iterator it1, it2;
-	it2 = it1 = m_TimePositionDeque.begin();
+	auto it1 = m_TimePositionDeque.begin();
+	auto it2 = it1;
 	++it2;
 
 	for (; it2 != m_TimePositionDeque.end(); ++it2, ++it1)
 	{
-		const D3DXVECTOR3& rkOld = it1->second;
-		const D3DXVECTOR3& rkNew = it2->second;
-		D3DXVECTOR3 B = rkNew - rkOld;
+		const XMFLOAT3& rkOld = it1->second;
+		const XMFLOAT3& rkNew = it2->second;
 
-		float radius = std::max(fabs(B.x), std::max(fabs(B.y), fabs(B.z))) / 2;
+		XMFLOAT3 B = {
+			rkNew.x - rkOld.x,
+			rkNew.y - rkOld.y,
+			rkNew.z - rkOld.z
+		};
+
+		float radius = std::max(fabsf(B.x), std::max(fabsf(B.y), fabsf(B.z))) / 2.0f;
 
 		Vector3d c(
 			it1->second.x + B.x * 0.5f,
@@ -188,8 +192,8 @@ void CFlyTrace::Render()
 		if (frustum.ViewVolumeTest(c, radius) == VS_OUTSIDE)
 			continue;
 
-		float rate1 = (1 - (CTimer::Instance().GetCurrentSecond() - it1->first) / m_fTailLength);
-		float rate2 = (1 - (CTimer::Instance().GetCurrentSecond() - it2->first) / m_fTailLength);
+		float rate1 = 1.0f - (CTimer::Instance().GetCurrentSecond() - it1->first) / m_fTailLength;
+		float rate2 = 1.0f - (CTimer::Instance().GetCurrentSecond() - it2->first) / m_fTailLength;
 
 		float size1 = m_fSize;
 		float size2 = m_fSize;
@@ -202,27 +206,28 @@ void CFlyTrace::Render()
 
 		TFlyVertex v[6] =
 		{
-			TFlyVertex(D3DXVECTOR3(0.0f, size1, 0.0f), m_dwColor, D3DXVECTOR2(0.0f, 0.0f)),
-			TFlyVertex(D3DXVECTOR3(-size1, 0.0f, 0.0f), m_dwColor, D3DXVECTOR2(0.0f, 0.5f)),
-			TFlyVertex(D3DXVECTOR3(size1, 0.0f, 0.0f), m_dwColor, D3DXVECTOR2(0.5f, 0.0f)),
-			TFlyVertex(D3DXVECTOR3(-size2, 0.0f, 0.0f), m_dwColor, D3DXVECTOR2(0.5f, 1.0f)),
-			TFlyVertex(D3DXVECTOR3(size2, 0.0f, 0.0f), m_dwColor, D3DXVECTOR2(1.0f, 0.5f)),
-			TFlyVertex(D3DXVECTOR3(0.0f, -size2, 0.0f), m_dwColor, D3DXVECTOR2(1.0f, 1.0f)),
+			TFlyVertex(XMFLOAT3(0.0f, size1, 0.0f), m_dwColor, XMFLOAT2(0.0f, 0.0f)),
+			TFlyVertex(XMFLOAT3(-size1, 0.0f, 0.0f), m_dwColor, XMFLOAT2(0.0f, 0.5f)),
+			TFlyVertex(XMFLOAT3(size1, 0.0f, 0.0f), m_dwColor, XMFLOAT2(0.5f, 0.0f)),
+			TFlyVertex(XMFLOAT3(-size2, 0.0f, 0.0f), m_dwColor, XMFLOAT2(0.5f, 1.0f)),
+			TFlyVertex(XMFLOAT3(size2, 0.0f, 0.0f), m_dwColor, XMFLOAT2(1.0f, 0.5f)),
+			TFlyVertex(XMFLOAT3(0.0f, -size2, 0.0f), m_dwColor, XMFLOAT2(1.0f, 1.0f)),
 		};
 
-		D3DXVECTOR3 E(M._41, M._42, M._43);
-		E = pCurrentCamera->GetEye();
-		E -= it1->second;
+		XMFLOAT3 E = {
+			pCurrentCamera->GetEye().x - it1->second.x,
+			pCurrentCamera->GetEye().y - it1->second.y,
+			pCurrentCamera->GetEye().z - it1->second.z
+		};
 
-		D3DXVECTOR3 P;
-		D3DXVec3Cross(&P, &B, &E);
+		XMFLOAT3 P;
+		XMStoreFloat3(&P, XMVector3Cross(XMLoadFloat3(&B), XMLoadFloat3(&E)));
 
-		D3DXVECTOR3 U;
-		D3DXVec3Cross(&U, &F, &P);
-		D3DXVec3Normalize(&U, &U);
+		XMFLOAT3 U;
+		XMStoreFloat3(&U, XMVector3Normalize(XMVector3Cross(XMLoadFloat3(&F), XMLoadFloat3(&P))));
 
-		D3DXVECTOR3 R;
-		D3DXVec3Cross(&R, &F, &U);
+		XMFLOAT3 R;
+		XMStoreFloat3(&R, XMVector3Cross(XMLoadFloat3(&F), XMLoadFloat3(&U)));
 
 		m._21 = U.x;
 		m._22 = U.y;
@@ -231,22 +236,30 @@ void CFlyTrace::Render()
 		m._12 = R.y;
 		m._13 = R.z;
 
-		int i;
-		for (i = 0; i < 6; i++)
-			D3DXVec3TransformNormal(&v[i].p, &v[i].p, &m);
+		for (int i = 0; i < 6; ++i)
+			XMStoreFloat3(&v[i].p, XMVector3TransformNormal(XMLoadFloat3(&v[i].p), XMLoadFloat4x4(&m)));
 
-		for (i = 0; i < 3; i++)
-			v[i].p += it1->second;
+		for (int i = 0; i < 3; ++i)
+		{
+			v[i].p.x += it1->second.x;
+			v[i].p.y += it1->second.y;
+			v[i].p.z += it1->second.z;
+		}
 
-		for (; i < 6; i++)
-			v[i].p += it2->second;
+		for (int i = 3; i < 6; ++i)
+		{
+			v[i].p.x += it2->second.x;
+			v[i].p.y += it2->second.y;
+			v[i].p.z += it2->second.z;
+		}
 
-		VSVector.push_back(std::make_pair(-D3DXVec3Dot(&E, &pCurrentCamera->GetView()), TFlyVertexSet(v)));
+		float sortValue = -XMVectorGetX(XMVector3Dot(XMLoadFloat3(&E), XMLoadFloat3(&pCurrentCamera->GetView())));
+		VSVector.push_back(std::make_pair(sortValue, TFlyVertexSet(v)));
 	}
 
 	std::sort(VSVector.begin(), VSVector.end());
 
-	for (TFlyVertexSetVector::iterator it = VSVector.begin(); it != VSVector.end(); ++it)
+	for (auto it = VSVector.begin(); it != VSVector.end(); ++it)
 		STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, 4, sizeof(TVertex), it->second.v);
 
 	STATEMANAGER.GetStateCache().Restore();

@@ -45,7 +45,7 @@ class PCBlocker_CDynamicSphereInstanceVector
 
 bool CMapOutdoor::Update(float fX, float fY, float fZ)
 {
-	D3DXVECTOR3 v3Player(fX, fY, fZ);
+	XMFLOAT3 v3Player(fX, fY, fZ);
 
 	m_v3Player=v3Player;
 
@@ -190,14 +190,19 @@ struct FGetShadowReceiverFromCollisionData
 
 struct FPCBlockerDistanceSort
 {
-	D3DXVECTOR3 m_v3Eye;
-	FPCBlockerDistanceSort(D3DXVECTOR3 & v3Eye) : m_v3Eye(v3Eye) { }
+	XMFLOAT3 m_v3Eye;
 
-	bool operator () (CGraphicObjectInstance * plhs, CGraphicObjectInstance * prhs) const
+	FPCBlockerDistanceSort(XMFLOAT3& v3Eye) : m_v3Eye(v3Eye) {}
+
+	bool operator () (CGraphicObjectInstance* plhs, CGraphicObjectInstance* prhs) const
 	{
-		const auto vv = (plhs->GetPosition() - m_v3Eye);
-		const auto vv2 = (prhs->GetPosition() - m_v3Eye);
-		return D3DXVec3LengthSq(&vv) > D3DXVec3LengthSq(&vv2);
+		const XMFLOAT3& lhsPos = plhs->GetPosition();
+		const XMFLOAT3& rhsPos = prhs->GetPosition();
+
+		XMVECTOR lhs = XMLoadFloat3(&lhsPos) - XMLoadFloat3(&m_v3Eye);
+		XMVECTOR rhs = XMLoadFloat3(&rhsPos) - XMLoadFloat3(&m_v3Eye);
+
+		return XMVectorGetX(XMVector3LengthSq(lhs)) > XMVectorGetX(XMVector3LengthSq(rhs));
 	}
 };
 
@@ -211,76 +216,85 @@ void CMapOutdoor::UpdateAroundAmbience(float fX, float fY, float fZ)
 	}
 }
 
-void CMapOutdoor::__UpdateArea(D3DXVECTOR3& v3Player)
+void CMapOutdoor::__UpdateArea(XMFLOAT3& v3Player)
 {
 	__Game_UpdateArea(v3Player);
 }
 
-void CMapOutdoor::__Game_UpdateArea(D3DXVECTOR3& v3Player)
+void CMapOutdoor::__Game_UpdateArea(XMFLOAT3& v3Player)
 {
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t1=timeGetTime();
+	DWORD t1 = timeGetTime();
 #endif
-	m_PCBlockerVector.clear();	
+
+	m_PCBlockerVector.clear();
 	m_ShadowReceiverVector.clear();
+
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t2=timeGetTime();
+	DWORD t2 = timeGetTime();
 #endif
-	CCameraManager& rCmrMgr=CCameraManager::Instance();
-	CCamera * pCamera = rCmrMgr.GetCurrentCamera();
+
+	CCameraManager& rCmrMgr = CCameraManager::Instance();
+	CCamera* pCamera = rCmrMgr.GetCurrentCamera();
+
 	if (!pCamera)
 		return;
 
-	float fDistance = pCamera->GetDistance();	
+	float fDistance = pCamera->GetDistance();
 
-	D3DXVECTOR3 v3View= pCamera->GetView();		
-	D3DXVECTOR3 v3Target = pCamera->GetTarget();
-	D3DXVECTOR3 v3Eye= pCamera->GetEye();
+	XMFLOAT3 v3View = pCamera->GetView();
+	XMFLOAT3 v3Target = pCamera->GetTarget();
+	XMFLOAT3 v3Eye = pCamera->GetEye();
 
-	D3DXVECTOR3 v3Light = D3DXVECTOR3(1.732f, 1.0f, -3.464f); // 빛의 방향
-	v3Light *= 50.0f / D3DXVec3Length(&v3Light);
+	XMFLOAT3 v3Light = { 1.732f, 1.0f, -3.464f };
 
-	/*
-	if (v3Target!=v3Player)
+	float lightLength = XMVectorGetX(XMVector3Length(XMLoadFloat3(&v3Light)));
+	if (lightLength > 0.0f)
 	{
-		printf("%.2f %.2f %.2f -> target(%.2f %.2f %.2f) player(%.2f %.2f %.2f)\n",
-		v3Eye.x, v3Eye.y, v3Eye.z,
-		v3Target.x, v3Target.y, v3Target.z,
-		v3Player.x, v3Player.y, v3Player.z
-	);
+		float scale = 50.0f / lightLength;
+		v3Light.x *= scale;
+		v3Light.y *= scale;
+		v3Light.z *= scale;
 	}
-	*/
+
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t3=timeGetTime();
+	DWORD t3 = timeGetTime();
 #endif
+
 	__CollectShadowReceiver(v3Player, v3Light);
+
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t4=timeGetTime();
+	DWORD t4 = timeGetTime();
 #endif
+
 	__CollectCollisionPCBlocker(v3Eye, v3Player, fDistance);
+
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t5=timeGetTime();
+	DWORD t5 = timeGetTime();
 #endif
+
 	__CollectCollisionShadowReceiver(v3Player, v3Light);
+
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t6=timeGetTime();
+	DWORD t6 = timeGetTime();
 #endif
+
 	__UpdateAroundAreaList();
 
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t7=timeGetTime();
+	DWORD t7 = timeGetTime();
 	{
-		static FILE* fp=fopen("perf_area_update.txt", "w");
+		static FILE* fp = fopen("perf_area_update.txt", "w");
 
-		if (t7-t1>5)
+		if (t7 - t1 > 5)
 		{
-			fprintf(fp, "UA.Total %d (Time %f)\n", t3-t1, ELTimer_GetMSec()/1000.0f);
-			fprintf(fp, "UA.Clear %d\n", t2-t1);
-			fprintf(fp, "UA.Vector %d\n", t3-t2);
-			fprintf(fp, "UA.Shadow %d\n", t4-t3);
-			fprintf(fp, "UA.Blocker %d\n", t5-t4);
-			fprintf(fp, "UA.ColliShadow %d\n", t6-t5);
-			fprintf(fp, "UA.Area %d\n", t7-t6);			
+			fprintf(fp, "UA.Total %d (Time %f)\n", t3 - t1, ELTimer_GetMSec() / 1000.0f);
+			fprintf(fp, "UA.Clear %d\n", t2 - t1);
+			fprintf(fp, "UA.Vector %d\n", t3 - t2);
+			fprintf(fp, "UA.Shadow %d\n", t4 - t3);
+			fprintf(fp, "UA.Blocker %d\n", t5 - t4);
+			fprintf(fp, "UA.ColliShadow %d\n", t6 - t5);
+			fprintf(fp, "UA.Area %d\n", t7 - t6);
 			fflush(fp);
 		}
 	}
@@ -376,52 +390,65 @@ struct FGetShadowReceiverFromHeightData
 };
 
 
-void CMapOutdoor::__CollectShadowReceiver(D3DXVECTOR3& v3Target, D3DXVECTOR3& v3Light)
+void CMapOutdoor::__CollectShadowReceiver(XMFLOAT3& v3Target, XMFLOAT3& v3Light)
 {
 	CDynamicSphereInstance s;
-	s.v3LastPosition = v3Target + v3Light;
-	s.v3Position = s.v3LastPosition + v3Light;
+
+	s.v3LastPosition = {
+		v3Target.x + v3Light.x,
+		v3Target.y + v3Light.y,
+		v3Target.z + v3Light.z
+	};
+
+	s.v3Position = {
+		s.v3LastPosition.x + v3Light.x,
+		s.v3LastPosition.y + v3Light.y,
+		s.v3LastPosition.z + v3Light.z
+	};
+
 	s.fRadius = 50.0f;
 
 	Vector3d aVector3d;
 	aVector3d.Set(v3Target.x, v3Target.y, v3Target.z);
 
-	CCullingManager & rkCullingMgr = CCullingManager::Instance();
+	CCullingManager& rkCullingMgr = CCullingManager::Instance();
 
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t1=ELTimer_GetMSec();
+	DWORD t1 = ELTimer_GetMSec();
 #endif
 
 	FGetShadowReceiverFromHeightData kGetShadowReceiverFromHeightData(v3Target.x, v3Target.y, s.v3Position.x, s.v3Position.y);
 	rkCullingMgr.ForInRange(aVector3d, 10.0f, &kGetShadowReceiverFromHeightData);
 
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t2=ELTimer_GetMSec();
+	DWORD t2 = ELTimer_GetMSec();
 #endif
 
 	if (kGetShadowReceiverFromHeightData.m_bReceiverFound)
 	{
-		for (UINT i=0; i<kGetShadowReceiverFromHeightData.GetCollectCount(); ++i)
+		for (UINT i = 0; i < kGetShadowReceiverFromHeightData.GetCollectCount(); ++i)
 		{
-			CGraphicObjectInstance * pObjInstEach = kGetShadowReceiverFromHeightData.GetCollectItem(i);
+			CGraphicObjectInstance* pObjInstEach = kGetShadowReceiverFromHeightData.GetCollectItem(i);
+
 			if (!__IsInShadowReceiverList(pObjInstEach))
-				m_ShadowReceiverVector.push_back(pObjInstEach);	
+				m_ShadowReceiverVector.push_back(pObjInstEach);
 		}
 	}
 
 #ifdef __PERFORMANCE_CHECKER__
-	static FILE* fp=fopen("perf_shadow_collect.txt", "w");
-	DWORD t3=ELTimer_GetMSec();
+	static FILE* fp = fopen("perf_shadow_collect.txt", "w");
+	DWORD t3 = ELTimer_GetMSec();
 
-	if (t3-t1>5)
+	if (t3 - t1 > 5)
 	{
-		fprintf(fp, "SC.Total %d (Time %f)\n", t3-t1, ELTimer_GetMSec()/1000.0f);
-		fprintf(fp, "SC.Find %d\n", t2-t1);
-		fprintf(fp, "SC.Push %d\n", t3-t2);
-		fprintf(fp, "SC.Count (Collect %d, Over %d, Check %d)\n", 
-			kGetShadowReceiverFromHeightData.m_dwCollectCount, 
+		fprintf(fp, "SC.Total %d (Time %f)\n", t3 - t1, ELTimer_GetMSec() / 1000.0f);
+		fprintf(fp, "SC.Find %d\n", t2 - t1);
+		fprintf(fp, "SC.Push %d\n", t3 - t2);
+		fprintf(fp, "SC.Count (Collect %d, Over %d, Check %d)\n",
+			kGetShadowReceiverFromHeightData.m_dwCollectCount,
 			kGetShadowReceiverFromHeightData.m_dwCollectOverCount,
 			kGetShadowReceiverFromHeightData.m_dwCheckCount);
+
 		fflush(fp);
 	}
 #endif
@@ -447,8 +474,8 @@ struct PCBlocker_SInstanceList
 	PCBlocker_CDynamicSphereInstanceVector* m_pkDSIVector;
 	
 	CCamera * m_pCamera;
-	D3DXVECTOR2 m_v2View;
-	D3DXVECTOR2 m_v2Target;
+	XMFLOAT2 m_v2View;
+	XMFLOAT2 m_v2Target;
 	
 	PCBlocker_SInstanceList(PCBlocker_CDynamicSphereInstanceVector* pkDSIVector)
 	{		
@@ -456,8 +483,8 @@ struct PCBlocker_SInstanceList
 		if (!m_pCamera)
 			return;
 
-		D3DXVECTOR3 m_v3View = m_pCamera->GetView();
-		D3DXVECTOR3 m_v3Target = m_pCamera->GetTarget();
+		XMFLOAT3 m_v3View = m_pCamera->GetView();
+		XMFLOAT3 m_v3Target = m_pCamera->GetTarget();
 
 		m_v2View.x = m_v3View.x;
 		m_v2View.y = m_v3View.y;
@@ -518,14 +545,15 @@ struct PCBlocker_SInstanceList
 
 	void __AppendObject(CGraphicObjectInstance * pInstance)
 	{
-		D3DXVECTOR3 v3Center;
+		XMFLOAT3 v3Center;
 		float fRadius;
 		pInstance->GetBoundingSphere(v3Center, fRadius);
 
-		D3DXVECTOR2 v2TargetToCenter;
+		XMFLOAT2 v2TargetToCenter;
 		v2TargetToCenter.x = v3Center.x - m_v2Target.x;
 		v2TargetToCenter.y = v3Center.y - m_v2Target.y;
-		if (D3DXVec2Dot(&m_v2View, &v2TargetToCenter) <= 0)
+
+		if (XMVectorGetX(XMVector2Dot(XMLoadFloat2(&m_v2View), XMLoadFloat2(&v2TargetToCenter))) <= 0.0f)
 		{
 			__AppendPCBlocker(pInstance);
 			return;
@@ -571,60 +599,75 @@ struct PCBlocker_SInstanceList
 };
 
 
-void CMapOutdoor::__CollectCollisionPCBlocker(D3DXVECTOR3& v3Eye, D3DXVECTOR3& v3Target, float fDistance)
+void CMapOutdoor::__CollectCollisionPCBlocker(XMFLOAT3& v3Eye, XMFLOAT3& v3Target, float fDistance)
 {
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t1=timeGetTime();
+	DWORD t1 = timeGetTime();
 #endif
 
 	Vector3d v3dRayStart;
 	v3dRayStart.Set(v3Eye.x, v3Eye.y, v3Eye.z);
+
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t2=timeGetTime();
+	DWORD t2 = timeGetTime();
 #endif
+
+	XMFLOAT3 v3Half = {
+		0.5f * (v3Target.x - v3Eye.x),
+		0.5f * (v3Target.y - v3Eye.y),
+		0.5f * (v3Target.z - v3Eye.z)
+	};
+
+	XMFLOAT3 v3Mid = {
+		v3Eye.x + v3Half.x,
+		v3Eye.y + v3Half.y,
+		v3Eye.z + v3Half.z
+	};
 
 	PCBlocker_CDynamicSphereInstanceVector aDynamicSphereInstanceVector;
 	{
-		CDynamicSphereInstance* pkDSI=aDynamicSphereInstanceVector.Begin();
+		CDynamicSphereInstance* pkDSI = aDynamicSphereInstanceVector.Begin();
+
 		pkDSI->fRadius = fDistance * 0.5f;
 		pkDSI->v3LastPosition = v3Eye;
-		pkDSI->v3Position = v3Eye + 0.5f * (v3Target - v3Eye);
+		pkDSI->v3Position = v3Mid;
 		++pkDSI;
 
 		pkDSI->fRadius = fDistance * 0.5f;
-		pkDSI->v3LastPosition = v3Eye + 0.5f * (v3Target - v3Eye);
+		pkDSI->v3LastPosition = v3Mid;
 		pkDSI->v3Position = v3Target;
 		++pkDSI;
 
 		pkDSI->fRadius = fDistance * 0.5f;
 		pkDSI->v3LastPosition = v3Target;
-		pkDSI->v3Position = v3Eye + 0.5f * (v3Target - v3Eye);
+		pkDSI->v3Position = v3Mid;
 		++pkDSI;
 
 		pkDSI->fRadius = fDistance * 0.5f;
-		pkDSI->v3LastPosition = v3Eye + 0.5f * (v3Target - v3Eye);
+		pkDSI->v3LastPosition = v3Mid;
 		pkDSI->v3Position = v3Eye;
 		++pkDSI;
 	}
+
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t3=timeGetTime();	
+	DWORD t3 = timeGetTime();
 #endif
-	CCullingManager & rkCullingMgr = CCullingManager::Instance();
+
+	CCullingManager& rkCullingMgr = CCullingManager::Instance();
 
 	PCBlocker_SInstanceList kPCBlockerList(&aDynamicSphereInstanceVector);
 	RangeTester<PCBlocker_SInstanceList> kPCBlockerRangeTester(&kPCBlockerList);
 	rkCullingMgr.RangeTest(v3dRayStart, fDistance, &kPCBlockerRangeTester);
+
 #ifdef __PERFORMANCE_CHECKER__
- 	DWORD t4=timeGetTime();
+	DWORD t4 = timeGetTime();
 #endif
 
 	if (!kPCBlockerList.IsEmpty())
 	{
-		PCBlocker_SInstanceList::Iterator i;
-
-		for (i=kPCBlockerList.Begin(); i!=kPCBlockerList.End(); ++i)
+		for (PCBlocker_SInstanceList::Iterator i = kPCBlockerList.Begin(); i != kPCBlockerList.End(); ++i)
 		{
-			CGraphicObjectInstance * pObjInstEach = *i;
+			CGraphicObjectInstance* pObjInstEach = *i;
 
 			if (!pObjInstEach)
 				continue;
@@ -633,63 +676,82 @@ void CMapOutdoor::__CollectCollisionPCBlocker(D3DXVECTOR3& v3Eye, D3DXVECTOR3& v
 				continue;
 
 			if (!__IsInShadowReceiverList(pObjInstEach))
+			{
 				if (!__IsInPCBlockerList(pObjInstEach))
 					m_PCBlockerVector.push_back(pObjInstEach);
+			}
 		}
 	}
+
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t5=timeGetTime();
+	DWORD t5 = timeGetTime();
 #endif
+
 	std::sort(m_PCBlockerVector.begin(), m_PCBlockerVector.end(), FPCBlockerDistanceSort(v3Eye));
 
 #ifdef __PERFORMANCE_CHECKER__
-	DWORD t6=timeGetTime();
+	DWORD t6 = timeGetTime();
 
-	static FILE* fp=fopen("perf_pbc_collect.txt", "w");
+	static FILE* fp = fopen("perf_pbc_collect.txt", "w");
 
-	if (t3-t1>5)
+	if (t3 - t1 > 5)
 	{
-		fprintf(fp, "PBC.Total %d (Time %f)\n", t3-t1, ELTimer_GetMSec()/1000.0f);
-		fprintf(fp, "PBC.INIT %d\n", t2-t1);
-		fprintf(fp, "PBC.SET %d\n", t3-t2);
-		fprintf(fp, "PBC.CALC %d\n", t4-t2);
-		fprintf(fp, "PBC.PUSH %d\n", t5-t2);
-		fprintf(fp, "PBC.SORT %d (%d)\n", t6-t2, m_PCBlockerVector.size());
-		fprintf(fp, "PBC.Count (Collect %d, Over %d, Check %d)\n", 
+		fprintf(fp, "PBC.Total %d (Time %f)\n", t3 - t1, ELTimer_GetMSec() / 1000.0f);
+		fprintf(fp, "PBC.INIT %d\n", t2 - t1);
+		fprintf(fp, "PBC.SET %d\n", t3 - t2);
+		fprintf(fp, "PBC.CALC %d\n", t4 - t2);
+		fprintf(fp, "PBC.PUSH %d\n", t5 - t2);
+		fprintf(fp, "PBC.SORT %d (%d)\n", t6 - t2, m_PCBlockerVector.size());
+		fprintf(fp, "PBC.Count (Collect %d, Over %d, Check %d)\n",
 			kPCBlockerList.m_dwBlockerCount,
 			kPCBlockerList.m_dwBlockerOverCount,
 			kPCBlockerList.m_dwInstCount);
+
 		fflush(fp);
 	}
 #endif
 }
 
-void CMapOutdoor::__CollectCollisionShadowReceiver(D3DXVECTOR3& v3Target, D3DXVECTOR3& v3Light)
+void CMapOutdoor::__CollectCollisionShadowReceiver(XMFLOAT3& v3Target, XMFLOAT3& v3Light)
 {
 	CDynamicSphereInstance s;
 	s.fRadius = 50.0f;
-	s.v3LastPosition = v3Target + v3Light;
-	s.v3Position = s.v3LastPosition + v3Light;
+
+	s.v3LastPosition = {
+		v3Target.x + v3Light.x,
+		v3Target.y + v3Light.y,
+		v3Target.z + v3Light.z
+	};
+
+	s.v3Position = {
+		s.v3LastPosition.x + v3Light.x,
+		s.v3LastPosition.y + v3Light.y,
+		s.v3LastPosition.z + v3Light.z
+	};
 
 	Vector3d aVector3d;
 	aVector3d.Set(v3Target.x, v3Target.y, v3Target.z);
 
-	CCullingManager & rkCullingMgr = CCullingManager::Instance();
+	CCullingManager& rkCullingMgr = CCullingManager::Instance();
 
-	std::vector<CGraphicObjectInstance *> kVct_pkShadowReceiver;
+	std::vector<CGraphicObjectInstance*> kVct_pkShadowReceiver;
+
 	FGetShadowReceiverFromCollisionData kGetShadowReceiverFromCollisionData(&s, &kVct_pkShadowReceiver);
 	rkCullingMgr.ForInRange(aVector3d, 100.0f, &kGetShadowReceiverFromCollisionData);
+
 	if (!kGetShadowReceiverFromCollisionData.m_bCollide)
 		return;
-		 
-	std::vector<CGraphicObjectInstance * >::iterator i;		
-	for ( i = kVct_pkShadowReceiver.begin(); i != kVct_pkShadowReceiver.end(); ++i)
+
+	for (auto i = kVct_pkShadowReceiver.begin(); i != kVct_pkShadowReceiver.end(); ++i)
 	{
-		CGraphicObjectInstance * pObjInstEach = *i;
+		CGraphicObjectInstance* pObjInstEach = *i;
+
 		if (!__IsInPCBlockerList(pObjInstEach))
-			if (!__IsInShadowReceiverList(pObjInstEach))				
-				m_ShadowReceiverVector.push_back(pObjInstEach);			
-	}	
+		{
+			if (!__IsInShadowReceiverList(pObjInstEach))
+				m_ShadowReceiverVector.push_back(pObjInstEach);
+		}
+	}
 }
 
 bool CMapOutdoor::__IsInShadowReceiverList(CGraphicObjectInstance* pkObjInstTest)

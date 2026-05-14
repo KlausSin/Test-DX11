@@ -71,13 +71,14 @@ bool CD3D11Renderer::Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCon
 	_mgr->GetCbMgr()->m_cbLighting.matAmbient[2] = 1.0f;
 	_mgr->GetCbMgr()->m_cbLighting.matAmbient[3] = 1.0f;
 
-	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.frame.matWorld);
-	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.frame.matView);
-	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.frame.matProj);
-	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.texTransform.tex0);
-	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.texTransform.tex1);
-	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.texTransform.tex2);
-	D3DXMatrixIdentity(&_mgr->GetCbMgr()->m_cbMatrix.texTransform.tex3);
+	XMStoreFloat4x4(&_mgr->GetCbMgr()->m_cbMatrix.frame.matWorld, XMMatrixIdentity());
+	XMStoreFloat4x4(&_mgr->GetCbMgr()->m_cbMatrix.frame.matView, XMMatrixIdentity());
+	XMStoreFloat4x4(&_mgr->GetCbMgr()->m_cbMatrix.frame.matProj, XMMatrixIdentity());
+
+	XMStoreFloat4x4(&_mgr->GetCbMgr()->m_cbMatrix.texTransform.tex0, XMMatrixIdentity());
+	XMStoreFloat4x4(&_mgr->GetCbMgr()->m_cbMatrix.texTransform.tex1, XMMatrixIdentity());
+	XMStoreFloat4x4(&_mgr->GetCbMgr()->m_cbMatrix.texTransform.tex2, XMMatrixIdentity());
+	XMStoreFloat4x4(&_mgr->GetCbMgr()->m_cbMatrix.texTransform.tex3, XMMatrixIdentity());
 
 	_mgr->GetCbMgr()->m_bMatrixDirty = true;
 	_mgr->GetCbMgr()->m_bMaterialDirty = true;

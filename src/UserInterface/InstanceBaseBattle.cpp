@@ -19,17 +19,20 @@ float NEW_UnsignedDegreeToSignedDegree(float fUD)
 
 float NEW_GetSignedDegreeFromDirPixelPosition(const TPixelPosition& kPPosDir)
 {
-	D3DXVECTOR3 vtDir(kPPosDir.x, -kPPosDir.y, kPPosDir.z);
-	D3DXVECTOR3 vtDirNormal;
-	D3DXVec3Normalize(&vtDirNormal, &vtDir);
+	XMVECTOR v = XMVectorSet(kPPosDir.x, -kPPosDir.y, kPPosDir.z, 0.0f);
+	v = XMVector3Normalize(v);
 
-	D3DXVECTOR3 vtDirNormalStan(0, -1, 0);
-	float fDirRot = D3DXToDegree(acosf(D3DXVec3Dot(&vtDirNormal, &vtDirNormalStan)));
+	XMVECTOR up = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
 
-	if (vtDirNormal.x<0.0f)
-		fDirRot=-fDirRot;
+	float dot = XMVectorGetX(XMVector3Dot(v, up));
+	float angle = XMConvertToDegrees(acosf(dot));
 
-	return fDirRot;
+	XMVECTOR cross = XMVector3Cross(up, v);
+
+	if (XMVectorGetY(cross) < 0.0f)
+		angle = -angle;
+
+	return angle;
 }
 
 bool CInstanceBase::IsFlyTargetObject()
@@ -80,10 +83,10 @@ float CInstanceBase::NEW_GetDistanceFromDestPixelPosition(const TPixelPosition& 
 	TPixelPosition kPPosCur;
 	NEW_GetPixelPosition(&kPPosCur);
 
-	TPixelPosition kPPosDir;
-	kPPosDir=c_rkPPosDst-kPPosCur;
+	XMVECTOR cur = XMLoadFloat3(&kPPosCur);
+	XMVECTOR dst = XMLoadFloat3(&c_rkPPosDst);
 
-	return NEW_GetDistanceFromDirPixelPosition(kPPosDir);
+	return XMVectorGetX(XMVector3Length(dst - cur));
 }
 
 float CInstanceBase::NEW_GetDistanceFromDirPixelPosition(const TPixelPosition& c_rkPPosDir)
@@ -94,14 +97,16 @@ float CInstanceBase::NEW_GetDistanceFromDirPixelPosition(const TPixelPosition& c
 // Optimized: Get squared distance (avoid sqrt for comparisons)
 float CInstanceBase::NEW_GetDistanceFromDestInstanceSquared(CInstanceBase& rkInstDst)
 {
-	TPixelPosition kPPosDst;
-	rkInstDst.NEW_GetPixelPosition(&kPPosDst);
+	TPixelPosition dst, cur;
+	rkInstDst.NEW_GetPixelPosition(&dst);
+	NEW_GetPixelPosition(&cur);
 
-	TPixelPosition kPPosCur;
-	NEW_GetPixelPosition(&kPPosCur);
+	XMVECTOR d = XMLoadFloat3(&dst) - XMLoadFloat3(&cur);
 
-	TPixelPosition kPPosDir = kPPosDst - kPPosCur;
-	return kPPosDir.x * kPPosDir.x + kPPosDir.y * kPPosDir.y;
+	XMFLOAT3 r;
+	XMStoreFloat3(&r, d);
+
+	return r.x * r.x + r.y * r.y;
 }
 
 float CInstanceBase::NEW_GetRotation()
@@ -117,13 +122,15 @@ float CInstanceBase::NEW_GetRotationFromDirPixelPosition(const TPixelPosition& c
 
 float CInstanceBase::NEW_GetRotationFromDestPixelPosition(const TPixelPosition& c_rkPPosDst)
 {
-	TPixelPosition kPPosCur;
-	NEW_GetPixelPosition(&kPPosCur);
+	TPixelPosition cur;
+	NEW_GetPixelPosition(&cur);
 
-	TPixelPosition kPPosDir;
-	kPPosDir=c_rkPPosDst-kPPosCur;
+	XMVECTOR d = XMLoadFloat3(&c_rkPPosDst) - XMLoadFloat3(&cur);
 
-	return NEW_GetRotationFromDirPixelPosition(kPPosDir);
+	XMFLOAT3 dir;
+	XMStoreFloat3(&dir, d);
+
+	return NEW_GetRotationFromDirPixelPosition(dir);
 }
 
 float CInstanceBase::NEW_GetRotationFromDestInstance(CInstanceBase& rkInstDst)
@@ -136,23 +143,23 @@ float CInstanceBase::NEW_GetRotationFromDestInstance(CInstanceBase& rkInstDst)
 
 void CInstanceBase::NEW_GetRandomPositionInFanRange(CInstanceBase& rkInstTarget, TPixelPosition* pkPPosDst)
 {
-	float fDstDirRot=NEW_GetRotationFromDestInstance(rkInstTarget);	
+	float fDstDirRot = NEW_GetRotationFromDestInstance(rkInstTarget);
+	float fRot = frandom(fDstDirRot - 10.0f, fDstDirRot + 10.0f);
 
-	float fRot=frandom(fDstDirRot-10.0f, fDstDirRot+10.0f);
+	XMMATRIX rot = XMMatrixRotationZ(XMConvertToRadians(-fRot));
 
-	D3DXMATRIX kMatRot;
-	D3DXMatrixRotationZ(&kMatRot, D3DXToRadian(-fRot));
+	XMVECTOR src = XMVectorSet(0.0f, 8000.0f, 0.0f, 0.0f);
+	XMVECTOR v3Pos = XMVector3TransformCoord(src, rot);
 
-	D3DXVECTOR3 v3Src(0.0f, 8000.0f, 0.0f);
-	D3DXVECTOR3 v3Pos;
-	D3DXVec3TransformCoord(&v3Pos, &v3Src, &kMatRot);
+	XMFLOAT3 cur;
+	NEW_GetPixelPosition(&cur);
 
-	const TPixelPosition& c_rkPPosCur=NEW_GetCurPixelPositionRef();
-	//const TPixelPosition& c_rkPPosFront=rkInstTarget.NEW_GetCurPixelPositionRef();
+	XMFLOAT3 out;
+	XMStoreFloat3(&out, XMLoadFloat3(&cur) + v3Pos);
 
-	pkPPosDst->x=c_rkPPosCur.x+v3Pos.x;
-	pkPPosDst->y=c_rkPPosCur.y+v3Pos.y;
-	pkPPosDst->z=__GetBackgroundHeight(c_rkPPosCur.x, c_rkPPosCur.y);
+	out.z = __GetBackgroundHeight(cur.x, cur.y);
+
+	*pkPPosDst = out;
 }
 
 bool CInstanceBase::NEW_GetFrontInstance(CInstanceBase ** ppoutTargetInstance, float fDistance)
@@ -564,18 +571,25 @@ BOOL CInstanceBase::CheckAdvancing()
 
 	// 맵속성 체크
 	CPythonBackground& rkBG=CPythonBackground::Instance();
-	const D3DXVECTOR3 & rv3Position = m_GraphicThingInstance.GetPosition();
-	const D3DXVECTOR3 & rv3MoveDirection = m_GraphicThingInstance.GetMovementVectorRef();
+	const XMFLOAT3& pos = m_GraphicThingInstance.GetPosition();
+	const XMFLOAT3& dir = m_GraphicThingInstance.GetMovementVectorRef();
 
-	// NOTE : 만약 이동 거리가 크다면 쪼개서 구간 별로 속성을 체크해 본다
-	//        현재 설정해 놓은 10.0f는 임의의 거리 - [levites]
-	int iStep = int(D3DXVec3Length(&rv3MoveDirection) / 10.0f);
-	D3DXVECTOR3 v3CheckStep = rv3MoveDirection / float(iStep);
-	D3DXVECTOR3 v3CheckPosition = rv3Position;
+	XMVECTOR vDir = XMLoadFloat3(&dir);
+
+	float len = XMVectorGetX(XMVector3Length(vDir));
+	int iStep = (int)(len / 10.0f);
+	iStep = std::max(iStep, 1);
+
+	XMVECTOR vStep = vDir / (float)iStep;
+
+	XMFLOAT3 v3CheckStep;
+	XMStoreFloat3(&v3CheckStep, vStep);
+
+	XMFLOAT3 v3CheckPosition = pos;
+
 	for (int j = 0; j < iStep; ++j)
 	{
-		v3CheckPosition += v3CheckStep;
-
+		XMStoreFloat3(&v3CheckPosition, XMLoadFloat3(&v3CheckPosition) + XMLoadFloat3(&v3CheckStep));
 		// Check
 		if (rkBG.isAttrOn(v3CheckPosition.x, -v3CheckPosition.y, CTerrainImpl::ATTRIBUTE_BLOCK))
 		{
@@ -585,7 +599,10 @@ BOOL CInstanceBase::CheckAdvancing()
 	}
 
 	// Check
-	D3DXVECTOR3 v3NextPosition = rv3Position + rv3MoveDirection;
+	XMFLOAT3 v3NextPosition;
+	XMStoreFloat3(&v3NextPosition,
+		XMLoadFloat3(&pos) + XMLoadFloat3(&dir)
+	);
 	if (rkBG.isAttrOn(v3NextPosition.x, -v3NextPosition.y, CTerrainImpl::ATTRIBUTE_BLOCK))
 	{
 		BlockMovement();

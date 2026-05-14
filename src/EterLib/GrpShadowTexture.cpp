@@ -71,7 +71,7 @@ void CGraphicShadowTexture::Set(int stage) const
 	STATEMANAGER.SetTexture(stage, m_lpSRV);
 }
 
-const D3DXMATRIX& CGraphicShadowTexture::GetLightVPMatrixReference() const
+const XMFLOAT4X4& CGraphicShadowTexture::GetLightVPMatrixReference() const
 {
 	return m_d3dLightVPMatrix;
 }
@@ -81,7 +81,12 @@ void CGraphicShadowTexture::Begin()
 	if (!ms_lpd3d11Context)
 		return;
 
-	D3DXMatrixMultiply(&m_d3dLightVPMatrix, &ms_matView, &ms_matProj);
+	XMMATRIX view = XMLoadFloat4x4(&ms_matView);
+	XMMATRIX proj = XMLoadFloat4x4(&ms_matProj);
+
+	XMMATRIX vnp = view * proj;
+
+	XMStoreFloat4x4(&m_d3dLightVPMatrix, vnp);
 
 	ms_lpd3d11Context->OMGetRenderTargets(1, &m_pOldRTV, &m_pOldDSV);
 	m_uOldNumViewports = 1;

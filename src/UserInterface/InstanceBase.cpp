@@ -825,11 +825,17 @@ bool CInstanceBase::Create(const SCreateData& c_rkCreateData)
 
 	if (!IsPC())
 	{
-		DWORD dwBodyColor = CPythonNonPlayer::Instance().GetMonsterColor(c_rkCreateData.m_dwRace);
-		if (0 != dwBodyColor)
+		DWORD col = CPythonNonPlayer::Instance().GetMonsterColor(c_rkCreateData.m_dwRace);
+
+		if (col)
 		{
 			SetModulateRenderMode();
-			SetAddColor(dwBodyColor);
+			SetAddColor(XMFLOAT4(
+				((col >> 16) & 0xFF) / 255.0f,
+				((col >> 8) & 0xFF) / 255.0f,
+				((col) & 0xFF) / 255.0f,
+				((col >> 24) & 0xFF) / 255.0f
+			));
 		}
 	}
 
@@ -1275,296 +1281,212 @@ BOOL CInstanceBase::__IsEnableTCPProcess(UINT eCurFunc)
 }
 
 void CInstanceBase::StateProcess()
-{	
-	while (1)
+{
+	while (!m_kQue_kCmdNew.empty())
 	{
-		if (m_kQue_kCmdNew.empty())
-			return;	
+		DWORD dst = m_kQue_kCmdNew.front().m_dwChkTime;
+		DWORD cur = ELTimer_GetServerFrameMSec();
 
-		DWORD dwDstChkTime = m_kQue_kCmdNew.front().m_dwChkTime;
-		DWORD dwCurChkTime = ELTimer_GetServerFrameMSec();	
-
-		if (dwCurChkTime < dwDstChkTime)
+		if (cur < dst)
 			return;
 
-		SCommand kCmdTop = m_kQue_kCmdNew.front();
-		m_kQue_kCmdNew.pop_front();	
+		SCommand cmd = m_kQue_kCmdNew.front();
+		m_kQue_kCmdNew.pop_front();
 
-		TPixelPosition kPPosDst = kCmdTop.m_kPPosDst;
-		//DWORD dwCmdTime = kCmdTop.m_dwCmdTime;	
-		FLOAT fRotDst = kCmdTop.m_fDstRot;
-		UINT eFunc = kCmdTop.m_eFunc;
-		UINT uArg = kCmdTop.m_uArg;
-		UINT uVID = GetVirtualID();	
-		UINT uTargetVID = kCmdTop.m_uTargetVID;
+		TPixelPosition dstPos = cmd.m_kPPosDst;
+		float rot = cmd.m_fDstRot;
+		UINT func = cmd.m_eFunc;
+		UINT arg = cmd.m_uArg;
+		UINT targetVID = cmd.m_uTargetVID;
 
-		TPixelPosition kPPosCur;
-		NEW_GetPixelPosition(&kPPosCur);
+		TPixelPosition curPos;
+		NEW_GetPixelPosition(&curPos);
 
-		/*
-		if (IsPC())
-			Tracenf("%d cmd: vid=%d[%s] func=%d arg=%d  curPos=(%f, %f) dstPos=(%f, %f) rot=%f (time %d)", 
-			ELTimer_GetMSec(),
-			uVID, m_stName.c_str(), eFunc, uArg, 
-			kPPosCur.x, kPPosCur.y,
-			kPPosDst.x, kPPosDst.y, fRotDst, dwCmdTime-m_dwBaseCmdTime);
-		*/
-
-		TPixelPosition kPPosDir = kPPosDst - kPPosCur;
-		float fDirLen = (float)sqrt(kPPosDir.x * kPPosDir.x + kPPosDir.y * kPPosDir.y);
-
-		//Tracenf("거리 %f", fDirLen);
+		XMVECTOR vCur = XMLoadFloat2((XMFLOAT2*)&curPos);
+		XMVECTOR vDst = XMLoadFloat2((XMFLOAT2*)&dstPos);
+		float dirLen = XMVectorGetX(XMVector2Length(vDst - vCur));
 
 		if (!__CanProcessNetworkStatePacket())
-		{
-			Lognf(0, "vid=%d 움직일 수 없는 상태라 스킵 IsDead=%d, IsKnockDown=%d", uVID, m_GraphicThingInstance.IsDead(), m_GraphicThingInstance.IsKnockDown());
 			return;
-		}
 
-		if (!__IsEnableTCPProcess(eFunc))
-		{
+		if (!__IsEnableTCPProcess(func))
 			return;
-		}
 
-		switch (eFunc)
+		switch (func)
 		{
-			case FUNC_WAIT:
+		case FUNC_WAIT:
+			if (dirLen > 1.0f)
 			{
-				//Tracenf("%s (%f, %f) -> (%f, %f) 남은거리 %f", GetNameString(), kPPosCur.x, kPPosCur.y, kPPosDst.x, kPPosDst.y, fDirLen);
-				if (fDirLen > 1.0f)
-				{
-					//NEW_GetSrcPixelPositionRef() = kPPosCur;
-					//NEW_GetDstPixelPositionRef() = kPPosDst;
-					NEW_SetSrcPixelPosition(kPPosCur);
-					NEW_SetDstPixelPosition(kPPosDst);
+				NEW_SetSrcPixelPosition(curPos);
+				NEW_SetDstPixelPosition(dstPos);
 
-					__EnableSkipCollision();
+				__EnableSkipCollision();
+				m_fDstRot = rot;
+				m_isGoing = TRUE;
+				m_kMovAfterFunc.eFunc = FUNC_WAIT;
 
-					m_fDstRot = fRotDst;
-					m_isGoing = TRUE;
-
-					m_kMovAfterFunc.eFunc = FUNC_WAIT;
-
-					if (!IsWalking())
-						StartWalking();
-
-					//Tracen("목표정지");
-				}
-				else
-				{
-					//Tracen("현재 정지");
-
-					m_isGoing = FALSE;
-
-					if (!IsWaiting())
-						EndWalking();
-
-					SCRIPT_SetPixelPosition(kPPosDst.x, kPPosDst.y);
-					SetAdvancingRotation(fRotDst);
-					SetRotation(fRotDst);
-				}
-				break;
+				if (!IsWalking()) StartWalking();
 			}
-
-			case FUNC_MOVE:
+			else
 			{
-				//NEW_GetSrcPixelPositionRef() = kPPosCur;
-				//NEW_GetDstPixelPositionRef() = kPPosDst;
-				NEW_SetSrcPixelPosition(kPPosCur);
-				NEW_SetDstPixelPosition(kPPosDst);
-				m_fDstRot = fRotDst;
+				m_isGoing = FALSE;
+				if (!IsWaiting()) EndWalking();
+
+				SCRIPT_SetPixelPosition(dstPos.x, dstPos.y);
+				SetAdvancingRotation(rot);
+				SetRotation(rot);
+			}
+			break;
+
+		case FUNC_MOVE:
+			NEW_SetSrcPixelPosition(curPos);
+			NEW_SetDstPixelPosition(dstPos);
+
+			m_fDstRot = rot;
+			m_isGoing = TRUE;
+			__EnableSkipCollision();
+			m_kMovAfterFunc.eFunc = FUNC_MOVE;
+
+			if (!IsWalking()) StartWalking();
+			break;
+
+		case FUNC_COMBO:
+			if (dirLen >= 50.0f)
+			{
+				NEW_SetSrcPixelPosition(curPos);
+				NEW_SetDstPixelPosition(dstPos);
+
+				m_fDstRot = rot;
 				m_isGoing = TRUE;
 				__EnableSkipCollision();
-				//m_isSyncMov = TRUE;
 
-				m_kMovAfterFunc.eFunc = FUNC_MOVE;
+				m_kMovAfterFunc.eFunc = FUNC_COMBO;
+				m_kMovAfterFunc.uArg = arg;
 
-				if (!IsWalking())
-				{
-					//Tracen("걷고 있지 않아 걷기 시작");
-					StartWalking();
-				}
-				else
-				{
-					//Tracen("이미 걷는중 ");
-				}
-				break;
+				if (!IsWalking()) StartWalking();
 			}
-
-			case FUNC_COMBO:
+			else
 			{
-				if (fDirLen >= 50.0f)
+				m_isGoing = FALSE;
+				if (IsWalking()) EndWalking();
+
+				SCRIPT_SetPixelPosition(dstPos.x, dstPos.y);
+				RunComboAttack(rot, arg);
+			}
+			break;
+
+		case FUNC_ATTACK:
+			if (dirLen >= 50.0f)
+			{
+				NEW_SetSrcPixelPosition(curPos);
+				NEW_SetDstPixelPosition(dstPos);
+
+				m_fDstRot = rot;
+				m_isGoing = TRUE;
+				__EnableSkipCollision();
+
+				m_kMovAfterFunc.eFunc = FUNC_ATTACK;
+
+				if (!IsWalking()) StartWalking();
+			}
+			else
+			{
+				m_isGoing = FALSE;
+				if (IsWalking()) EndWalking();
+
+				SCRIPT_SetPixelPosition(dstPos.x, dstPos.y);
+				BlendRotation(rot);
+				RunNormalAttack(rot);
+			}
+			break;
+
+		case FUNC_MOB_SKILL:
+			if (dirLen >= 50.0f)
+			{
+				NEW_SetSrcPixelPosition(curPos);
+				NEW_SetDstPixelPosition(dstPos);
+
+				m_fDstRot = rot;
+				m_isGoing = TRUE;
+				__EnableSkipCollision();
+
+				m_kMovAfterFunc.eFunc = FUNC_MOB_SKILL;
+				m_kMovAfterFunc.uArg = arg;
+
+				if (!IsWalking()) StartWalking();
+			}
+			else
+			{
+				m_isGoing = FALSE;
+				if (IsWalking()) EndWalking();
+
+				SCRIPT_SetPixelPosition(dstPos.x, dstPos.y);
+				BlendRotation(rot);
+
+				m_GraphicThingInstance.InterceptOnceMotion(
+					CRaceMotionData::NAME_SPECIAL_1 + arg);
+			}
+			break;
+
+		case FUNC_EMOTION:
+			if (dirLen > 100.0f)
+			{
+				NEW_SetSrcPixelPosition(curPos);
+				NEW_SetDstPixelPosition(dstPos);
+
+				m_fDstRot = rot;
+				m_isGoing = TRUE;
+
+				if (__IsMainInstance())
+					__EnableSkipCollision();
+
+				m_kMovAfterFunc.eFunc = FUNC_EMOTION;
+				m_kMovAfterFunc.uArg = arg;
+				m_kMovAfterFunc.uArgExpanded = targetVID;
+				m_kMovAfterFunc.kPosDst = dstPos;
+
+				if (!IsWalking()) StartWalking();
+			}
+			else
+			{
+				__ProcessFunctionEmotion(arg, targetVID, dstPos);
+			}
+			break;
+
+		default:
+			if (func & FUNC_SKILL)
+			{
+				if (dirLen >= 50.0f)
 				{
-					NEW_SetSrcPixelPosition(kPPosCur);
-					NEW_SetDstPixelPosition(kPPosDst);
-					m_fDstRot=fRotDst;
+					NEW_SetSrcPixelPosition(curPos);
+					NEW_SetDstPixelPosition(dstPos);
+
+					m_fDstRot = rot;
 					m_isGoing = TRUE;
 					__EnableSkipCollision();
 
-					m_kMovAfterFunc.eFunc = FUNC_COMBO;
-					m_kMovAfterFunc.uArg = uArg;
+					m_kMovAfterFunc.eFunc = func;
+					m_kMovAfterFunc.uArg = arg;
 
-					if (!IsWalking())
-						StartWalking();
-				}
-				else
-				{
-					//Tracen("대기 공격 정지");
-
-					m_isGoing = FALSE;
-
-					if (IsWalking())
-						EndWalking();
-
-					SCRIPT_SetPixelPosition(kPPosDst.x, kPPosDst.y);
-					RunComboAttack(fRotDst, uArg);
-				}
-				break;
-			}
-
-			case FUNC_ATTACK:
-			{
-				if (fDirLen>=50.0f)
-				{
-					//NEW_GetSrcPixelPositionRef() = kPPosCur;
-					//NEW_GetDstPixelPositionRef() = kPPosDst;
-					NEW_SetSrcPixelPosition(kPPosCur);
-					NEW_SetDstPixelPosition(kPPosDst);
-					m_fDstRot = fRotDst;
-					m_isGoing = TRUE;
-					__EnableSkipCollision();
-					//m_isSyncMov = TRUE;
-
-					m_kMovAfterFunc.eFunc = FUNC_ATTACK;
-
-					if (!IsWalking())
-						StartWalking();
-
-					//Tracen("너무 멀어서 이동 후 공격");
-				}
-				else
-				{
-					//Tracen("노말 공격 정지");
-
-					m_isGoing = FALSE;
-
-					if (IsWalking())
-						EndWalking();
-
-					SCRIPT_SetPixelPosition(kPPosDst.x, kPPosDst.y);
-					BlendRotation(fRotDst);
-
-					RunNormalAttack(fRotDst);
-
-					//Tracen("가깝기 때문에 워프 공격");
-				}
-				break;
-			}
-
-			case FUNC_MOB_SKILL:
-			{
-				if (fDirLen >= 50.0f)
-				{
-					NEW_SetSrcPixelPosition(kPPosCur);
-					NEW_SetDstPixelPosition(kPPosDst);
-					m_fDstRot = fRotDst;
-					m_isGoing = TRUE;
-					__EnableSkipCollision();
-
-					m_kMovAfterFunc.eFunc = FUNC_MOB_SKILL;
-					m_kMovAfterFunc.uArg = uArg;
-
-					if (!IsWalking())
-						StartWalking();
+					if (!IsWalking()) StartWalking();
 				}
 				else
 				{
 					m_isGoing = FALSE;
+					if (IsWalking()) EndWalking();
 
-					if (IsWalking())
-						EndWalking();
+					SCRIPT_SetPixelPosition(dstPos.x, dstPos.y);
+					SetAdvancingRotation(rot);
+					SetRotation(rot);
 
-					SCRIPT_SetPixelPosition(kPPosDst.x, kPPosDst.y);
-					BlendRotation(fRotDst);
-
-					m_GraphicThingInstance.InterceptOnceMotion(CRaceMotionData::NAME_SPECIAL_1 + uArg);
+					NEW_UseSkill(0, func & 0x7f, arg & 0x0f,
+						(arg >> 4) ? true : false);
 				}
-				break;
 			}
-
-			case FUNC_EMOTION:
-			{
-				if (fDirLen>100.0f)
-				{
-					NEW_SetSrcPixelPosition(kPPosCur);
-					NEW_SetDstPixelPosition(kPPosDst);
-					m_fDstRot = fRotDst;
-					m_isGoing = TRUE;
-
-					if (__IsMainInstance())
-						__EnableSkipCollision();
-
-					m_kMovAfterFunc.eFunc = FUNC_EMOTION;
-					m_kMovAfterFunc.uArg = uArg;
-					m_kMovAfterFunc.uArgExpanded = uTargetVID;
-					m_kMovAfterFunc.kPosDst = kPPosDst;
-
-					if (!IsWalking())
-						StartWalking();
-				}
-				else
-				{
-					__ProcessFunctionEmotion(uArg, uTargetVID, kPPosDst);
-				}
-				break;
-			}
-
-			default:
-			{
-				if (eFunc & FUNC_SKILL)
-				{
-					if (fDirLen >= 50.0f)
-					{
-						//NEW_GetSrcPixelPositionRef() = kPPosCur;
-						//NEW_GetDstPixelPositionRef() = kPPosDst;
-						NEW_SetSrcPixelPosition(kPPosCur);
-						NEW_SetDstPixelPosition(kPPosDst);
-						m_fDstRot = fRotDst;
-						m_isGoing = TRUE;
-						//m_isSyncMov = TRUE;
-						__EnableSkipCollision();
-
-						m_kMovAfterFunc.eFunc = eFunc;
-						m_kMovAfterFunc.uArg = uArg;
-
-						if (!IsWalking())
-							StartWalking();
-
-						//Tracen("너무 멀어서 이동 후 공격");
-					}
-					else
-					{
-						//Tracen("스킬 정지");
-
-						m_isGoing = FALSE;
-
-						if (IsWalking())
-							EndWalking();
-
-						SCRIPT_SetPixelPosition(kPPosDst.x, kPPosDst.y);
-						SetAdvancingRotation(fRotDst);
-						SetRotation(fRotDst);
-
-						NEW_UseSkill(0, eFunc & 0x7f, uArg&0x0f, (uArg>>4) ? true : false);
-						//Tracen("가깝기 때문에 워프 공격");
-					}
-				}
-				break;
-			}
+			break;
 		}
 	}
 }
-
 
 void CInstanceBase::MovementProcess()
 {
@@ -1575,16 +1497,23 @@ void CInstanceBase::MovementProcess()
 
 	TPixelPosition kPPosNext;
 	{
-		const D3DXVECTOR3 & c_rkV3Mov = m_GraphicThingInstance.GetMovementVectorRef();
+		const XMFLOAT3 & c_rkV3Mov = m_GraphicThingInstance.GetMovementVectorRef();
 
 		kPPosNext.x = kPPosCur.x + (+c_rkV3Mov.x);
 		kPPosNext.y = kPPosCur.y + (-c_rkV3Mov.y);
 		kPPosNext.z = kPPosCur.z + (+c_rkV3Mov.z);
 	}
 
-	TPixelPosition kPPosDeltaSC = kPPosCur - NEW_GetSrcPixelPositionRef();
-	TPixelPosition kPPosDeltaSN = kPPosNext - NEW_GetSrcPixelPositionRef();
-	TPixelPosition kPPosDeltaSD = NEW_GetDstPixelPositionRef() - NEW_GetSrcPixelPositionRef();
+	XMVECTOR src = XMLoadFloat3(&NEW_GetSrcPixelPositionRef());
+	XMVECTOR cur = XMLoadFloat3(&kPPosCur);
+	XMVECTOR nxt = XMLoadFloat3(&kPPosNext);
+	XMVECTOR dst = XMLoadFloat3(&NEW_GetDstPixelPositionRef());
+
+	XMFLOAT3 kPPosDeltaSC, kPPosDeltaSN, kPPosDeltaSD;
+
+	XMStoreFloat3(&kPPosDeltaSC, cur - src);
+	XMStoreFloat3(&kPPosDeltaSN, nxt - src);
+	XMStoreFloat3(&kPPosDeltaSD, dst - src);
 
 	float fCurLen = sqrtf(kPPosDeltaSC.x * kPPosDeltaSC.x + kPPosDeltaSC.y * kPPosDeltaSC.y);
 	float fNextLen = sqrtf(kPPosDeltaSN.x * kPPosDeltaSN.x + kPPosDeltaSN.y * kPPosDeltaSN.y);
@@ -1941,7 +1870,7 @@ void CInstanceBase::Transform()
 	{
 		if (IsWalking() || m_GraphicThingInstance.IsUsingMovingSkill())
 		{
-			const D3DXVECTOR3& c_rv3Movment=m_GraphicThingInstance.GetMovementVectorRef();
+			const XMFLOAT3& c_rv3Movment=m_GraphicThingInstance.GetMovementVectorRef();
 
 			float len=(c_rv3Movment.x*c_rv3Movment.x)+(c_rv3Movment.y*c_rv3Movment.y);
 			if (len>1.0f)
@@ -2032,8 +1961,8 @@ void CInstanceBase::Render(const RenderContext& ctx)
 			TPixelPosition px;
 			m_GraphicThingInstance.GetPixelPosition(&px);
 
-			D3DXVECTOR3 kD3DVt3Cur(px.x, px.y, px.z);
-			D3DXVECTOR3 kD3DVt3Dest(NEW_GetDstPixelPositionRef().x, -NEW_GetDstPixelPositionRef().y, NEW_GetDstPixelPositionRef().z);
+			XMFLOAT3 kD3DVt3Cur(px.x, px.y, px.z);
+			XMFLOAT3 kD3DVt3Dest(NEW_GetDstPixelPositionRef().x, -NEW_GetDstPixelPositionRef().y, NEW_GetDstPixelPositionRef().z);
 
 			s_kScreen.SetDiffuseColor(0.0f, 0.0f, 1.0f);
 			s_kScreen.RenderLine3d(kD3DVt3Cur.x, kD3DVt3Cur.y, px.z, kD3DVt3Dest.x, kD3DVt3Dest.y, px.z);
@@ -2608,7 +2537,7 @@ void CInstanceBase::SetRenderMode(int iRenderMode)
 	m_GraphicThingInstance.SetRenderMode(iRenderMode);
 }
 
-void CInstanceBase::SetAddColor(const D3DXCOLOR & c_rColor)
+void CInstanceBase::SetAddColor(const XMFLOAT4 & c_rColor)
 {
 	m_GraphicThingInstance.SetAddColor(c_rColor);
 }
@@ -3246,7 +3175,7 @@ CInstanceBase::~CInstanceBase()
 }
 
 
-void CInstanceBase::GetBoundBox(D3DXVECTOR3 * vtMin, D3DXVECTOR3 * vtMax)
+void CInstanceBase::GetBoundBox(XMFLOAT3 * vtMin, XMFLOAT3 * vtMax)
 {
 	m_GraphicThingInstance.GetBoundBox(vtMin, vtMax);
 }

@@ -22,7 +22,7 @@ public:
 		return ms_pWorld;
 	}
 
-	virtual bool isPhysicalCollision(const D3DXVECTOR3 & c_rvCheckPosition) = 0;
+	virtual bool isPhysicalCollision(const XMFLOAT3 & c_rvCheckPosition) = 0;
 
 private:
 	static IPhysicsWorld* ms_pWorld;
@@ -69,8 +69,8 @@ class CPhysicsObject
 
 		bool isBlending();
 
-		void SetDirection(const D3DXVECTOR3 & c_rv3Direction);
-		void IncreaseExternalForce(const D3DXVECTOR3 & c_rvBasePosition, float fForce);
+		void SetDirection(const XMFLOAT3 & c_rv3Direction);
+		void IncreaseExternalForce(const XMFLOAT3 & c_rvBasePosition, float fForce);
 		void SetLastPosition(const TPixelPosition& c_rPosition, float fBlendingTime);
 		void GetLastPosition(TPixelPosition * pPosition);
 
@@ -82,16 +82,16 @@ class CPhysicsObject
 		CActorInstance* GetActorInstance() { return m_pActorInstance; }
 
 	protected:
-		void Accumulate(D3DXVECTOR3 * pv3Position);
+		void Accumulate(XMFLOAT3 * pv3Position);
 
 	protected:
 		float m_fMass;
 		float m_fFriction;
-		D3DXVECTOR3 m_v3Direction;
-		D3DXVECTOR3 m_v3Acceleration;
-		D3DXVECTOR3 m_v3Velocity;
+		XMFLOAT3 m_v3Direction;
+		XMFLOAT3 m_v3Acceleration;
+		XMFLOAT3 m_v3Velocity;
 
-		D3DXVECTOR3 m_v3LastPosition;
+		XMFLOAT3 m_v3LastPosition;
 
 		CEaseOutInterpolation m_xPushingPosition;
 		CEaseOutInterpolation m_yPushingPosition;

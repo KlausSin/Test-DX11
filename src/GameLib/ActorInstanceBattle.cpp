@@ -114,30 +114,30 @@ bool CActorInstance::CanFishing()
 	return true;
 }
 
-BOOL CActorInstance::IsClickableDistanceDestInstance(CActorInstance & rkInstDst, float fDistance)
+BOOL CActorInstance::IsClickableDistanceDestInstance(CActorInstance& rkInstDst, float fDistance)
 {
 	TPixelPosition kPPosSrc;
 	GetPixelPosition(&kPPosSrc);
 
-	D3DXVECTOR3 kD3DVct3Src(kPPosSrc);
+	XMFLOAT3 kVct3Src = kPPosSrc;
 
-	TCollisionPointInstanceList& rkLstkDefPtInst=rkInstDst.m_DefendingPointInstanceList;
-	TCollisionPointInstanceList::iterator i;
+	TCollisionPointInstanceList& rkLstkDefPtInst = rkInstDst.m_DefendingPointInstanceList;
 
-	for (i=rkLstkDefPtInst.begin(); i!=rkLstkDefPtInst.end(); ++i)
+	for (auto i = rkLstkDefPtInst.begin(); i != rkLstkDefPtInst.end(); ++i)
 	{
 		CDynamicSphereInstanceVector& rkVctkDefSphere = (*i).SphereInstanceVector;
 
-		CDynamicSphereInstanceVector::iterator j;
-		for (j=rkVctkDefSphere.begin(); j!=rkVctkDefSphere.end(); ++j)
+		for (auto j = rkVctkDefSphere.begin(); j != rkVctkDefSphere.end(); ++j)
 		{
-			CDynamicSphereInstance& rkSphere=(*j);
+			CDynamicSphereInstance& rkSphere = (*j);
 
-			const auto vv = D3DXVECTOR3(rkSphere.v3Position - kD3DVct3Src);
-			float fMovDistance=D3DXVec3Length(&vv);
-			float fAtkDistance=rkSphere.fRadius+fDistance;
+			XMVECTOR spherePos = XMLoadFloat3(&rkSphere.v3Position);
+			XMVECTOR srcPos = XMLoadFloat3(&kVct3Src);
 
-			if (fAtkDistance>fMovDistance)
+			float fMovDistance = XMVectorGetX(XMVector3Length(spherePos - srcPos));
+			float fAtkDistance = rkSphere.fRadius + fDistance;
+
+			if (fAtkDistance > fMovDistance)
 				return TRUE;
 		}
 	}
@@ -516,7 +516,7 @@ void CActorInstance::__ProcessMotionEventAttackSuccess(DWORD dwMotionKey, BYTE b
 	if (!pMotionData->GetMotionAttackingEventDataPointer(byEventIndex, &pMotionEventData))
 		return;
 
-	const D3DXVECTOR3& c_rv3VictimPos=rVictim.GetPositionVectorRef();
+	const XMFLOAT3& c_rv3VictimPos=rVictim.GetPositionVectorRef();
 	__ProcessDataAttackSuccess(pMotionEventData->AttackData, rVictim, c_rv3VictimPos);
 }
 
@@ -528,7 +528,7 @@ void CActorInstance::__ProcessMotionAttackSuccess(DWORD dwMotionKey, CActorInsta
 	if (!m_pkCurRaceData->GetMotionDataPointer(dwMotionKey, &c_pMotionData))
 		return;
 
-	const D3DXVECTOR3& c_rv3VictimPos=rVictim.GetPositionVectorRef();
+	const XMFLOAT3& c_rv3VictimPos=rVictim.GetPositionVectorRef();
 	__ProcessDataAttackSuccess(c_pMotionData->GetMotionAttackDataReference(), rVictim, c_rv3VictimPos);
 }
 
@@ -587,23 +587,9 @@ bool CActorInstance::__CanPushDestActor(CActorInstance& rkActorDst)
 bool IS_PARTY_HUNTING_RACE(unsigned int vnum)
 {
 	return true;
-
-	// 모든 몬스터 파티 사냥 적용
-	/*
-	if (vnum < 8) // 플레이어
-		return true;
-
-	if (vnum >= 8000 && vnum <= 8112) // 메틴석
-		return true;
-
-	if (vnum >= 2400 && vnum <  5000) // 천의 동굴 이후 몬스터
-		return true;
-
-	return false;
-	*/
 }
 
-void CActorInstance::__ProcessDataAttackSuccess(const NRaceData::TAttackData & c_rAttackData, CActorInstance & rVictim, const D3DXVECTOR3 & c_rv3Position, UINT uiSkill, BOOL isSendPacket)
+void CActorInstance::__ProcessDataAttackSuccess(const NRaceData::TAttackData & c_rAttackData, CActorInstance & rVictim, const XMFLOAT3& c_rv3Position, UINT uiSkill, BOOL isSendPacket)
 {
 	if (NRaceData::HIT_TYPE_NONE == c_rAttackData.iHittingType)
 		return;	
@@ -615,7 +601,7 @@ void CActorInstance::__ProcessDataAttackSuccess(const NRaceData::TAttackData & c
 		__PushCircle(rVictim);
 
 		// VICTIM_COLLISION_TEST
-		const D3DXVECTOR3& kVictimPos = rVictim.GetPosition();
+		const XMFLOAT3& kVictimPos = rVictim.GetPosition();
 		rVictim.m_PhysicsObject.IncreaseExternalForce(kVictimPos, c_rAttackData.fExternalForce); //*nForceRatio/100.0f);
 		// VICTIM_COLLISION_TEST_END
 	}
@@ -640,7 +626,7 @@ void CActorInstance::__ProcessDataAttackSuccess(const NRaceData::TAttackData & c
 	rVictim.InsertDelay(c_rAttackData.fStiffenTime);
 
 	// Hit Effect
-	D3DXVECTOR3 vec3Effect(rVictim.m_x, rVictim.m_y, rVictim.m_z);
+	XMFLOAT3 vec3Effect(rVictim.m_x, rVictim.m_y, rVictim.m_z);
 	
 	// #0000780: [M2KR] 수룡 타격구 문제
 	extern bool IS_HUGE_RACE(unsigned int vnum);
@@ -649,26 +635,42 @@ void CActorInstance::__ProcessDataAttackSuccess(const NRaceData::TAttackData & c
 		vec3Effect = c_rv3Position;
 	}
 	
-	const D3DXVECTOR3 & v3Pos = GetPosition();
+	const XMFLOAT3& v3Pos = GetPosition();
 
-	float fHeight = D3DXToDegree(atan2(-vec3Effect.x + v3Pos.x,+vec3Effect.y - v3Pos.y));
+	float fHeight = XMConvertToDegrees(atan2f(-vec3Effect.x + v3Pos.x, +vec3Effect.y - v3Pos.y));
 
-	// 2004.08.03.myevan.빌딩이나 문의 경우 타격 효과가 보이지 않는다
-	if (rVictim.IsBuilding()||rVictim.IsDoor())
+	if (rVictim.IsBuilding() || rVictim.IsDoor())
 	{
-		D3DXVECTOR3 vec3Delta=vec3Effect-v3Pos;
-		D3DXVec3Normalize(&vec3Delta, &vec3Delta);
-		vec3Delta*=30.0f;
+		XMFLOAT3 vec3Delta = {
+			vec3Effect.x - v3Pos.x,
+			vec3Effect.y - v3Pos.y,
+			vec3Effect.z - v3Pos.z
+		};
 
-		CEffectManager& rkEftMgr=CEffectManager::Instance();
+		XMStoreFloat3(&vec3Delta, XMVector3Normalize(XMLoadFloat3(&vec3Delta)));
+
+		vec3Delta.x *= 30.0f;
+		vec3Delta.y *= 30.0f;
+		vec3Delta.z *= 30.0f;
+
+		XMFLOAT3 v3EffectPos = {
+			v3Pos.x + vec3Delta.x,
+			v3Pos.y + vec3Delta.y,
+			v3Pos.z + vec3Delta.z
+		};
+
+		CEffectManager& rkEftMgr = CEffectManager::Instance();
+
 		if (m_dwBattleHitEffectID)
-			rkEftMgr.CreateEffect(m_dwBattleHitEffectID, v3Pos+vec3Delta, D3DXVECTOR3(0.0f, 0.0f, 0.0f));
+			rkEftMgr.CreateEffect(m_dwBattleHitEffectID, v3EffectPos, XMFLOAT3(0.0f, 0.0f, 0.0f));
 	}
 	else
 	{
-		CEffectManager& rkEftMgr=CEffectManager::Instance();
+		CEffectManager& rkEftMgr = CEffectManager::Instance();
+
 		if (m_dwBattleHitEffectID)
-			rkEftMgr.CreateEffect(m_dwBattleHitEffectID, vec3Effect, D3DXVECTOR3(0.0f, 0.0f, fHeight));
+			rkEftMgr.CreateEffect(m_dwBattleHitEffectID, vec3Effect, XMFLOAT3(0.0f, 0.0f, fHeight));
+
 		if (m_dwBattleAttachEffectID)
 			rVictim.AttachEffectByID(0, NULL, m_dwBattleAttachEffectID);
 	}
@@ -730,7 +732,7 @@ void CActorInstance::ShakeProcess()
 {
 	if (m_dwShakeTime)
 	{
-		D3DXVECTOR3 v3Pos(0.0f, 0.0f, 0.0f);
+		XMFLOAT3 v3Pos(0.0f, 0.0f, 0.0f);
 
 		DWORD dwCurTime=ELTimer_GetMSec();
 
@@ -794,16 +796,16 @@ void CActorInstance::__HitGood(CActorInstance& rVictim)
 
 		if (!rVictim.isLock())
 		{
-			float fRotRad = D3DXToRadian(GetRotation());
-			float fVictimRotRad = D3DXToRadian(rVictim.GetRotation());
+			float fRotRad = XMConvertToRadians(GetRotation());
+			float fVictimRotRad = XMConvertToRadians(rVictim.GetRotation());
 
-			D3DXVECTOR2 v2Normal(sin(fRotRad), cos(fRotRad));
-			D3DXVECTOR2 v2VictimNormal(sin(fVictimRotRad), cos(fVictimRotRad));
+			XMFLOAT2 v2Normal(sinf(fRotRad), cosf(fRotRad));
+			XMFLOAT2 v2VictimNormal(sinf(fVictimRotRad), cosf(fVictimRotRad));
 
-			D3DXVec2Normalize(&v2Normal, &v2Normal);
-			D3DXVec2Normalize(&v2VictimNormal, &v2VictimNormal);
+			XMVECTOR normal = XMVector2Normalize(XMLoadFloat2(&v2Normal));
+			XMVECTOR victimNormal = XMVector2Normalize(XMLoadFloat2(&v2VictimNormal));
 
-			float fScalar = D3DXVec2Dot(&v2Normal, &v2VictimNormal);
+			float fScalar = XMVectorGetX(XMVector2Dot(normal, victimNormal));
 
 			if (fScalar < 0.0f)
 			{
@@ -830,16 +832,16 @@ void CActorInstance::__HitGreate(CActorInstance& rVictim)
 		return;
 	// END_OF_DISABLE_KNOCKDOWN_ATTACK
 
-	float fRotRad = D3DXToRadian(GetRotation());
-	float fVictimRotRad = D3DXToRadian(rVictim.GetRotation());
+	float fRotRad = XMConvertToRadians(GetRotation());
+	float fVictimRotRad = XMConvertToRadians(rVictim.GetRotation());
 
-	D3DXVECTOR2 v2Normal(sin(fRotRad), cos(fRotRad));
-	D3DXVECTOR2 v2VictimNormal(sin(fVictimRotRad), cos(fVictimRotRad));
+	XMFLOAT2 v2Normal(sinf(fRotRad), cosf(fRotRad));
+	XMFLOAT2 v2VictimNormal(sinf(fVictimRotRad), cosf(fVictimRotRad));
 
-	D3DXVec2Normalize(&v2Normal, &v2Normal);
-	D3DXVec2Normalize(&v2VictimNormal, &v2VictimNormal);
+	XMVECTOR normal = XMVector2Normalize(XMLoadFloat2(&v2Normal));
+	XMVECTOR victimNormal = XMVector2Normalize(XMLoadFloat2(&v2VictimNormal));
 
-	float fScalar = D3DXVec2Dot(&v2Normal, &v2VictimNormal);
+	float fScalar = XMVectorGetX(XMVector2Dot(normal, victimNormal));
 
 	rVictim.__Shake(100);
 
@@ -921,29 +923,31 @@ void CActorInstance::GetBlendingPosition(TPixelPosition * pPosition)
 	}
 }
 
-void CActorInstance::__PushCircle(CActorInstance & rVictim)
+void CActorInstance::__PushCircle(CActorInstance& rVictim)
 {
-	const TPixelPosition& c_rkPPosAtk=NEW_GetAtkPixelPositionRef();
+	const TPixelPosition& c_rkPPosAtk = NEW_GetAtkPixelPositionRef();
 
-	D3DXVECTOR3 v3SrcPos(c_rkPPosAtk.x, -c_rkPPosAtk.y, c_rkPPosAtk.z);
+	XMFLOAT3 v3SrcPos(c_rkPPosAtk.x, -c_rkPPosAtk.y, c_rkPPosAtk.z);
 
-	const D3DXVECTOR3& c_rv3SrcPos = v3SrcPos;
-	const D3DXVECTOR3& c_rv3DstPos = rVictim.GetPosition();
+	const XMFLOAT3& c_rv3SrcPos = v3SrcPos;
+	const XMFLOAT3& c_rv3DstPos = rVictim.GetPosition();
 
-	D3DXVECTOR3 v3Direction;
+	XMFLOAT3 v3Direction;
 	v3Direction.x = c_rv3DstPos.x - c_rv3SrcPos.x;
 	v3Direction.y = c_rv3DstPos.y - c_rv3SrcPos.y;
 	v3Direction.z = 0.0f;
-	D3DXVec3Normalize(&v3Direction, &v3Direction);
+
+	XMStoreFloat3(&v3Direction, XMVector3Normalize(XMLoadFloat3(&v3Direction)));
 
 	rVictim.__SetFallingDirection(v3Direction.x, v3Direction.y);
 }
 
-void CActorInstance::__PushDirect(CActorInstance & rVictim)
+void CActorInstance::__PushDirect(CActorInstance& rVictim)
 {
-	D3DXVECTOR3 v3Direction;
-	v3Direction.x = cosf(D3DXToRadian(m_fcurRotation + 270.0f));
-	v3Direction.y = sinf(D3DXToRadian(m_fcurRotation + 270.0f));
+	XMFLOAT3 v3Direction;
+
+	v3Direction.x = cosf(XMConvertToRadians(m_fcurRotation + 270.0f));
+	v3Direction.y = sinf(XMConvertToRadians(m_fcurRotation + 270.0f));
 	v3Direction.z = 0.0f;
 
 	rVictim.__SetFallingDirection(v3Direction.x, v3Direction.y);
@@ -964,7 +968,7 @@ bool CActorInstance::__isInvisible()
 
 void CActorInstance::__SetFallingDirection(float fx, float fy)
 {
-	m_PhysicsObject.SetDirection(D3DXVECTOR3(fx, fy, 0.0f));
+	m_PhysicsObject.SetDirection(XMFLOAT3(fx, fy, 0.0f));
 }
 
 // MR-3: Shaman on-mount hitting fix

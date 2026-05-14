@@ -64,7 +64,6 @@ void CMapManager::Create()
 		return;
 	}
 
-
 	m_pkMap = (CMapOutdoor*)AllocMap();
 
 	assert(NULL!=m_pkMap && "CMapManager::Create MAP is NULL");
@@ -236,7 +235,7 @@ void CMapManager::BeginEnvironment()
 
 	if (mc_pcurEnvironmentData->bFogEnable)
 	{
-		const DWORD dwFogColor = mc_pcurEnvironmentData->FogColor;
+		const DWORD dwFogColor = ColorToUint(mc_pcurEnvironmentData->FogColor);
 		_mgr->GetCbMgr()->SetFogColor(dwFogColor);
 
 		const int iFogLevel = CPythonSystem::Instance().GetFogLevel();
@@ -472,7 +471,7 @@ CArea::TCRCWithNumberVector & CMapManager::GetRenderedGraphicThingInstanceNum(DW
 	return rkMap.GetRenderedGraphicThingInstanceNum(pdwGraphicThingInstanceNum, pdwCRCNum);
 }
 
-bool CMapManager::GetNormal(int ix, int iy, D3DXVECTOR3 * pv3Normal)
+bool CMapManager::GetNormal(int ix, int iy, XMFLOAT3 * pv3Normal)
 {
 	if (!IsMapReady())
 		return false;
@@ -481,7 +480,7 @@ bool CMapManager::GetNormal(int ix, int iy, D3DXVECTOR3 * pv3Normal)
 	return rkMap.GetNormal(ix, iy, pv3Normal);
 }
 
-bool CMapManager::isPhysicalCollision(const D3DXVECTOR3 & c_rvCheckPosition)
+bool CMapManager::isPhysicalCollision(const XMFLOAT3& c_rvCheckPosition)
 {
 	if (!IsMapReady())
 		return false;

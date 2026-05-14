@@ -91,7 +91,7 @@ class CEffectMeshScript : public CEffectElementBase
 			BOOL bTextureAlphaEnable;
 
 			BYTE byColorOperationType;
-			D3DXCOLOR ColorFactor;
+			XMFLOAT4 ColorFactor;
 
 			BOOL bTextureAnimationLoopEnable;
 			float fTextureAnimationFrameDelay;
@@ -124,7 +124,7 @@ class CEffectMeshScript : public CEffectElementBase
 		BYTE GetBlendingDestType(DWORD dwMeshIndex);
 		BOOL isTextureAlphaEnable(DWORD dwMeshIndex);
 		BOOL GetColorOperationType(DWORD dwMeshIndex, BYTE * pbyType);
-		BOOL GetColorFactor(DWORD dwMeshIndex, D3DXCOLOR * pColor);
+		BOOL GetColorFactor(DWORD dwMeshIndex, XMFLOAT4* pColor);
 		BOOL GetTimeTableAlphaPointer(DWORD dwMeshIndex, TTimeEventTableFloat ** pTimeEventAlpha);
 
 		BOOL isMeshAnimationLoop();

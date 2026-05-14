@@ -60,7 +60,7 @@ void CGraphicThingInstance::SetMotionAtEnd()
 	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), std::mem_fn(&CGrannyLODController::SetMotionAtEnd));
 }
 
-bool CGraphicThingInstance::Picking(const D3DXVECTOR3& v, const D3DXVECTOR3& dir, float& out_x, float& out_y)
+bool CGraphicThingInstance::Picking(const XMFLOAT3& v, const XMFLOAT3& dir, float& out_x, float& out_y)
 {
 	if (!m_pHeightAttributeInstance)
 		return false;
@@ -93,50 +93,79 @@ bool CGraphicThingInstance::OnGetObjectHeight(float fX, float fY, float* pfHeigh
 
 void CGraphicThingInstance::BuildBoundingSphere()
 {
-	D3DXVECTOR3 v3Min, v3Max;
-	GetBoundBox(0, &v3Min, &v3Max);
-	m_v3Center = (v3Min + v3Max) * 0.5f;
-	D3DXVECTOR3 vDelta = (v3Max - v3Min);
+	XMFLOAT3 v3Min, v3Max;
 
-	m_fRadius = D3DXVec3Length(&vDelta) * 0.5f + 50.0f; // extra length for attached objects
+	GetBoundBox(0, &v3Min, &v3Max);
+
+	m_v3Center =
+	{
+		(v3Min.x + v3Max.x) * 0.5f,
+		(v3Min.y + v3Max.y) * 0.5f,
+		(v3Min.z + v3Max.z) * 0.5f
+	};
+
+	XMFLOAT3 vDelta =
+	{
+		v3Max.x - v3Min.x,
+		v3Max.y - v3Min.y,
+		v3Max.z - v3Min.z
+	};
+
+	m_fRadius =
+		XMVectorGetX(XMVector3Length(XMLoadFloat3(&vDelta))) * 0.5f + 50.0f;
 }
 
-bool CGraphicThingInstance::GetBoundingSphere(D3DXVECTOR3& v3Center, float& fRadius)
+bool CGraphicThingInstance::GetBoundingSphere(XMFLOAT3& v3Center, float& fRadius)
 {
-	if (m_fRadius <= 0)
-	{
+	if (m_fRadius <= 0.0f)
 		BuildBoundingSphere();
 
-		fRadius = m_fRadius;
-		v3Center = m_v3Center;
-	}
-	else
-	{
-		fRadius = m_fRadius;
-		v3Center = m_v3Center;
-	}
+	fRadius = m_fRadius;
+	v3Center = m_v3Center;
 
-	D3DXVec3TransformCoord(&v3Center, &v3Center, &GetTransform());
+	XMStoreFloat3(
+		&v3Center,
+		XMVector3TransformCoord(
+			XMLoadFloat3(&v3Center),
+			XMLoadFloat4x4(&GetTransform())
+		)
+	);
+
 	return true;
 }
 
 void CGraphicThingInstance::BuildBoundingAABB()
 {
-	D3DXVECTOR3 v3Min, v3Max;
+	XMFLOAT3 v3Min, v3Max;
+
 	GetBoundBox(0, &v3Min, &v3Max);
-	m_v3Center = (v3Min + v3Max) * 0.5f;
+
+	m_v3Center =
+	{
+		(v3Min.x + v3Max.x) * 0.5f,
+		(v3Min.y + v3Max.y) * 0.5f,
+		(v3Min.z + v3Max.z) * 0.5f
+	};
+
 	m_v3Min = v3Min;
 	m_v3Max = v3Max;
 }
 
-bool CGraphicThingInstance::GetBoundingAABB(D3DXVECTOR3& v3Min, D3DXVECTOR3& v3Max)
+bool CGraphicThingInstance::GetBoundingAABB(XMFLOAT3& v3Min, XMFLOAT3& v3Max)
 {
 	BuildBoundingAABB();
 
 	v3Min = m_v3Min;
 	v3Max = m_v3Max;
 
-	D3DXVec3TransformCoord(&m_v3Center, &m_v3Center, &GetTransform());
+	XMStoreFloat3(
+		&m_v3Center,
+		XMVector3TransformCoord(
+			XMLoadFloat3(&m_v3Center),
+			XMLoadFloat4x4(&GetTransform())
+		)
+	);
+
 	return true;
 }
 
@@ -144,43 +173,35 @@ void CGraphicThingInstance::CalculateBBox()
 {
 	GetBoundBox(&m_v3BBoxMin, &m_v3BBoxMax);
 
-	m_v4TBBox[0] = D3DXVECTOR4(m_v3BBoxMin.x, m_v3BBoxMin.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[1] = D3DXVECTOR4(m_v3BBoxMin.x, m_v3BBoxMax.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[2] = D3DXVECTOR4(m_v3BBoxMax.x, m_v3BBoxMin.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[3] = D3DXVECTOR4(m_v3BBoxMax.x, m_v3BBoxMax.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[4] = D3DXVECTOR4(m_v3BBoxMin.x, m_v3BBoxMin.y, m_v3BBoxMax.z, 1.0f);
-	m_v4TBBox[5] = D3DXVECTOR4(m_v3BBoxMin.x, m_v3BBoxMax.y, m_v3BBoxMax.z, 1.0f);
-	m_v4TBBox[6] = D3DXVECTOR4(m_v3BBoxMax.x, m_v3BBoxMin.y, m_v3BBoxMax.z, 1.0f);
-	m_v4TBBox[7] = D3DXVECTOR4(m_v3BBoxMax.x, m_v3BBoxMax.y, m_v3BBoxMax.z, 1.0f);
+	m_v4TBBox[0] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMin.y, m_v3BBoxMin.z, 1.0f);
+	m_v4TBBox[1] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMax.y, m_v3BBoxMin.z, 1.0f);
+	m_v4TBBox[2] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMin.y, m_v3BBoxMin.z, 1.0f);
+	m_v4TBBox[3] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMax.y, m_v3BBoxMin.z, 1.0f);
+	m_v4TBBox[4] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMin.y, m_v3BBoxMax.z, 1.0f);
+	m_v4TBBox[5] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMax.y, m_v3BBoxMax.z, 1.0f);
+	m_v4TBBox[6] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMin.y, m_v3BBoxMax.z, 1.0f);
+	m_v4TBBox[7] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMax.y, m_v3BBoxMax.z, 1.0f);
 
-	const D3DXMATRIX& c_rmatTransform = GetTransform();
+	const XMFLOAT4X4& c_rmatTransform = GetTransform();
 
 	for (DWORD i = 0; i < 8; ++i)
 	{
-		D3DXVec4Transform(&m_v4TBBox[i], &m_v4TBBox[i], &c_rmatTransform);
-		if (0 == i)
+		XMStoreFloat4(&m_v4TBBox[i], XMVector4Transform(XMLoadFloat4(&m_v4TBBox[i]), XMLoadFloat4x4(&c_rmatTransform)));
+
+		if (i == 0)
 		{
-			m_v3TBBoxMin.x = m_v4TBBox[i].x;
-			m_v3TBBoxMin.y = m_v4TBBox[i].y;
-			m_v3TBBoxMin.z = m_v4TBBox[i].z;
-			m_v3TBBoxMax.x = m_v4TBBox[i].x;
-			m_v3TBBoxMax.y = m_v4TBBox[i].y;
-			m_v3TBBoxMax.z = m_v4TBBox[i].z;
+			m_v3TBBoxMin = XMFLOAT3(m_v4TBBox[i].x, m_v4TBBox[i].y, m_v4TBBox[i].z);
+			m_v3TBBoxMax = XMFLOAT3(m_v4TBBox[i].x, m_v4TBBox[i].y, m_v4TBBox[i].z);
 		}
 		else
 		{
-			if (m_v3TBBoxMin.x > m_v4TBBox[i].x)
-				m_v3TBBoxMin.x = m_v4TBBox[i].x;
-			if (m_v3TBBoxMax.x < m_v4TBBox[i].x)
-				m_v3TBBoxMax.x = m_v4TBBox[i].x;
-			if (m_v3TBBoxMin.y > m_v4TBBox[i].y)
-				m_v3TBBoxMin.y = m_v4TBBox[i].y;
-			if (m_v3TBBoxMax.y < m_v4TBBox[i].y)
-				m_v3TBBoxMax.y = m_v4TBBox[i].y;
-			if (m_v3TBBoxMin.z > m_v4TBBox[i].z)
-				m_v3TBBoxMin.z = m_v4TBBox[i].z;
-			if (m_v3TBBoxMax.z < m_v4TBBox[i].z)
-				m_v3TBBoxMax.z = m_v4TBBox[i].z;
+			m_v3TBBoxMin.x = std::min(m_v3TBBoxMin.x, m_v4TBBox[i].x);
+			m_v3TBBoxMin.y = std::min(m_v3TBBoxMin.y, m_v4TBBox[i].y);
+			m_v3TBBoxMin.z = std::min(m_v3TBBoxMin.z, m_v4TBBox[i].z);
+
+			m_v3TBBoxMax.x = std::max(m_v3TBBoxMax.x, m_v4TBBox[i].x);
+			m_v3TBBoxMax.y = std::max(m_v3TBBoxMax.y, m_v4TBBox[i].y);
+			m_v3TBBoxMax.z = std::max(m_v3TBBoxMax.z, m_v4TBBox[i].z);
 		}
 	}
 }
@@ -598,14 +619,14 @@ bool CGraphicThingInstance::Intersect(float* pu, float* pv, float* pt)
 	return m_LODControllerVector[0]->Intersect(&GetTransform(), pu, pv, pt);
 }
 
-void CGraphicThingInstance::GetBoundBox(D3DXVECTOR3* vtMin, D3DXVECTOR3* vtMax)
+void CGraphicThingInstance::GetBoundBox(XMFLOAT3* vtMin, XMFLOAT3* vtMax)
 {
 	vtMin->x = vtMin->y = vtMin->z = 100000.0f;
 	vtMax->x = vtMax->y = vtMax->z = -100000.0f;
 	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), CGrannyLODController::FBoundBox(vtMin, vtMax));
 }
 
-BOOL CGraphicThingInstance::GetBoundBox(DWORD dwModelInstanceIndex, D3DXVECTOR3* vtMin, D3DXVECTOR3* vtMax)
+BOOL CGraphicThingInstance::GetBoundBox(DWORD dwModelInstanceIndex, XMFLOAT3* vtMin, XMFLOAT3* vtMax)
 {
 	if (!CheckModelInstanceIndex(dwModelInstanceIndex))
 		return FALSE;
@@ -622,7 +643,7 @@ BOOL CGraphicThingInstance::GetBoundBox(DWORD dwModelInstanceIndex, D3DXVECTOR3*
 	return TRUE;
 }
 
-BOOL CGraphicThingInstance::GetBoneMatrix(DWORD dwModelInstanceIndex, DWORD dwBoneIndex, D3DXMATRIX** ppMatrix)
+BOOL CGraphicThingInstance::GetBoneMatrix(DWORD dwModelInstanceIndex, DWORD dwBoneIndex, XMFLOAT4X4** ppMatrix)
 {
 	if (!CheckModelInstanceIndex(dwModelInstanceIndex))
 		return FALSE;
@@ -631,14 +652,14 @@ BOOL CGraphicThingInstance::GetBoneMatrix(DWORD dwModelInstanceIndex, DWORD dwBo
 	if (!pModelInstance)
 		return FALSE;
 
-	*ppMatrix = (D3DXMATRIX*)pModelInstance->GetBoneMatrixPointer(dwBoneIndex);
+	*ppMatrix = (XMFLOAT4X4*)pModelInstance->GetBoneMatrixPointer(dwBoneIndex);
 	if (!*ppMatrix)
 		return FALSE;
 
 	return TRUE;
 }
 
-BOOL CGraphicThingInstance::GetCompositeBoneMatrix(DWORD dwModelInstanceIndex, DWORD dwBoneIndex, D3DXMATRIX** ppMatrix)
+BOOL CGraphicThingInstance::GetCompositeBoneMatrix(DWORD dwModelInstanceIndex, DWORD dwBoneIndex, XMFLOAT4X4** ppMatrix)
 {
 	if (!CheckModelInstanceIndex(dwModelInstanceIndex))
 		return FALSE;
@@ -646,16 +667,16 @@ BOOL CGraphicThingInstance::GetCompositeBoneMatrix(DWORD dwModelInstanceIndex, D
 	CGrannyModelInstance* pModelInstance = m_LODControllerVector[dwModelInstanceIndex]->GetModelInstance();
 	if (!pModelInstance)
 	{
-		//TraceError("CGraphicThingInstance::GetCompositeBoneMatrix(dwModelInstanceIndex=%d, dwBoneIndex=%d, D3DXMATRIX ** ppMatrix)", dwModelInstanceIndex, dwBoneIndex);
+		//TraceError("CGraphicThingInstance::GetCompositeBoneMatrix(dwModelInstanceIndex=%d, dwBoneIndex=%d, XMFLOAT4X4 ** ppMatrix)", dwModelInstanceIndex, dwBoneIndex);
 		return FALSE;
 	}
 
-	*ppMatrix = (D3DXMATRIX*)pModelInstance->GetCompositeBoneMatrixPointer(dwBoneIndex);
+	*ppMatrix = (XMFLOAT4X4*)pModelInstance->GetCompositeBoneMatrixPointer(dwBoneIndex);
 
 	return TRUE;
 }
 
-void CGraphicThingInstance::UpdateTransform(D3DXMATRIX* pMatrix, float fSecondsElapsed, int iModelInstanceIndex)
+void CGraphicThingInstance::UpdateTransform(XMFLOAT4X4* pMatrix, float fSecondsElapsed, int iModelInstanceIndex)
 {
 	//TraceError("%s",GetBaseThingPtr()->GetFileName());
 	int nLODCount = m_LODControllerVector.size();
@@ -757,9 +778,9 @@ void CGraphicThingInstance::UpdateLODLevel()
 		return;
 	}
 
-	const D3DXVECTOR3& c_rv3TargetPosition = pcurCamera->GetTarget();
-	const D3DXVECTOR3& c_rv3CameraPosition = pcurCamera->GetEye();
-	const D3DXVECTOR3& c_v3Position = GetPosition();
+	const XMFLOAT3& c_rv3TargetPosition = pcurCamera->GetTarget();
+	const XMFLOAT3& c_rv3CameraPosition = pcurCamera->GetEye();
+	const XMFLOAT3& c_v3Position = GetPosition();
 
 	// NOTE : 중심으로부터의 거리 계산에 z값 차이는 사용하지 않는다. - [levites]
 	CGrannyLODController::FUpdateLODLevel update;
@@ -876,7 +897,7 @@ float CGraphicThingInstance::GetHeight()
 	if (!pModelInstance)
 		return 0.0f;
 
-	D3DXVECTOR3 vtMin, vtMax;
+	XMFLOAT3 vtMin, vtMax;
 	pModelInstance->GetBoundBox(&vtMin, &vtMax);
 
 	return fabs(vtMin.z - vtMax.z);
@@ -917,7 +938,7 @@ void CGraphicThingInstance::OnInitialize()
 	m_fSecondElapsed = 0.0f;
 	m_fAverageSecondElapsed = 0.03f;
 	m_fRadius = -1.0f;
-	m_v3Center = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+	m_v3Center = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 	ResetLocalTime();
 }

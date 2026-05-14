@@ -497,12 +497,12 @@ void CArea::__SetObjectInstance_SetEffect(TObjectInstance * pObjectInstance, con
 	CEffectInstance * pEffectInstance;
 	rem.CreateUnsafeEffectInstance(pObjectInstance->dwEffectID, &pEffectInstance);
 
-	D3DXMATRIX mat;
-	D3DXMatrixRotationYawPitchRoll(&mat,
-		D3DXToRadian(c_pData->m_fYaw),
-		D3DXToRadian(c_pData->m_fPitch),
-		D3DXToRadian(c_pData->m_fRoll)
-	);
+	XMFLOAT4X4 mat;
+	XMStoreFloat4x4(&mat, XMMatrixRotationRollPitchYaw(
+		XMConvertToRadians(c_pData->m_fPitch),
+		XMConvertToRadians(c_pData->m_fYaw),
+		XMConvertToRadians(c_pData->m_fRoll)
+	));
 
 	mat._41 = c_pData->Position.x;
 	mat._42 = c_pData->Position.y;
@@ -676,27 +676,45 @@ void CArea::__LoadAttribute(TObjectInstance * pObjectInstance, const char * c_sz
 	if (false == bFileExist)
 	{
 		std::string attrFileName(c_szAttributeFileName);
-		std::transform(attrFileName.begin(), attrFileName.end(), attrFileName.begin(), [](unsigned char c) { return std::tolower(c); });
-		const bool bIsDungeonObject = (std::string::npos != attrFileName.find("/dungeon/")) || (std::string::npos != attrFileName.find("\\dungeon\\"));
 
-		// NOTE: dungeon 오브젝트는 Dummy Collision을 자동으로 생성하지 않도록 함 (던전의 경우 더미 컬리전때문에 문제가 된 경우가 수차례 있었음. 이렇게 하기로 그래픽 팀과 협의 완료)
+		std::transform(attrFileName.begin(), attrFileName.end(), attrFileName.begin(),
+			[](unsigned char c) { return std::tolower(c); });
+
+		const bool bIsDungeonObject =
+			(std::string::npos != attrFileName.find("/dungeon/")) ||
+			(std::string::npos != attrFileName.find("\\dungeon\\"));
+
 		if (pAttributeData->IsEmpty() && false == bIsDungeonObject)
 		{
 			if (NULL != pObjectInstance && NULL != pObjectInstance->pThingInstance)
 			{
 				CGraphicThingInstance* object = pObjectInstance->pThingInstance;
 
-				D3DXVECTOR3 v3Min, v3Max;
-
+				XMFLOAT3 v3Min, v3Max;
 				object->GetBoundingAABB(v3Min, v3Max);
-				
+
 				CStaticCollisionData collision;
 				collision.dwType = COLLISION_TYPE_OBB;
-				D3DXQuaternionRotationYawPitchRoll(&collision.quatRotation, object->GetYaw(), object->GetPitch(), object->GetRoll());
-				strcpy(collision.szName, "DummyCollisionOBB");
-				collision.v3Position = (v3Min + v3Max) * 0.5f;
 
-				D3DXVECTOR3 vDelta = (v3Max - v3Min);
+				XMStoreFloat4(
+					&collision.quatRotation,
+					XMQuaternionRotationRollPitchYaw(
+						object->GetPitch(),
+						object->GetYaw(),
+						object->GetRoll()
+					)
+				);
+
+				strcpy(collision.szName, "DummyCollisionOBB");
+
+				XMStoreFloat3(
+					&collision.v3Position,
+					(XMLoadFloat3(&v3Min) + XMLoadFloat3(&v3Max)) * 0.5f
+				);
+
+				XMFLOAT3 vDelta;
+				XMStoreFloat3(&vDelta, XMLoadFloat3(&v3Max) - XMLoadFloat3(&v3Min));
+
 				collision.fDimensions[0] = vDelta.x * 0.5f;
 				collision.fDimensions[1] = vDelta.y * 0.5f;
 				collision.fDimensions[2] = vDelta.z * 0.5f;
@@ -1244,15 +1262,14 @@ void CArea::TAmbienceInstance::Render()
 	_mgr->GetCbMgr()->SetTextureFactor(0xff00ff00);
 	RenderCube(fx-fBoxSize, fy-fBoxSize, fz-fBoxSize, fx+fBoxSize, fy+fBoxSize, fz+fBoxSize);
 	_mgr->GetCbMgr()->SetTextureFactor(0xffffffff);
-	RenderSphere(NULL, fx, fy, fz, float(dwRange) * fMaxVolumeAreaPercentage, D3D11_FILL_SOLID);
-	RenderSphere(NULL, fx, fy, fz, float(dwRange), D3D11_FILL_SOLID);
+
 	RenderCircle2d(fx, fy, fz, float(dwRange) * fMaxVolumeAreaPercentage);
 	RenderCircle2d(fx, fy, fz, float(dwRange));
 
 	for (int i = 0; i < 4; ++i)
 	{
-		float fxAdd = cosf(float(i) * D3DX_PI/4.0f) * float(dwRange) / 2.0f;
-		float fyAdd = sinf(float(i) * D3DX_PI/4.0f) * float(dwRange) / 2.0f;
+		float fxAdd = cosf(float(i) * XM_PI/4.0f) * float(dwRange) / 2.0f;
+		float fyAdd = sinf(float(i) * XM_PI/4.0f) * float(dwRange) / 2.0f;
 
 		if (i%2)
 		{
@@ -1266,7 +1283,7 @@ void CArea::TAmbienceInstance::Render()
 
 bool CArea::SAmbienceInstance::Picking()
 {
-	return CGraphicCollisionObject::IntersectSphere(D3DXVECTOR3(fx, fy, fz), dwRange);
+	return CGraphicCollisionObject::IntersectSphere(XMFLOAT3(fx, fy, fz), dwRange);
 }
 
 CArea::SAmbienceInstance::SAmbienceInstance()

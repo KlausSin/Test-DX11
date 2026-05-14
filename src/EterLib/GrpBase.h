@@ -4,8 +4,8 @@
 #include <vector>
 #include "qMin32Lib/Core.h"
 
-void PixelPositionToD3DXVECTOR3(const D3DXVECTOR3& c_rkPPosSrc, D3DXVECTOR3* pv3Dst);
-void D3DXVECTOR3ToPixelPosition(const D3DXVECTOR3& c_rv3Src, D3DXVECTOR3* pv3Dst);
+void PixelPositionToD3DXVECTOR3(const XMFLOAT3& c_rkPPosSrc, XMFLOAT3* pv3Dst);
+void D3DXVECTOR3ToPixelPosition(const XMFLOAT3& c_rv3Src, XMFLOAT3* pv3Dst);
 
 class CGraphicTexture;
 
@@ -16,11 +16,9 @@ typedef struct SFace
 	TIndex indices[3];
 } TFace;
 
-typedef D3DXVECTOR3 TPosition;
-
-typedef D3DXVECTOR3 TNormal;
-
-typedef D3DXVECTOR2 TTextureCoordinate;
+typedef XMFLOAT3 TPosition;
+typedef XMFLOAT3 TNormal;
+typedef XMFLOAT2 TTextureCoordinate;
 
 typedef DWORD TDiffuse;
 typedef DWORD TAmbient;
@@ -28,9 +26,9 @@ typedef DWORD TSpecular;
 
 typedef union UDepth
 {
-	float	f;
-	long	l;
-	DWORD	dw;
+	float f;
+	long l;
+	DWORD dw;
 } TDepth;
 
 typedef struct SVertex
@@ -64,41 +62,42 @@ typedef struct SPTVertex
 
 typedef struct SPDTVertex
 {
-	D3DXVECTOR3	position;
-	DWORD		diffuse;
-	D3DXVECTOR2 texCoord;
+	XMFLOAT3 position;
+	DWORD diffuse;
+	XMFLOAT2 texCoord;
+
 	SPDTVertex() : position(0.0f, 0.0f, 0.0f), diffuse(0x80339CFF), texCoord(0.0f, 0.0f) {}
-	SPDTVertex(D3DXVECTOR3 pos, DWORD col, D3DXVECTOR2 uv) : position(pos), diffuse(col), texCoord(uv) {}
+	SPDTVertex(XMFLOAT3 pos, DWORD col, XMFLOAT2 uv) : position(pos), diffuse(col), texCoord(uv) {}
 	SPDTVertex(float x, float y, float z, DWORD color, float pu, float pv) : position(x, y, z), diffuse(color), texCoord(pu, pv) {}
 } TPDTVertex;
 
 typedef struct SPNTVertex
 {
-	TPosition			position;
-	TNormal				normal;
-	TTextureCoordinate	texCoord;
+	TPosition position;
+	TNormal normal;
+	TTextureCoordinate texCoord;
 } TPNTVertex;
 
 typedef struct SPNT2Vertex
 {
-	TPosition	position;
-	TNormal		normal;
+	TPosition position;
+	TNormal normal;
 	TTextureCoordinate texCoord;
 	TTextureCoordinate texCoord2;
 } TPNT2Vertex;
 
 typedef struct SPDT2Vertex
 {
-	TPosition	position;
-	DWORD		diffuse;
+	TPosition position;
+	DWORD diffuse;
 	TTextureCoordinate texCoord;
 	TTextureCoordinate texCoord2;
 } TPDT2Vertex;
 
 typedef struct SNameInfo
 {
-	DWORD	name;
-	TDepth	depth;
+	DWORD name;
+	TDepth depth;
 } TNameInfo;
 
 typedef struct SBoundBox
@@ -111,25 +110,12 @@ typedef struct SBoundBox
 
 const WORD c_FillRectIndices[6] = { 0, 2, 1, 2, 3, 1 };
 
-/*
-enum EIndexCount
-{
-	LINE_INDEX_COUNT = 2,
-	TRIANGLE_INDEX_COUNT = 2*3,
-	RECTANGLE_INDEX_COUNT = 2*4,
-	CUBE_INDEX_COUNT = 2*4*3,
-	FILLED_TRIANGLE_INDEX_COUNT = 3,
-	FILLED_RECTANGLE_INDEX_COUNT = 3*2,
-	FILLED_CUBE_INDEX_COUNT = 3*2*6,
-};
-*/
-
 class CGraphicBase
 {
 public:
 	static DWORD GetAvailableTextureMemory();
-	static const D3DXMATRIX& GetViewMatrix();
-	static const D3DXMATRIX& GetIdentityMatrix();
+	static const XMFLOAT4X4& GetViewMatrix();
+	static const XMFLOAT4X4& GetIdentityMatrix();
 
 	enum
 	{
@@ -145,110 +131,97 @@ public:
 
 public:
 	CGraphicBase();
-	virtual	~CGraphicBase();
+	virtual ~CGraphicBase();
 
-	void		SetSimpleCamera(float x, float y, float z, float pitch, float roll);
-	void		SetEyeCamera(float xEye, float yEye, float zEye, float xCenter, float yCenter, float zCenter, float xUp, float yUp, float zUp);
-	void		SetAroundCamera(float distance, float pitch, float roll, float lookAtZ = 0.0f);
-	void		SetPositionCamera(float fx, float fy, float fz, float fDistance, float fPitch, float fRotation);
-	void		MoveCamera(float fdeltax, float fdeltay, float fdeltaz);
+	void SetSimpleCamera(float x, float y, float z, float pitch, float roll);
+	void SetEyeCamera(float xEye, float yEye, float zEye, float xCenter, float yCenter, float zCenter, float xUp, float yUp, float zUp);
+	void SetAroundCamera(float distance, float pitch, float roll, float lookAtZ = 0.0f);
+	void SetPositionCamera(float fx, float fy, float fz, float fDistance, float fPitch, float fRotation);
+	void MoveCamera(float fdeltax, float fdeltay, float fdeltaz);
 
-	void		GetTargetPosition(float* px, float* py, float* pz);
-	void		GetCameraPosition(float* px, float* py, float* pz);
-	void		SetOrtho2D(float hres, float vres, float zres);
-	void		SetOrtho3D(float hres, float vres, float zmin, float zmax);
-	void		SetPerspective(float fov, float aspect, float nearz, float farz);
-	float		GetFOV();
-	void		GetClipPlane(float* fNearY, float* fFarY)
+	void GetTargetPosition(float* px, float* py, float* pz);
+	void GetCameraPosition(float* px, float* py, float* pz);
+	void SetOrtho2D(float hres, float vres, float zres);
+	void SetOrtho3D(float hres, float vres, float zmin, float zmax);
+	void SetPerspective(float fov, float aspect, float nearz, float farz);
+	float GetFOV();
+
+	void GetClipPlane(float* fNearY, float* fFarY)
 	{
 		*fNearY = ms_fNearY;
 		*fFarY = ms_fFarY;
 	}
 
-	////////////////////////////////////////////////////////////////////////
-	void		PushMatrix();
+	void PushMatrix();
 
-	void		MultMatrix(const D3DXMATRIX* pMat);
-	void		MultMatrixLocal(const D3DXMATRIX* pMat);
+	void MultMatrix(const XMFLOAT4X4* pMat);
+	void MultMatrixLocal(const XMFLOAT4X4* pMat);
 
-	void		Translate(float x, float y, float z);
-	void		Rotate(float degree, float x, float y, float z);
-	void		RotateLocal(float degree, float x, float y, float z);
-	void		RotateYawPitchRollLocal(float fYaw, float fPitch, float fRoll);
-	void		Scale(float x, float y, float z);
-	void		PopMatrix();
-	void		LoadMatrix(const D3DXMATRIX& c_rSrcMatrix);
-	void		GetMatrix(D3DXMATRIX* pRetMatrix) const;
-	const		D3DXMATRIX* GetMatrixPointer() const;
+	void Translate(float x, float y, float z);
+	void Rotate(float degree, float x, float y, float z);
+	void RotateLocal(float degree, float x, float y, float z);
+	void RotateYawPitchRollLocal(float fYaw, float fPitch, float fRoll);
+	void Scale(float x, float y, float z);
+	void PopMatrix();
+	void LoadMatrix(const XMFLOAT4X4& c_rSrcMatrix);
+	void GetMatrix(XMFLOAT4X4* pRetMatrix) const;
+	const XMFLOAT4X4* GetMatrixPointer() const;
 
-	// Special Routine
-	void		GetSphereMatrix(D3DXMATRIX* pMatrix, float fValue = 0.1f);
+	void GetSphereMatrix(XMFLOAT4X4* pMatrix, float fValue = 0.1f);
 
-	////////////////////////////////////////////////////////////////////////
-	void		InitScreenEffect();
-	void		SetScreenEffectWaving(float fDuringTime, int iPower);
-	void		SetScreenEffectFlashing(float fDuringTime, const D3DXCOLOR& c_rColor);
+	void InitScreenEffect();
+	void SetScreenEffectWaving(float fDuringTime, int iPower);
+	void SetScreenEffectFlashing(float fDuringTime, const XMFLOAT4& c_rColor);
 	static UniquePtr<DxManager>& GetDxManager();
 
-	////////////////////////////////////////////////////////////////////////
-	DWORD		GetColor(float r, float g, float b, float a = 1.0f);
+	DWORD GetColor(float r, float g, float b, float a = 1.0f);
 
-	DWORD		GetFaceCount();
-	void		ResetFaceCount();
-	HRESULT		GetLastResult();
+	DWORD GetFaceCount();
+	void ResetFaceCount();
+	HRESULT GetLastResult();
 
-	void		UpdateProjMatrix();
-	void		UpdateViewMatrix();
+	void UpdateProjMatrix();
+	void UpdateViewMatrix();
 
-	void		SetViewport(DWORD dwX, DWORD dwY, DWORD dwWidth, DWORD dwHeight, float fMinZ, float fMaxZ);
-	static void		GetBackBufferSize(UINT* puWidth, UINT* puHeight);
-	static bool		IsTLVertexClipping();
-	static bool		IsFastTNL();
-	static bool		IsLowTextureMemory();
-	static bool		IsHighTextureMemory();
+	void SetViewport(DWORD dwX, DWORD dwY, DWORD dwWidth, DWORD dwHeight, float fMinZ, float fMaxZ);
+	static void GetBackBufferSize(UINT* puWidth, UINT* puHeight);
+	static bool IsTLVertexClipping();
+	static bool IsFastTNL();
+	static bool IsLowTextureMemory();
+	static bool IsHighTextureMemory();
 
 	static void SetDefaultIndexBuffer(UINT eDefIB);
 	static bool SetPDTStream(SPDTVertex* pVertices, UINT uVtxCount);
 
 public:
-		static D3DXMATRIX				ms_matView;
-		static D3DXMATRIX				ms_matProj;
-protected:
-	static D3DXMATRIX				ms_matIdentity;
-
-
-	static D3DXMATRIX				ms_matInverseView;
-	static D3DXMATRIX				ms_matInverseViewYAxis;
-
-	static D3DXMATRIX				ms_matWorld;
-	static D3DXMATRIX				ms_matWorldView;
+	static XMFLOAT4X4 ms_matView;
+	static XMFLOAT4X4 ms_matProj;
 
 protected:
-	//void		UpdatePrePipeLineMatrix();
-	void		UpdatePipeLineMatrix();
+	static XMFLOAT4X4 ms_matIdentity;
+	static XMFLOAT4X4 ms_matInverseView;
+	static XMFLOAT4X4 ms_matInverseViewYAxis;
+	static XMFLOAT4X4 ms_matWorld;
+	static XMFLOAT4X4 ms_matWorldView;
 
 protected:
-	// 각종 D3DX Mesh 들 (컬루젼 데이터 등을 표시활 때 쓴다)
-	static LPD3DXMESH				ms_lpSphereMesh;
-	static LPD3DXMESH				ms_lpCylinderMesh;
+	void UpdatePipeLineMatrix();
 
 protected:
-	static HRESULT					ms_hLastResult;
+	static HRESULT ms_hLastResult;
 
 public:
-	static int						ms_iWidth;
-	static int						ms_iHeight;
+	static int ms_iWidth;
+	static int ms_iHeight;
 
 protected:
-	static HWND						ms_hWnd;
-	static HDC						ms_hDC;
-	static ID3DXMatrixStack* ms_lpd3dMatStack;
-	static D3D11_VIEWPORT			ms_Viewport;
+	static HWND ms_hWnd;
+	static HDC ms_hDC;
+	static D3D11_VIEWPORT ms_Viewport;
 
-	static DWORD					ms_faceCount;
+	static DWORD ms_faceCount;
 
 public:
-	// D3D11 device objects (public — accessed by StateManager, GrpScreen, GrpDevice, etc.)
 	static ID3D11Device* ms_lpd3d11Device;
 	static ID3D11DeviceContext* ms_lpd3d11Context;
 	static IDXGISwapChain* ms_lpd3d11SwapChain;
@@ -257,45 +230,29 @@ public:
 	static ID3D11Texture2D* ms_lpd3d11DepthStencil;
 
 protected:
+	static XMFLOAT4X4 ms_matScreen0;
+	static XMFLOAT4X4 ms_matScreen1;
+	static XMFLOAT4X4 ms_matScreen2;
+	static std::vector<XMFLOAT4X4> ms_matStack;
 
-	static D3DXMATRIX				ms_matScreen0;
-	static D3DXMATRIX				ms_matScreen1;
-	static D3DXMATRIX				ms_matScreen2;
-	//static D3DXMATRIX				ms_matPrePipeLine;
+	static XMFLOAT3 ms_vtPickRayOrig;
+	static XMFLOAT3 ms_vtPickRayDir;
 
-	static D3DXVECTOR3				ms_vtPickRayOrig;
-	static D3DXVECTOR3				ms_vtPickRayDir;
+	static float ms_fFieldOfView;
+	static float ms_fAspect;
+	static float ms_fNearY;
+	static float ms_fFarY;
 
-	static float					ms_fFieldOfView;
-	static float					ms_fAspect;
-	static float					ms_fNearY;
-	static float					ms_fFarY;
+	static DWORD ms_dwWavingEndTime;
+	static int ms_iWavingPower;
+	static DWORD ms_dwFlashingEndTime;
+	static XMFLOAT4 ms_FlashingColor;
 
-	// 2004.11.18.myevan.DynamicVertexBuffer로 교체
-	/*
-	static std::vector<TIndex>		ms_lineIdxVector;
-	static std::vector<TIndex>		ms_lineTriIdxVector;
-	static std::vector<TIndex>		ms_lineRectIdxVector;
-	static std::vector<TIndex>		ms_lineCubeIdxVector;
+	static CRay ms_Ray;
 
-	static std::vector<TIndex>		ms_fillTriIdxVector;
-	static std::vector<TIndex>		ms_fillRectIdxVector;
-	static std::vector<TIndex>		ms_fillCubeIdxVector;
-	*/
-
-	// Screen Effect - Waving, Flashing and so on..
-	static DWORD					ms_dwWavingEndTime;
-	static int						ms_iWavingPower;
-	static DWORD					ms_dwFlashingEndTime;
-	static D3DXCOLOR				ms_FlashingColor;
-
-	// Terrain picking용 Ray... CCamera 이용하는 버전.. 기존의 Ray와 통합 필요...
-	static CRay						ms_Ray;
-
-	// 
-	static bool						ms_bSupportDXT;
-	static bool						ms_isLowTextureMemory;
-	static bool						ms_isHighTextureMemory;
+	static bool ms_bSupportDXT;
+	static bool ms_isLowTextureMemory;
+	static bool ms_isHighTextureMemory;
 
 	enum
 	{
@@ -303,10 +260,10 @@ protected:
 		PDT_VERTEXBUFFER_NUM = 100,
 	};
 
+	static VBufferPtr ms_alpd3dPDTVB[PDT_VERTEXBUFFER_NUM];
+	static IBufferPtr ms_alpd3dDefIB[DEFAULT_IB_NUM];
+	static UniquePtr<DxManager> m_mgr;
 
-	static VBufferPtr		ms_alpd3dPDTVB[PDT_VERTEXBUFFER_NUM];
-	static IBufferPtr		ms_alpd3dDefIB[DEFAULT_IB_NUM];
-	static UniquePtr<DxManager> 			m_mgr;
 	friend class CSpeedTreeForest;
 };
 

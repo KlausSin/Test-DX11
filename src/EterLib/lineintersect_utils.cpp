@@ -24,30 +24,27 @@
 
 #define MY_EPSILON 0.1f
 
-__forceinline void FindNearestPointOnLineSegment(const D3DXVECTOR3 & A1,
-												 const D3DXVECTOR3 & L,
-												 const D3DXVECTOR3 & B,
-												 D3DXVECTOR3 & Nearest,
-												 float &parameter)
+__forceinline void FindNearestPointOnLineSegment(const XMFLOAT3& A1,
+	const XMFLOAT3& L,
+	const XMFLOAT3& B,
+	XMFLOAT3& Nearest,
+	float& parameter)
 {
-	// Line/Segment is degenerate --- special case #1
-	float D = D3DXVec3LengthSq(&L);
-	if (D < MY_EPSILON*MY_EPSILON)
+	float D = XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&L)));
+
+	if (D < MY_EPSILON * MY_EPSILON)
 	{
 		Nearest = A1;
 		return;
 	}
-	
-	D3DXVECTOR3 AB = B-A1;
-	
-	// parameter is computed from Equation (20).
-	parameter = (D3DXVec3Dot(&AB,&L)) / D;
-	
-	//if (false == infinite_line) 
+
+	XMFLOAT3 AB;
+	XMStoreFloat3(&AB, XMLoadFloat3(&B) - XMLoadFloat3(&A1));
+
+	parameter = XMVectorGetX(XMVector3Dot(XMLoadFloat3(&AB), XMLoadFloat3(&L))) / D;
 	parameter = FMAX(0.0f, FMIN(1.0f, parameter));
-	
-	Nearest = A1 + parameter * L;
-	return;
+
+	XMStoreFloat3(&Nearest, XMLoadFloat3(&A1) + XMLoadFloat3(&L) * parameter);
 }
 
 /**************************************************************************
@@ -85,60 +82,47 @@ __forceinline void FindNearestPointOnLineSegment(const D3DXVECTOR3 & A1,
 |             PointOnSegBz
 
 **************************************************************************/
-__forceinline void FindNearestPointOfParallelLineSegments(const D3DXVECTOR3 & A1,
-														  const D3DXVECTOR3 & A2,
-														  const D3DXVECTOR3 & La,
-														  const D3DXVECTOR3 & B1,
-														  const D3DXVECTOR3 & B2,
-														  const D3DXVECTOR3 & Lb,
-														  //bool infinite_lines, float epsilon_squared,
-														  D3DXVECTOR3 & OutA,
-														  D3DXVECTOR3 & OutB)
+__forceinline void FindNearestPointOfParallelLineSegments(const XMFLOAT3& A1,
+	const XMFLOAT3& A2,
+	const XMFLOAT3& La,
+	const XMFLOAT3& B1,
+	const XMFLOAT3& B2,
+	const XMFLOAT3& Lb,
+	XMFLOAT3& OutA,
+	XMFLOAT3& OutB)
 {
 	float s[2], temp;
+
 	FindNearestPointOnLineSegment(A1, La, B1, OutA, s[0]);
-	/*if (true == infinite_lines)
+
 	{
-	    PointOnSegBx = B1x;
-	    PointOnSegBy = B1y;
-	    PointOnSegBz = B1z;
-	}
-	else*/
-	{
-		//float tp[3];
-		D3DXVECTOR3 tp;
-		FindNearestPointOnLineSegment(A1, La, B2,
-			tp, s[1]);
-		if (s[0] < 0.f && s[1] < 0.f)
+		XMFLOAT3 tp;
+		FindNearestPointOnLineSegment(A1, La, B2, tp, s[1]);
+
+		if (s[0] < 0.0f && s[1] < 0.0f)
 		{
 			OutA = A1;
+
 			if (s[0] < s[1])
-			{
-				OutB =B2;
-			}
+				OutB = B2;
 			else
-			{
 				OutB = B1;
-			}
 		}
-		else if (s[0] > 1.f && s[1] > 1.f)
+		else if (s[0] > 1.0f && s[1] > 1.0f)
 		{
 			OutA = A2;
+
 			if (s[0] < s[1])
-			{
 				OutB = B1;
-			}
 			else
-			{
 				OutB = B2;
-			}
 		}
 		else
 		{
-			temp = 0.5f*(FMAX(0.0f, FMIN(1.0f, s[0])) + FMAX(0.0f, FMIN(1.0f, s[1])));
-			OutA = A1 + temp * La;
-			FindNearestPointOnLineSegment(B1, Lb,
-				OutA, OutB, temp);
+			temp = 0.5f * (FMAX(0.0f, FMIN(1.0f, s[0])) + FMAX(0.0f, FMIN(1.0f, s[1])));
+			XMStoreFloat3(&OutA, XMLoadFloat3(&A1) + XMLoadFloat3(&La) * temp);
+
+			FindNearestPointOnLineSegment(B1, Lb, OutA, OutB, temp);
 		}
 	}
 }
@@ -170,48 +154,43 @@ __forceinline void FindNearestPointOfParallelLineSegments(const D3DXVECTOR3 & A1
 |             PointOnSegBy,     to segment A. This corresponds to point D in the text.
 |             PointOnSegBz
 **************************************************************************/
-__forceinline void AdjustNearestPoints(const D3DXVECTOR3 & A1,
-									   const D3DXVECTOR3 & La,
-									   const D3DXVECTOR3 & B1,
-									   const D3DXVECTOR3 & Lb,
-									   float s, float t,
-									   D3DXVECTOR3 & OutA,
-									   D3DXVECTOR3 & OutB)
+__forceinline void AdjustNearestPoints(const XMFLOAT3& A1,
+	const XMFLOAT3& La,
+	const XMFLOAT3& B1,
+	const XMFLOAT3& Lb,
+	float s, float t,
+	XMFLOAT3& OutA,
+	XMFLOAT3& OutB)
 {
-	// handle the case where both parameter s and t are out of range
 	if (OUT_OF_RANGE(s) && OUT_OF_RANGE(t))
 	{
 		s = FMAX(0.0f, FMIN(1.0f, s));
-		OutA = A1 + s*La;
-		FindNearestPointOnLineSegment(B1, Lb, 
-			OutA,
-			OutB, t);
+		XMStoreFloat3(&OutA, XMLoadFloat3(&A1) + XMLoadFloat3(&La) * s);
+
+		FindNearestPointOnLineSegment(B1, Lb, OutA, OutB, t);
+
 		if (OUT_OF_RANGE(t))
 		{
 			t = FMAX(0.0f, FMIN(1.0f, t));
-			OutB = B1 + t*Lb;
-			FindNearestPointOnLineSegment(A1, La, OutB, 
-				OutA, s);
-			FindNearestPointOnLineSegment(B1, Lb, OutA,
-				OutB, t);
+			XMStoreFloat3(&OutB, XMLoadFloat3(&B1) + XMLoadFloat3(&Lb) * t);
+
+			FindNearestPointOnLineSegment(A1, La, OutB, OutA, s);
+			FindNearestPointOnLineSegment(B1, Lb, OutA, OutB, t);
 		}
 	}
-	// otherwise, handle the case where the parameter for only one segment is
-	// out of range
 	else if (OUT_OF_RANGE(s))
 	{
 		s = FMAX(0.0f, FMIN(1.0f, s));
-		OutA = A1 + s*La;
-		FindNearestPointOnLineSegment(B1, Lb, 
-			OutA, 
-			OutB, t);
+		XMStoreFloat3(&OutA, XMLoadFloat3(&A1) + XMLoadFloat3(&La) * s);
+
+		FindNearestPointOnLineSegment(B1, Lb, OutA, OutB, t);
 	}
 	else if (OUT_OF_RANGE(t))
 	{
 		t = FMAX(0.0f, FMIN(1.0f, t));
-		OutB = B1 + t*Lb;
-		FindNearestPointOnLineSegment(A1, La, OutB,
-			OutA, s);
+		XMStoreFloat3(&OutB, XMLoadFloat3(&B1) + XMLoadFloat3(&Lb) * t);
+
+		FindNearestPointOnLineSegment(A1, La, OutB, OutA, s);
 	}
 	else
 	{
@@ -219,96 +198,75 @@ __forceinline void AdjustNearestPoints(const D3DXVECTOR3 & A1,
 	}
 }
 
-void IntersectLineSegments(const D3DXVECTOR3 & A1,
-                           const D3DXVECTOR3 & A2, 
-                           const D3DXVECTOR3 & B1,
-                           const D3DXVECTOR3 & B2,
-                           //bool infinite_lines, /*float epsilon,*/ 
-						   D3DXVECTOR3 & OutA, 
-						   D3DXVECTOR3 & OutB)
+void IntersectLineSegments(const XMFLOAT3& A1,
+	const XMFLOAT3& A2,
+	const XMFLOAT3& B1,
+	const XMFLOAT3& B2,
+	XMFLOAT3& OutA,
+	XMFLOAT3& OutB)
 {
-	float temp = 0.f;
+	float temp = 0.0f;
 	const float epsilon = MY_EPSILON;
-	const float epsilon_squared = MY_EPSILON*MY_EPSILON;
-	
-	// Compute parameters from Equations (1) and (2) in the text
-	D3DXVECTOR3 La = A2-A1;
-	D3DXVECTOR3 Lb = B2-B1;
-	// From Equation (15)
-	float L11 =  D3DXVec3LengthSq(&La);
-	float L22 =  D3DXVec3LengthSq(&Lb);
-	
-	// Line/Segment A is degenerate ---- Special Case #1
+	const float epsilon_squared = MY_EPSILON * MY_EPSILON;
+
+	XMFLOAT3 La;
+	XMFLOAT3 Lb;
+
+	XMStoreFloat3(&La, XMLoadFloat3(&A2) - XMLoadFloat3(&A1));
+	XMStoreFloat3(&Lb, XMLoadFloat3(&B2) - XMLoadFloat3(&B1));
+
+	float L11 = XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&La)));
+	float L22 = XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&Lb)));
+
 	if (L11 < epsilon_squared)
 	{
 		OutA = A1;
-		FindNearestPointOnLineSegment(B1, Lb, A1,
-			OutB, temp);
+		FindNearestPointOnLineSegment(B1, Lb, A1, OutB, temp);
 	}
-	// Line/Segment B is degenerate ---- Special Case #1
 	else if (L22 < epsilon_squared)
 	{
 		OutB = B1;
-		FindNearestPointOnLineSegment(A1, La, B1,
-			OutA, temp);
+		FindNearestPointOnLineSegment(A1, La, B1, OutA, temp);
 	}
-	// Neither line/segment is degenerate
 	else
 	{
-		// Compute more parameters from Equation (3) in the text.
-		D3DXVECTOR3 AB = B1 - A1;
-		
-		// and from Equation (15).
-		float L12 = -D3DXVec3Dot(&La, &Lb);
-		
+		XMFLOAT3 AB;
+		XMStoreFloat3(&AB, XMLoadFloat3(&B1) - XMLoadFloat3(&A1));
+
+		float L12 = -XMVectorGetX(XMVector3Dot(XMLoadFloat3(&La), XMLoadFloat3(&Lb)));
 		float DetL = L11 * L22 - L12 * L12;
-		// Lines/Segments A and B are parallel ---- special case #2.
+
 		if (FABS(DetL) < epsilon)
 		{
-			FindNearestPointOfParallelLineSegments(A1, A2,
-				La,
-				B1, B2,
-				Lb,
-				OutA, OutB);
+			FindNearestPointOfParallelLineSegments(A1, A2, La, B1, B2, Lb, OutA, OutB);
 		}
-		// The general case
 		else
 		{
-			// from Equation (15)
-			float ra = D3DXVec3Dot(&La, &AB);//Lax * ABx + Lay * ABy + Laz * ABz;
-			float rb = D3DXVec3Dot(&Lb, &AB);//-Lbx * ABx - Lby * ABy - Lbz * ABz;
-			
-			float t = (L11 * rb - ra * L12)/DetL; // Equation (12)
-			
+			float ra = XMVectorGetX(XMVector3Dot(XMLoadFloat3(&La), XMLoadFloat3(&AB)));
+			float rb = XMVectorGetX(XMVector3Dot(XMLoadFloat3(&Lb), XMLoadFloat3(&AB)));
+
+			float t = (L11 * rb - ra * L12) / DetL;
+
 #ifdef USE_CRAMERS_RULE
-			float s = (L22 * ra - rb * L12)/DetL;
+			float s = (L22 * ra - rb * L12) / DetL;
 #else
-			float s = (ra-L12*t)/L11;             // Equation (13)
-#endif // USE_CRAMERS_RULE
-			
+			float s = (ra - L12 * t) / L11;
+#endif
+
 #ifdef CHECK_ANSWERS
-			float check_ra = s*L11 + t*L12;
-			float check_rb = s*L12 + t*L22;
-			assert(FABS(check_ra-ra) < epsilon);
-			assert(FABS(check_rb-rb) < epsilon);
-#endif // CHECK_ANSWERS
-			
-			// if we are dealing with infinite lines or if parameters s and t both
-			// lie in the range [0,1] then just compute the points using Equations
-			// (1) and (2) from the text.
-			OutA = (A1 + s * La);
-			OutB = (B1 + t * Lb);
-			// otherwise, at least one of s and t is outside of [0,1] and we have to
-			// handle this case.
-			if ((OUT_OF_RANGE(s) || OUT_OF_RANGE(t)))
-			{
-				AdjustNearestPoints(A1,La,B1,Lb,
-					s, t,
-					OutA,
-					OutB);
-			}
+			float check_ra = s * L11 + t * L12;
+			float check_rb = s * L12 + t * L22;
+			assert(FABS(check_ra - ra) < epsilon);
+			assert(FABS(check_rb - rb) < epsilon);
+#endif
+
+			XMStoreFloat3(&OutA, XMLoadFloat3(&A1) + XMLoadFloat3(&La) * s);
+			XMStoreFloat3(&OutB, XMLoadFloat3(&B1) + XMLoadFloat3(&Lb) * t);
+
+			if (OUT_OF_RANGE(s) || OUT_OF_RANGE(t))
+				AdjustNearestPoints(A1, La, B1, Lb, s, t, OutA, OutB);
 		}
-	}	
+	}
 }
 
 void IntersectLineSegments(const float A1x, const float A1y, const float A1z,

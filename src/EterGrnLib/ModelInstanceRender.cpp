@@ -29,7 +29,7 @@ void Granny_RenderBoxBones(const granny_skeleton* pkGrnSkeleton, const granny_wo
 
 #endif
 
-void CGrannyModelInstance::DeformNoSkin(const D3DXMATRIX* c_pWorldMatrix)
+void CGrannyModelInstance::DeformNoSkin(const XMFLOAT4X4* c_pWorldMatrix)
 {
 	if (IsEmpty())
 		return;
@@ -231,14 +231,14 @@ bool CGrannyModelInstance::UploadMeshBonePaletteToShader(int iMesh)
 		return false;
 
 	const int meshBoneCount = pMesh->GetGrannyMeshPointer()->BoneBindingCount;
-	const D3DXMATRIX* composite = reinterpret_cast<const D3DXMATRIX*>(GrannyGetWorldPoseComposite4x4Array(__GetWorldPosePtr()));
+	const XMFLOAT4X4* composite = reinterpret_cast<const XMFLOAT4X4*>(GrannyGetWorldPoseComposite4x4Array(__GetWorldPosePtr()));
 
 	DirectX::XMFLOAT4X4 palette[GRANNY_DX11_MAX_BONES];
 	const int count = std::min(meshBoneCount, GRANNY_DX11_MAX_BONES);
 
 	for (int i = 0; i < count; ++i)
 	{
-		D3DXMATRIX m = composite[boneIndices[i]];
+		XMFLOAT4X4 m = composite[boneIndices[i]];
 		memcpy(&palette[i], &m, sizeof(DirectX::XMFLOAT4X4));
 	}
 

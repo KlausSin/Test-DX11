@@ -77,7 +77,7 @@ void CPythonEventManager::__InitEventSet(TEventSet& rEventSet)
 	rEventSet.isLock = false;
 	rEventSet.lLastDelayTime = 0;
 	rEventSet.iCurrentLetter = 0;
-	rEventSet.CurrentColor = D3DXCOLOR(1, 1, 1, 1);
+	rEventSet.CurrentColor = XMFLOAT4(1, 1, 1, 1);
 	rEventSet.strCurrentLine = "";
 
 	rEventSet.pCurrentTextLine = NULL;
@@ -87,7 +87,7 @@ void CPythonEventManager::__InitEventSet(TEventSet& rEventSet)
 	rEventSet.pConfirmTimeTextLine = NULL;
 	rEventSet.iConfirmEndTime = 0;
 
-	rEventSet.DiffuseColor = D3DXCOLOR(1, 1, 1, 1);
+	rEventSet.DiffuseColor = XMFLOAT4(1, 1, 1, 1);
 	rEventSet.lWaitingTime = c_lNormal_Waiting_Time;
 	rEventSet.iRestrictedCharacterCount = 30;
 
@@ -397,7 +397,7 @@ void CPythonEventManager::ProcessEventSet(TEventSet * pEventSet)
 			const std::string& c_rstValue = GetArgumentString("value", ScriptCommand.argList);
 			pEventSet->strCurrentLine.append(c_rstValue);
 			pEventSet->pCurrentTextLine->SetValueString(pEventSet->strCurrentLine);
-			pEventSet->pCurrentTextLine->SetColor(pEventSet->CurrentColor.r,pEventSet->CurrentColor.g,pEventSet->CurrentColor.b);
+			pEventSet->pCurrentTextLine->SetColor(pEventSet->CurrentColor.x,pEventSet->CurrentColor.y,pEventSet->CurrentColor.z);
 			pEventSet->iCurrentLetter+=c_rstValue.length();
 
 			if (pEventSet->iCurrentLetter >= pEventSet->iRestrictedCharacterCount)
@@ -422,17 +422,17 @@ void CPythonEventManager::ProcessEventSet(TEventSet * pEventSet)
 		{
 			if (EVENT_POSITION_START == pEventPosition)
 			{
-				pEventSet->CurrentColor.r = (float)atof(GetArgument("r", ScriptCommand.argList));
-				pEventSet->CurrentColor.g = (float)atof(GetArgument("g", ScriptCommand.argList));
-				pEventSet->CurrentColor.b = (float)atof(GetArgument("b", ScriptCommand.argList));
-				pEventSet->CurrentColor.a = 1.0f;
+				pEventSet->CurrentColor.x = (float)atof(GetArgument("r", ScriptCommand.argList));
+				pEventSet->CurrentColor.y = (float)atof(GetArgument("g", ScriptCommand.argList));
+				pEventSet->CurrentColor.z = (float)atof(GetArgument("b", ScriptCommand.argList));
+				pEventSet->CurrentColor.w = 1.0f;
 			}
 			else
 			{
-				pEventSet->CurrentColor.r = 1.0f;
-				pEventSet->CurrentColor.g = 1.0f;
-				pEventSet->CurrentColor.a = 1.0f;
-				pEventSet->CurrentColor.b = 1.0f;
+				pEventSet->CurrentColor.x = 1.0f;
+				pEventSet->CurrentColor.y = 1.0f;
+				pEventSet->CurrentColor.z = 1.0f;
+				pEventSet->CurrentColor.w = 1.0f;
 			}
 			break;
 		}
@@ -441,17 +441,17 @@ void CPythonEventManager::ProcessEventSet(TEventSet * pEventSet)
 		{
 			if (EVENT_POSITION_START == pEventPosition)
 			{
-				pEventSet->CurrentColor.r = float(atof(GetArgument("r", ScriptCommand.argList)) / 255.0f);
-				pEventSet->CurrentColor.g = float(atof(GetArgument("g", ScriptCommand.argList)) / 255.0f);
-				pEventSet->CurrentColor.b = float(atof(GetArgument("b", ScriptCommand.argList)) / 255.0f);
-				pEventSet->CurrentColor.a = 1.0f;
+				pEventSet->CurrentColor.x = float(atof(GetArgument("r", ScriptCommand.argList)) / 255.0f);
+				pEventSet->CurrentColor.y = float(atof(GetArgument("g", ScriptCommand.argList)) / 255.0f);
+				pEventSet->CurrentColor.z = float(atof(GetArgument("b", ScriptCommand.argList)) / 255.0f);
+				pEventSet->CurrentColor.w = 1.0f;
 			}
 			else
 			{
-				pEventSet->CurrentColor.r = 1.0f;
-				pEventSet->CurrentColor.g = 1.0f;
-				pEventSet->CurrentColor.a = 1.0f;
-				pEventSet->CurrentColor.b = 1.0f;
+				pEventSet->CurrentColor.x = 1.0f;
+				pEventSet->CurrentColor.y = 1.0f;
+				pEventSet->CurrentColor.z = 1.0f;
+				pEventSet->CurrentColor.w = 1.0f;
 			}
 			break;
 		}

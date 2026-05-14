@@ -50,7 +50,7 @@ m_IsMovingMainWindow(false)
 	ms_pInstance = this;
 	m_isWindowFullScreenEnable = FALSE;
 
-	m_v3CenterPosition = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+	m_v3CenterPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	m_dwStartLocalTime = ELTimer_GetMSec();
 	m_tServerTime = 0;
 	m_tLocalStartTime = 0;

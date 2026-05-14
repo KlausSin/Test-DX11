@@ -28,17 +28,17 @@ class CParticleInstance
 		void UpdateAirResistance(float time, float elapsedTime);
 
 	protected:
-		D3DXVECTOR3			m_v3StartPosition;
+		XMFLOAT3			m_v3StartPosition;
 
-		D3DXVECTOR3			m_v3Position;
-		D3DXVECTOR3			m_v3LastPosition;
-		D3DXVECTOR3			m_v3Velocity;
+		XMFLOAT3			m_v3Position;
+		XMFLOAT3			m_v3LastPosition;
+		XMFLOAT3			m_v3Velocity;
 
-		D3DXVECTOR2			m_v2HalfSize;
-		D3DXVECTOR2			m_v2Scale;
+		XMFLOAT2			m_v2HalfSize;
+		XMFLOAT2			m_v2Scale;
 
 		float				m_fRotation;
-		D3DXCOLOR			m_Color;
+		XMFLOAT4			m_Color;
 
 		BYTE				m_byTextureAnimationType;
 		float				m_fLastFrameTime;
@@ -61,8 +61,8 @@ class CParticleInstance
 		static CParticleInstance* New();
 		static void DestroySystem();
 
-		void Transform(const D3DXMATRIX * c_matLocal=NULL);
-		void Transform(const D3DXMATRIX * c_matLocal, const float c_fZRotation);
+		void Transform(const XMFLOAT4X4* c_matLocal=NULL);
+		void Transform(const XMFLOAT4X4* c_matLocal, const float c_fZRotation);
 
 		TPTVertex * GetParticleMeshPointer();
 		

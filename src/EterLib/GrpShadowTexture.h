@@ -16,13 +16,13 @@ class CGraphicShadowTexture : public CGraphicTexture
 		void End();
 		void Set(int stage = 0) const;
 
-		const D3DXMATRIX& GetLightVPMatrixReference() const;
+		const XMFLOAT4X4& GetLightVPMatrixReference() const;
 
 	protected:
 		void Initialize();
 
 	protected:
-		D3DXMATRIX			m_d3dLightVPMatrix;
+		XMFLOAT4X4			m_d3dLightVPMatrix;
 		D3D11_VIEWPORT		m_d3dOldViewport;
 		UINT				m_uOldNumViewports;
 

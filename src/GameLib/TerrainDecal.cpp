@@ -24,62 +24,67 @@ CTerrainDecal::~CTerrainDecal()
 	CDecal::Clear();
 }
 
-void CTerrainDecal::Make(D3DXVECTOR3 v3Center, D3DXVECTOR3 v3Normal, D3DXVECTOR3 v3Tangent, float fWidth, float fHeight, float fDepth)
+void CTerrainDecal::Make(XMFLOAT3 v3Center, XMFLOAT3 v3Normal, XMFLOAT3 v3Tangent, float fWidth, float fHeight, float fDepth)
 {
 	Clear();
+
 	m_v3Center = v3Center;
+
+	XMStoreFloat3(&v3Normal, XMVector3Normalize(XMLoadFloat3(&v3Normal)));
+	XMStoreFloat3(&v3Tangent, XMVector3Normalize(XMLoadFloat3(&v3Tangent)));
+
 	m_v3Normal = v3Normal;
-	
-	D3DXVECTOR3 v3Binormal;
-	D3DXVec3Normalize(&v3Normal, &v3Normal);
-	D3DXVec3Normalize(&v3Tangent, &v3Tangent);
-	D3DXVec3Cross(&v3Binormal, &m_v3Normal, &v3Tangent);
-	D3DXVec3Normalize(&v3Binormal, &v3Binormal);
-	
-	// Calculate boundary planes
-	float fd = D3DXVec3Dot(&m_v3Center, &v3Tangent);
-	m_v4LeftPlane = D3DXPLANE(v3Tangent.x, v3Tangent.y, v3Tangent.z, fWidth * 0.5f - fd);
-	m_v4RightPlane = D3DXPLANE(-v3Tangent.x, -v3Tangent.y, -v3Tangent.z, fWidth * 0.5f + fd);
-	
-	fd = D3DXVec3Dot(&m_v3Center, &v3Binormal);
-	m_v4BottomPlane = D3DXPLANE(v3Binormal.x, v3Binormal.y, v3Binormal.z, fHeight * 0.5f - fd);
-	m_v4TopPlane = D3DXPLANE(-v3Binormal.x, -v3Binormal.y, -v3Binormal.z, fHeight * 0.5f + fd);
-	
-	fd = D3DXVec3Dot(&m_v3Center, &m_v3Normal);
-	m_v4FrontPlane = D3DXPLANE(-m_v3Normal.x, -m_v3Normal.y, -m_v3Normal.z, fDepth + fd);
-	m_v4BackPlane = D3DXPLANE(m_v3Normal.x, m_v3Normal.y, m_v3Normal.z, fDepth - fd);
-	
-	// Begin with empty mesh
+
+	XMFLOAT3 v3Binormal;
+	XMStoreFloat3(&v3Binormal, XMVector3Normalize(XMVector3Cross(XMLoadFloat3(&m_v3Normal), XMLoadFloat3(&v3Tangent))));
+
+	float fd = XMVectorGetX(XMVector3Dot(XMLoadFloat3(&m_v3Center), XMLoadFloat3(&v3Tangent)));
+	m_v4LeftPlane = XMFLOAT4(v3Tangent.x, v3Tangent.y, v3Tangent.z, fWidth * 0.5f - fd);
+	m_v4RightPlane = XMFLOAT4(-v3Tangent.x, -v3Tangent.y, -v3Tangent.z, fWidth * 0.5f + fd);
+
+	fd = XMVectorGetX(XMVector3Dot(XMLoadFloat3(&m_v3Center), XMLoadFloat3(&v3Binormal)));
+	m_v4BottomPlane = XMFLOAT4(v3Binormal.x, v3Binormal.y, v3Binormal.z, fHeight * 0.5f - fd);
+	m_v4TopPlane = XMFLOAT4(-v3Binormal.x, -v3Binormal.y, -v3Binormal.z, fHeight * 0.5f + fd);
+
+	fd = XMVectorGetX(XMVector3Dot(XMLoadFloat3(&m_v3Center), XMLoadFloat3(&m_v3Normal)));
+	m_v4FrontPlane = XMFLOAT4(-m_v3Normal.x, -m_v3Normal.y, -m_v3Normal.z, fDepth + fd);
+	m_v4BackPlane = XMFLOAT4(m_v3Normal.x, m_v3Normal.y, m_v3Normal.z, fDepth - fd);
+
 	m_dwVertexCount = 0;
 	m_dwPrimitiveCount = 0;
-	
-	// Add this point, determine which surfaces may be affected by this decal and call ClipMesh().
 
-	float fSearchRadius = fMAX(fWidth, fHeight);// 0.75f >= sqrtf(2)/2;
+	float fSearchRadius = fMAX(fWidth, fHeight);
 	float fMinX = v3Center.x - fSearchRadius;
 	float fMaxX = v3Center.x + fSearchRadius;
-	float fMinY = fabs(v3Center.y) - fSearchRadius;
-	float fMaxY = fabs(v3Center.y) + fSearchRadius;
+	float fMinY = fabsf(v3Center.y) - fSearchRadius;
+	float fMaxY = fabsf(v3Center.y) + fSearchRadius;
 
 	DWORD dwAffectedPrimitiveCount = 0;
-	D3DXVECTOR3 v3AffectedVertex[MAX_SEARCH_VERTICES];
-	D3DXVECTOR3 v3AffectedNormal[MAX_SEARCH_VERTICES];
+	XMFLOAT3 v3AffectedVertex[MAX_SEARCH_VERTICES];
+	XMFLOAT3 v3AffectedNormal[MAX_SEARCH_VERTICES];
+
 	memset(v3AffectedVertex, 0, sizeof(v3AffectedVertex));
 	memset(v3AffectedNormal, 0, sizeof(v3AffectedNormal));
 
 	SearchAffectedTerrainMesh(fMinX, fMaxX, fMinY, fMaxY, &dwAffectedPrimitiveCount, v3AffectedVertex, v3AffectedNormal);
-	
- 	ClipMesh(dwAffectedPrimitiveCount, v3AffectedVertex, v3AffectedNormal);
-	
-	// Assign texture mapping coordinates
+
+	ClipMesh(dwAffectedPrimitiveCount, v3AffectedVertex, v3AffectedNormal);
+
 	float fOne_over_w = 1.0f / fWidth;
 	float fOne_over_h = 1.0f / fHeight;
+
 	for (DWORD dwi = 0; dwi < m_dwVertexCount; ++dwi)
 	{
-		D3DXVECTOR3 v3 = m_Vertices[dwi].position - m_v3Center;
-		float fu = -D3DXVec3Dot(&v3, &v3Binormal) * fOne_over_w + 0.5f;
-		float fv = -D3DXVec3Dot(&v3, &v3Tangent) * fOne_over_h + 0.5f;
-		m_Vertices[dwi].texCoord = D3DXVECTOR2(fu, fv);
+		XMFLOAT3 v3 = {
+			m_Vertices[dwi].position.x - m_v3Center.x,
+			m_Vertices[dwi].position.y - m_v3Center.y,
+			m_Vertices[dwi].position.z - m_v3Center.z
+		};
+
+		float fu = -XMVectorGetX(XMVector3Dot(XMLoadFloat3(&v3), XMLoadFloat3(&v3Binormal))) * fOne_over_w + 0.5f;
+		float fv = -XMVectorGetX(XMVector3Dot(XMLoadFloat3(&v3), XMLoadFloat3(&v3Tangent))) * fOne_over_h + 0.5f;
+
+		m_Vertices[dwi].texCoord = XMFLOAT2(fu, fv);
 	}
 }
 
@@ -104,41 +109,49 @@ void CTerrainDecal::Render()
 }
 
 void CTerrainDecal::SearchAffectedTerrainMesh(float fMinX,
-											  float fMaxX,
-											  float fMinY,
-											  float fMaxY,
-											  DWORD * pdwAffectedPrimitiveCount,
-											  D3DXVECTOR3 * pv3AffectedVertex,
-											  D3DXVECTOR3 * pv3AffectedNormal)
+	float fMaxX,
+	float fMinY,
+	float fMaxY,
+	DWORD* pdwAffectedPrimitiveCount,
+	XMFLOAT3* pv3AffectedVertex,
+	XMFLOAT3* pv3AffectedNormal)
 {
 	if (!m_pMapOutdoor)
 		return;
+
 	int iMinX, iMaxX, iMinY, iMaxY;
+
 	PR_FLOAT_TO_INT(fMinX, iMinX);
 	PR_FLOAT_TO_INT(fMaxX, iMaxX);
 	PR_FLOAT_TO_INT(fMinY, iMinY);
 	PR_FLOAT_TO_INT(fMaxY, iMaxY);
 
-	iMinX -= iMinX % CTerrainImpl::CELLSCALE; 
-	iMaxX -= iMaxX % CTerrainImpl::CELLSCALE; 
-	iMinY -= iMinY % CTerrainImpl::CELLSCALE; 
-	iMaxY -= iMaxY % CTerrainImpl::CELLSCALE; 
+	iMinX -= iMinX % CTerrainImpl::CELLSCALE;
+	iMaxX -= iMaxX % CTerrainImpl::CELLSCALE;
+	iMinY -= iMinY % CTerrainImpl::CELLSCALE;
+	iMaxY -= iMaxY % CTerrainImpl::CELLSCALE;
 
-	for(int iy = iMinY; iy <= iMaxY; iy += CTerrainImpl::CELLSCALE)
+	for (int iy = iMinY; iy <= iMaxY; iy += CTerrainImpl::CELLSCALE)
 	{
 		if (iy < 0)
 			continue;
+
 		WORD wTerrainNumY = iy / CTerrainImpl::TERRAIN_YSIZE;
-		for(int ix = iMinX; ix <= iMaxX; ix += CTerrainImpl::CELLSCALE)
+
+		for (int ix = iMinX; ix <= iMaxX; ix += CTerrainImpl::CELLSCALE)
 		{
 			if (ix < 0)
 				continue;
+
 			WORD wTerrainNumX = ix / CTerrainImpl::TERRAIN_YSIZE;
-			
+
 			BYTE byTerrainNum;
+
 			if (!m_pMapOutdoor->GetTerrainNumFromCoord(wTerrainNumX, wTerrainNumY, &byTerrainNum))
 				continue;
-			CTerrain * pTerrain;
+
+			CTerrain* pTerrain;
+
 			if (!m_pMapOutdoor->GetTerrainPointer(byTerrainNum, &pTerrain))
 				continue;
 
@@ -149,19 +162,19 @@ void CTerrainDecal::SearchAffectedTerrainMesh(float fMinX,
 
 			*pdwAffectedPrimitiveCount += 2;
 
-			*pv3AffectedVertex++ = D3DXVECTOR3((float)ix, (float)(-iy), fHeightLT);
-			*pv3AffectedVertex++ = D3DXVECTOR3((float)ix, (float)(-iy - CTerrainImpl::CELLSCALE), fHeightLB);
-			*pv3AffectedVertex++ = D3DXVECTOR3((float)(ix + CTerrainImpl::CELLSCALE), (float)(-iy), fHeightRT);
-			*pv3AffectedVertex++ = D3DXVECTOR3((float)(ix + CTerrainImpl::CELLSCALE), (float)(-iy), fHeightRT);
-			*pv3AffectedVertex++ = D3DXVECTOR3((float)ix, (float)(-iy - CTerrainImpl::CELLSCALE), fHeightLB);
-			*pv3AffectedVertex++ = D3DXVECTOR3((float)(ix + CTerrainImpl::CELLSCALE), (float)(-iy - CTerrainImpl::CELLSCALE), fHeightRB);
+			*pv3AffectedVertex++ = XMFLOAT3((float)ix, (float)(-iy), fHeightLT);
+			*pv3AffectedVertex++ = XMFLOAT3((float)ix, (float)(-iy - CTerrainImpl::CELLSCALE), fHeightLB);
+			*pv3AffectedVertex++ = XMFLOAT3((float)(ix + CTerrainImpl::CELLSCALE), (float)(-iy), fHeightRT);
+			*pv3AffectedVertex++ = XMFLOAT3((float)(ix + CTerrainImpl::CELLSCALE), (float)(-iy), fHeightRT);
+			*pv3AffectedVertex++ = XMFLOAT3((float)ix, (float)(-iy - CTerrainImpl::CELLSCALE), fHeightLB);
+			*pv3AffectedVertex++ = XMFLOAT3((float)(ix + CTerrainImpl::CELLSCALE), (float)(-iy - CTerrainImpl::CELLSCALE), fHeightRB);
 
-			*pv3AffectedNormal++ = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-			*pv3AffectedNormal++ = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-			*pv3AffectedNormal++ = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-			*pv3AffectedNormal++ = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-			*pv3AffectedNormal++ = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-			*pv3AffectedNormal++ = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
+			*pv3AffectedNormal++ = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			*pv3AffectedNormal++ = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			*pv3AffectedNormal++ = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			*pv3AffectedNormal++ = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			*pv3AffectedNormal++ = XMFLOAT3(0.0f, 0.0f, 1.0f);
+			*pv3AffectedNormal++ = XMFLOAT3(0.0f, 0.0f, 1.0f);
 		}
 	}
 }

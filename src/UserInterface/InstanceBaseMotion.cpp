@@ -59,7 +59,7 @@ void CInstanceBase::StartFishing(float frot)
 	if (!__Background_GetWaterHeight(kPPosFishing, &kPPosFishing.z))
 		kPPosFishing.z=c_rkPPosCur.z;
 	
-	D3DXVECTOR3 v3Fishing;
+	XMFLOAT3 v3Fishing;
 	PixelPositionToD3DXVECTOR3(kPPosFishing, &v3Fishing);
 	m_GraphicThingInstance.SetFishingPosition(v3Fishing);
 
@@ -126,27 +126,32 @@ void CInstanceBase::__DisableChangingTCPState()
 	m_bEnableTCPState = FALSE;
 }
 
-void CInstanceBase::ActDualEmotion(CInstanceBase & rkDstInst, WORD wMotionNumber1, WORD wMotionNumber2)
+void CInstanceBase::ActDualEmotion(CInstanceBase& rkDstInst, WORD wMotionNumber1, WORD wMotionNumber2)
 {
 	if (!IsWaiting())
-	{
 		m_GraphicThingInstance.SetLoopMotion(CRaceMotionData::NAME_WAIT, 0.05f);
-	}
+
 	if (!rkDstInst.IsWaiting())
-	{
 		rkDstInst.m_GraphicThingInstance.SetLoopMotion(CRaceMotionData::NAME_WAIT, 0.05f);
-	}
 
 	const float c_fEmotionDistance = 100.0f;
-	const TPixelPosition & c_rMainPosition = NEW_GetCurPixelPositionRef();
-	const TPixelPosition & c_rTargetPosition = rkDstInst.NEW_GetCurPixelPositionRef();
-	TPixelPosition kDirection = c_rMainPosition - c_rTargetPosition;
-	float fDistance = sqrtf((kDirection.x*kDirection.x) + (kDirection.y*kDirection.y));
-	TPixelPosition kDstPosition;
-	kDstPosition.x = c_rTargetPosition.x + (kDirection.x/fDistance)*c_fEmotionDistance;
-	kDstPosition.y = c_rTargetPosition.y + (kDirection.y/fDistance)*c_fEmotionDistance;
+
+	XMVECTOR mainPos = XMLoadFloat3(&NEW_GetCurPixelPositionRef());
+	XMVECTOR targetPos = XMLoadFloat3(&rkDstInst.NEW_GetCurPixelPositionRef());
+
+	XMVECTOR dir = mainPos - targetPos;
+
+	float len = XMVectorGetX(XMVector3Length(dir));
+	if (len < 0.0001f)
+		return;
+
+	XMVECTOR dst = targetPos + XMVector3Normalize(dir) * c_fEmotionDistance;
+
+	XMFLOAT3 kDstPosition;
+	XMStoreFloat3(&kDstPosition, dst);
 
 	DWORD dwCurTime = ELTimer_GetServerMSec() + 500;
+
 	PushTCPStateExpanded(dwCurTime, kDstPosition, 0.0f, FUNC_EMOTION, MAKELONG(wMotionNumber1, wMotionNumber2), rkDstInst.GetVirtualID());
 
 	__DisableChangingTCPState();
@@ -154,7 +159,7 @@ void CInstanceBase::ActDualEmotion(CInstanceBase & rkDstInst, WORD wMotionNumber
 
 	if (__IsMainInstance() || rkDstInst.__IsMainInstance())
 	{
-		IAbstractPlayer & rPlayer=IAbstractPlayer::GetSingleton();
+		IAbstractPlayer& rPlayer = IAbstractPlayer::GetSingleton();
 		rPlayer.StartEmotionProcess();
 	}
 }

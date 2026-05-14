@@ -38,8 +38,8 @@ class CLightData : public CEffectElementBase
 		float m_fDuration;
 		TTimeEventTableFloat m_TimeEventTableRange;
 		
-		D3DXCOLOR m_cAmbient;
-		D3DXCOLOR m_cDiffuse;
+		XMFLOAT4 m_cAmbient;
+		XMFLOAT4 m_cDiffuse;
 
 		BOOL m_bLoopFlag;
 		int m_iLoopCount;

@@ -54,12 +54,12 @@ CTerrainPatchProxy::~CTerrainPatchProxy()
 	Clear();
 }
 
-void CTerrainPatchProxy::SetCenterPosition(const D3DXVECTOR3& c_rv3Center)
+void CTerrainPatchProxy::SetCenterPosition(const XMFLOAT3& c_rv3Center)
 {
 	m_v3Center=c_rv3Center;
 }
 
-bool CTerrainPatchProxy::IsIn(const D3DXVECTOR3& c_rv3Target, float fRadius)
+bool CTerrainPatchProxy::IsIn(const XMFLOAT3& c_rv3Target, float fRadius)
 {
 	float dx=m_v3Center.x-c_rv3Target.x;
 	float dy=m_v3Center.y-c_rv3Target.y;

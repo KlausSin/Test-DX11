@@ -119,8 +119,8 @@ namespace NRaceData
 	typedef struct SAttachingEffectData
 	{
 		std::string			strFileName;
-		D3DXVECTOR3			v3Position;
-		D3DXVECTOR3			v3Rotation;
+		XMFLOAT3			v3Position;
+		XMFLOAT3			v3Rotation;
 
 		SAttachingEffectData() {}
 		virtual ~SAttachingEffectData() {}

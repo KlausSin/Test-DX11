@@ -55,7 +55,10 @@ PyObject* chrRender(PyObject* poSelf, PyObject* poArgs)
 		ctx.Frame.DeviceContext = CGraphicBase::ms_lpd3d11Context;
 		ctx.Frame.View = CGraphicBase::ms_matView;
 		ctx.Frame.Projection = CGraphicBase::ms_matProj;
-		ctx.Frame.ViewProjection = ctx.Frame.View * ctx.Frame.Projection;
+		XMMATRIX view = XMLoadFloat4x4(&ctx.Frame.View);
+		XMMATRIX proj = XMLoadFloat4x4(&ctx.Frame.Projection);
+		XMMATRIX vp = view * proj;
+		XMStoreFloat4x4(&ctx.Frame.ViewProjection, vp);
 
 		CCamera* camera = CCameraManager::Instance().GetCurrentCamera();
 		if (camera)
@@ -248,12 +251,10 @@ PyObject * chrSelect(PyObject* poSelf, PyObject* poArgs)
 	{
 		case CPythonNonPlayer::ON_CLICK_EVENT_SHOP:
 			pkInst->SetAddRenderMode();
-			pkInst->SetAddColor(D3DXCOLOR(0.0f, 0.3f, 0.0f, 1.0f));
+			pkInst->SetAddColor(XMFLOAT4(0.0f, 0.3f, 0.0f, 1.0f));
 			break;
 
 		default:
-			// NOTE: 빨간색으로 나오게 하면 스샷 찍을 때 보기가 안좋아서 코멘트 하였습니다 [cronan 040226]
-			//pkInst->SetAddColor(D3DXCOLOR(0.3f, 0.0f, 0.0f, 1.0f));
 			break;
 	}
 
@@ -282,7 +283,7 @@ PyObject * chrSetAddRenderMode(PyObject* poSelf, PyObject* poArgs)
 		return Py_BuildNone();
 
 	pkInst->SetAddRenderMode();
-	pkInst->SetAddColor(D3DXCOLOR(fr, fg, fb, 1.0f));
+	pkInst->SetAddColor(XMFLOAT4(fr, fg, fb, 1.0f));
 
 	return Py_BuildNone();
 }
@@ -941,7 +942,7 @@ PyObject * chrGetBoundBoxOnlyXY(PyObject* poSelf, PyObject* poArgs)
 	if (!pkInst)
 		return Py_BuildValue("ffff", 0.0f, 0.0f, 0.0f, 0.0f);
 
-	D3DXVECTOR3 v3Min, v3Max;
+	XMFLOAT3 v3Min, v3Max;
 	pkInst->GetBoundBox(&v3Min, &v3Max);
 
 	return Py_BuildValue("ffff", v3Min.x, v3Min.y, v3Max.x, v3Max.y);
@@ -985,7 +986,12 @@ PyObject * chrtestSetAddRenderMode(PyObject* poSelf, PyObject* poArgs)
 	if (pkInst)
 	{
 		pkInst->SetAddRenderMode();
-		pkInst->SetAddColor(0xff000000 | iColor);
+		pkInst->SetAddColor(XMFLOAT4(
+			((0xff000000 | iColor) >> 16 & 0xff) / 255.0f,
+			((0xff000000 | iColor) >> 8 & 0xff) / 255.0f,
+			((0xff000000 | iColor) & 0xff) / 255.0f,
+			((0xff000000 | iColor) >> 24 & 0xff) / 255.0f
+		));
 	}
 
 	return Py_BuildNone();
@@ -1004,7 +1010,12 @@ PyObject * chrtestSetModulateRenderMode(PyObject* poSelf, PyObject* poArgs)
 	if (pkInst)
 	{
 		pkInst->SetModulateRenderMode();
-		pkInst->SetAddColor(0xff000000 | iColor);
+		pkInst->SetAddColor(XMFLOAT4(
+			((0xff000000 | iColor) >> 16 & 0xff) / 255.0f,
+			((0xff000000 | iColor) >> 8 & 0xff) / 255.0f,
+			((0xff000000 | iColor) & 0xff) / 255.0f,
+			((0xff000000 | iColor) >> 24 & 0xff) / 255.0f
+		));
 	}
 
 	return Py_BuildNone();
@@ -1029,7 +1040,7 @@ PyObject * chrtestSetAddRenderModeRGB(PyObject* poSelf, PyObject* poArgs)
 	if (pkInst)
 	{
 		pkInst->SetAddRenderMode();
-		pkInst->SetAddColor(D3DXCOLOR(fr, fg, fb, 1.0f));
+		pkInst->SetAddColor(XMFLOAT4(fr, fg, fb, 1.0f));
 	}
 
 	return Py_BuildNone();
@@ -1054,7 +1065,7 @@ PyObject * chrtestSetModulateRenderModeRGB(PyObject* poSelf, PyObject* poArgs)
 	if (pkInst)
 	{
 		pkInst->SetModulateRenderMode();
-		pkInst->SetAddColor(D3DXCOLOR(fr, fg, fb, 1.0f));
+		pkInst->SetAddColor(XMFLOAT4(fr, fg, fb, 1.0f));
 	}
 
 	return Py_BuildNone();

@@ -35,6 +35,8 @@ float CParticleInstance::GetRadiusApproximation()
 
 BOOL CParticleInstance::Update(float fElapsedTime, float fAngle)
 {
+	using namespace DirectX;
+
 	m_fLastLifeTime -= fElapsedTime;
 	if (m_fLastLifeTime < 0.0f)
 		return FALSE;
@@ -49,42 +51,45 @@ BOOL CParticleInstance::Update(float fElapsedTime, float fAngle)
 	UpdateAirResistance(fLifePercentage, fElapsedTime);
 
 	m_v3LastPosition = m_v3Position;
-	m_v3Position += m_v3Velocity * fElapsedTime;
+
+	m_v3Position.x += m_v3Velocity.x * fElapsedTime;
+	m_v3Position.y += m_v3Velocity.y * fElapsedTime;
+	m_v3Position.z += m_v3Velocity.z * fElapsedTime;
 
 	if (fAngle)
 	{
 		if (m_pParticleProperty->m_bAttachFlag)
 		{
-			float fCos, fSin;
-			fAngle = D3DXToRadian(fAngle);
-			fCos = cos(fAngle);
-			fSin = sin(fAngle);
+			float angle = XMConvertToRadians(fAngle);
+			float fCos = cosf(angle);
+			float fSin = sinf(angle);
 
 			float rx = m_v3Position.x - m_v3StartPosition.x;
 			float ry = m_v3Position.y - m_v3StartPosition.y;
 
-			m_v3Position.x =   fCos * rx + fSin * ry + m_v3StartPosition.x;
-			m_v3Position.y = - fSin * rx + fCos * ry + m_v3StartPosition.y;
+			m_v3Position.x = fCos * rx + fSin * ry + m_v3StartPosition.x;
+			m_v3Position.y = -fSin * rx + fCos * ry + m_v3StartPosition.y;
 		}
 		else
 		{
-			D3DXQUATERNION q,qc;
-			D3DXQuaternionRotationAxis(&q,&m_pParticleProperty->m_v3ZAxis,D3DXToRadian(fAngle));
-			D3DXQuaternionConjugate(&qc,&q);
+			XMVECTOR q = XMQuaternionRotationAxis(XMLoadFloat3(&m_pParticleProperty->m_v3ZAxis), XMConvertToRadians(fAngle));
+			XMVECTOR qc = XMQuaternionConjugate(q);
 
-			D3DXQUATERNION qr(
-				m_v3Position.x-m_v3StartPosition.x,
-				m_v3Position.y-m_v3StartPosition.y,
-				m_v3Position.z-m_v3StartPosition.z,
+			XMVECTOR qr = XMVectorSet(
+				m_v3Position.x - m_v3StartPosition.x,
+				m_v3Position.y - m_v3StartPosition.y,
+				m_v3Position.z - m_v3StartPosition.z,
 				0.0f);
-			D3DXQuaternionMultiply(&qr,&q,&qr);
-			D3DXQuaternionMultiply(&qr,&qr,&qc);
 
-			m_v3Position.x = qr.x;
-			m_v3Position.y = qr.y;
-			m_v3Position.z = qr.z;
+			qr = XMQuaternionMultiply(q, qr);
+			qr = XMQuaternionMultiply(qr, qc);
 
-			m_v3Position += m_v3StartPosition;
+			XMFLOAT3 rotated;
+			XMStoreFloat3(&rotated, qr);
+
+			m_v3Position.x = rotated.x + m_v3StartPosition.x;
+			m_v3Position.y = rotated.y + m_v3StartPosition.y;
+			m_v3Position.z = rotated.z + m_v3StartPosition.z;
 		}
 	}
 
@@ -174,268 +179,286 @@ void CParticleInstance::UpdateAirResistance(float time, float elapsedTime)
 	if (m_pParticleProperty->m_TimeEventAirResistance.empty())
 		return;
 
-	m_v3Velocity *= 1.0f - GetTimeEventBlendValue(time, m_pParticleProperty->m_TimeEventAirResistance);
+	float fAirResistance = 1.0f - GetTimeEventBlendValue(time, m_pParticleProperty->m_TimeEventAirResistance);
+	m_v3Velocity.x *= fAirResistance;
+	m_v3Velocity.y *= fAirResistance;
+	m_v3Velocity.z *= fAirResistance;
 }
 
-void CParticleInstance::Transform(const D3DXMATRIX * c_matLocal)
+void CParticleInstance::Transform(const XMFLOAT4X4* c_matLocal)
 {
-	_mgr->GetCbMgr()->SetTextureFactor(DWORD(m_Color));
+	using namespace DirectX;
 
-	D3DXVECTOR3 v3Up;
-	D3DXVECTOR3 v3Cross;
+	_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(m_Color));
+
+	XMFLOAT3 v3Up;
+	XMFLOAT3 v3Cross;
 
 	if (!m_pParticleProperty->m_bStretchFlag)
 	{
-		CCamera * pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
-		const D3DXVECTOR3 & c_rv3Up = pCurrentCamera->GetUp();
-		const D3DXVECTOR3 & c_rv3Cross = pCurrentCamera->GetCross();
+		CCamera* pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
+		const XMFLOAT3& c_rv3Up = pCurrentCamera->GetUp();
+		const XMFLOAT3& c_rv3Cross = pCurrentCamera->GetCross();
 
-		D3DXVECTOR3 v3Rotation;
-
-		switch(m_pParticleProperty->m_byBillboardType) {
+		switch (m_pParticleProperty->m_byBillboardType)
+		{
 		case BILLBOARD_TYPE_LIE:
-			{
-				float fCos = cosf(D3DXToRadian(m_fRotation)), fSin = sinf(D3DXToRadian(m_fRotation));
-				v3Up.x = fCos;
-				v3Up.y = -fSin;
-				v3Up.z = 0;
-				v3Cross.x = fSin;
-				v3Cross.y = fCos;
-				v3Cross.z = 0;
-			}
-			break;
+		{
+			float fCos = cosf(XMConvertToRadians(m_fRotation));
+			float fSin = sinf(XMConvertToRadians(m_fRotation));
+
+			v3Up = { fCos, -fSin, 0.0f };
+			v3Cross = { fSin, fCos, 0.0f };
+		}
+		break;
+
 		case BILLBOARD_TYPE_2FACE:
 		case BILLBOARD_TYPE_3FACE:
-			// using setting with y, and local rotation at render
 		case BILLBOARD_TYPE_Y:
+		{
+			v3Up = { 0.0f, 0.0f, 1.0f };
+
+			const XMFLOAT3& c_rv3View = pCurrentCamera->GetView();
+
+			if (v3Up.x * c_rv3View.y - v3Up.y * c_rv3View.x < 0.0f)
 			{
-				v3Up = D3DXVECTOR3(0.0f,0.0f,1.0f);
-				//v3Up = D3DXVECTOR3(cosf(D3DXToRadian(m_fRotation)),0.0f,-sinf(D3DXToRadian(m_fRotation)));
-				const D3DXVECTOR3 & c_rv3View = pCurrentCamera->GetView();
-				if (v3Up.x * c_rv3View.y - v3Up.y * c_rv3View.x<0)
-					v3Up*=-1;
-				auto d3dd = D3DXVECTOR3(c_rv3View.x, c_rv3View.y, 0);
-				D3DXVec3Cross(&v3Cross, &v3Up, &d3dd);
-				D3DXVec3Normalize(&v3Cross, &v3Cross);
-
-				if (m_fRotation)
-				{
-					float fCos = -sinf(D3DXToRadian(m_fRotation)); // + 90
-					float fSin = cosf(D3DXToRadian(m_fRotation));
-					
-					D3DXVECTOR3 v3Temp = v3Up * fCos - v3Cross * fSin;
-					v3Cross = v3Cross * fCos + v3Up * fSin;
-					v3Up = v3Temp;
-				}
-
-				//D3DXVECTOR3 v3Rotation;
-				//D3DXVec3Cross(&v3Rotation, &v3Up, &v3Cross);
-
+				v3Up.x *= -1.0f;
+				v3Up.y *= -1.0f;
+				v3Up.z *= -1.0f;
 			}
-			break;
+
+			XMFLOAT3 viewXY = { c_rv3View.x, c_rv3View.y, 0.0f };
+			XMStoreFloat3(&v3Cross, XMVector3Normalize(XMVector3Cross(XMLoadFloat3(&v3Up), XMLoadFloat3(&viewXY))));
+
+			if (m_fRotation)
+			{
+				float fCos = -sinf(XMConvertToRadians(m_fRotation));
+				float fSin = cosf(XMConvertToRadians(m_fRotation));
+
+				XMFLOAT3 v3Temp = {
+					v3Up.x * fCos - v3Cross.x * fSin,
+					v3Up.y * fCos - v3Cross.y * fSin,
+					v3Up.z * fCos - v3Cross.z * fSin
+				};
+
+				v3Cross = {
+					v3Cross.x * fCos + v3Up.x * fSin,
+					v3Cross.y * fCos + v3Up.y * fSin,
+					v3Cross.z * fCos + v3Up.z * fSin
+				};
+
+				v3Up = v3Temp;
+			}
+		}
+		break;
+
 		case BILLBOARD_TYPE_ALL:
 		default:
+		{
+			if (m_fRotation == 0.0f)
 			{
-				// NOTE : Rotation Routine. Camera의 Up Vector와 Cross Vector 자체를 View Vector 기준으로
-				//        Rotation 시킨다.
-				// FIXME : 반드시 최적화 할 것!
-				if (m_fRotation==0.0f)
-				{
-					v3Up = -c_rv3Cross;
-					v3Cross = c_rv3Up;
-				}
-				else
-				{
-					const D3DXVECTOR3 & c_rv3View = pCurrentCamera->GetView();
-					D3DXQUATERNION q,qc;
-					D3DXQuaternionRotationAxis(&q, &c_rv3View, D3DXToRadian(m_fRotation));
-					D3DXQuaternionConjugate(&qc, &q);
-					
-					{
-						D3DXQUATERNION qr(-c_rv3Cross.x, -c_rv3Cross.y, -c_rv3Cross.z, 0);
-						D3DXQuaternionMultiply(&qr,&qc,&qr);
-						D3DXQuaternionMultiply(&qr,&qr,&q);
-						v3Up.x = qr.x;
-						v3Up.y = qr.y;
-						v3Up.z = qr.z;
-					}
-					{
-						D3DXQUATERNION qr(c_rv3Up.x, c_rv3Up.y, c_rv3Up.z, 0);
-						D3DXQuaternionMultiply(&qr,&qc,&qr);
-						D3DXQuaternionMultiply(&qr,&qr,&q);
-						v3Cross.x = qr.x;
-						v3Cross.y = qr.y;
-						v3Cross.z = qr.z;
-					}
-
-				}
-				//D3DXMATRIX matRotation;
-				
-				//D3DXMatrixRotationAxis(&matRotation, &c_rv3View, D3DXToRadian(m_fRotation));
-				
-				//D3DXVec3TransformCoord(&v3Up, &(-c_rv3Cross), &matRotation);
-				//D3DXVec3TransformCoord(&v3Cross, &c_rv3Up, &matRotation);
+				v3Up = { -c_rv3Cross.x, -c_rv3Cross.y, -c_rv3Cross.z };
+				v3Cross = c_rv3Up;
 			}
-			break;
-		} 
+			else
+			{
+				const XMFLOAT3& c_rv3View = pCurrentCamera->GetView();
 
+				XMVECTOR q = XMQuaternionRotationAxis(XMLoadFloat3(&c_rv3View), XMConvertToRadians(m_fRotation));
+				XMVECTOR qc = XMQuaternionConjugate(q);
+
+				XMVECTOR qrUp = XMVectorSet(-c_rv3Cross.x, -c_rv3Cross.y, -c_rv3Cross.z, 0.0f);
+				qrUp = XMQuaternionMultiply(qc, qrUp);
+				qrUp = XMQuaternionMultiply(qrUp, q);
+				XMStoreFloat3(&v3Up, qrUp);
+
+				XMVECTOR qrCross = XMVectorSet(c_rv3Up.x, c_rv3Up.y, c_rv3Up.z, 0.0f);
+				qrCross = XMQuaternionMultiply(qc, qrCross);
+				qrCross = XMQuaternionMultiply(qrCross, q);
+				XMStoreFloat3(&v3Cross, qrCross);
+			}
+		}
+		break;
+		}
 	}
 	else
 	{
-		v3Up = m_v3Position - m_v3LastPosition;
+		v3Up = {
+			m_v3Position.x - m_v3LastPosition.x,
+			m_v3Position.y - m_v3LastPosition.y,
+			m_v3Position.z - m_v3LastPosition.z
+		};
 
 		if (c_matLocal)
-		{
-			//if (!m_pParticleProperty->m_bAttachFlag)
-				D3DXVec3TransformNormal(&v3Up, &v3Up, c_matLocal);
-		}
+			XMStoreFloat3(&v3Up, XMVector3TransformNormal(XMLoadFloat3(&v3Up), XMLoadFloat4x4(c_matLocal)));
 
-		// NOTE: 속도가 길이에 주는 영향 : log(velocity)만큼 늘어난다.
-		float length = D3DXVec3Length(&v3Up);
+		float length = XMVectorGetX(XMVector3Length(XMLoadFloat3(&v3Up)));
+
 		if (length == 0.0f)
 		{
-			v3Up = D3DXVECTOR3(0.0f,0.0f,1.0f);
+			v3Up = { 0.0f, 0.0f, 1.0f };
 		}
 		else
-			v3Up *=(1+log(1+length))/length;
+		{
+			float scale = (1.0f + logf(1.0f + length)) / length;
+			v3Up.x *= scale;
+			v3Up.y *= scale;
+			v3Up.z *= scale;
+		}
 
-		CCamera * pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
-		const D3DXVECTOR3 & c_rv3View = pCurrentCamera->GetView();
-		D3DXVec3Cross(&v3Cross, &v3Up, &c_rv3View);
-		D3DXVec3Normalize(&v3Cross, &v3Cross);
+		CCamera* pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
+		const XMFLOAT3& c_rv3View = pCurrentCamera->GetView();
 
+		XMStoreFloat3(&v3Cross, XMVector3Normalize(XMVector3Cross(XMLoadFloat3(&v3Up), XMLoadFloat3(&c_rv3View))));
 	}
 
-	v3Cross = -(m_v2HalfSize.x*m_v2Scale.x) * v3Cross;
-	v3Up = (m_v2HalfSize.y*m_v2Scale.y) * v3Up;
+	float crossScale = -(m_v2HalfSize.x * m_v2Scale.x);
+	float upScale = m_v2HalfSize.y * m_v2Scale.y;
+
+	v3Cross = { v3Cross.x * crossScale, v3Cross.y * crossScale, v3Cross.z * crossScale };
+	v3Up = { v3Up.x * upScale, v3Up.y * upScale, v3Up.z * upScale };
+
+	XMFLOAT3 v3Position = m_v3Position;
 
 	if (c_matLocal && m_pParticleProperty->m_bAttachFlag)
-	{
-		D3DXVECTOR3 v3Position;
-		D3DXVec3TransformCoord(&v3Position, &m_v3Position, c_matLocal);
-		m_ParticleMesh[0].position = v3Position - v3Up + v3Cross;
-		m_ParticleMesh[1].position = v3Position - v3Up - v3Cross;
-		m_ParticleMesh[2].position = v3Position + v3Up + v3Cross;
-		m_ParticleMesh[3].position = v3Position + v3Up - v3Cross;
-	}
-	else
-	{
-		m_ParticleMesh[0].position = m_v3Position - v3Up + v3Cross;
-		m_ParticleMesh[1].position = m_v3Position - v3Up - v3Cross;
-		m_ParticleMesh[2].position = m_v3Position + v3Up + v3Cross;
-		m_ParticleMesh[3].position = m_v3Position + v3Up - v3Cross;
-	}
+		XMStoreFloat3(&v3Position, XMVector3TransformCoord(XMLoadFloat3(&m_v3Position), XMLoadFloat4x4(c_matLocal)));
+
+	m_ParticleMesh[0].position = { v3Position.x - v3Up.x + v3Cross.x, v3Position.y - v3Up.y + v3Cross.y, v3Position.z - v3Up.z + v3Cross.z };
+	m_ParticleMesh[1].position = { v3Position.x - v3Up.x - v3Cross.x, v3Position.y - v3Up.y - v3Cross.y, v3Position.z - v3Up.z - v3Cross.z };
+	m_ParticleMesh[2].position = { v3Position.x + v3Up.x + v3Cross.x, v3Position.y + v3Up.y + v3Cross.y, v3Position.z + v3Up.z + v3Cross.z };
+	m_ParticleMesh[3].position = { v3Position.x + v3Up.x - v3Cross.x, v3Position.y + v3Up.y - v3Cross.y, v3Position.z + v3Up.z - v3Cross.z };
 }
 
 
-void CParticleInstance::Transform(const D3DXMATRIX * c_matLocal, const float c_fZRotation)
+void CParticleInstance::Transform(const XMFLOAT4X4* c_matLocal, const float c_fZRotation)
 {
-	_mgr->GetCbMgr()->SetTextureFactor(DWORD(m_Color));
+	using namespace DirectX;
 
-	D3DXVECTOR3 v3Up;
-	D3DXVECTOR3 v3Cross;
+	_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(m_Color));
+
+	XMFLOAT3 v3Up;
+	XMFLOAT3 v3Cross;
 
 	if (!m_pParticleProperty->m_bStretchFlag)
 	{
-		CCamera * pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
-		const D3DXVECTOR3 & c_rv3Up = pCurrentCamera->GetUp();
-		const D3DXVECTOR3 & c_rv3Cross = pCurrentCamera->GetCross();
+		CCamera* pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
+		const XMFLOAT3& c_rv3Up = pCurrentCamera->GetUp();
+		const XMFLOAT3& c_rv3Cross = pCurrentCamera->GetCross();
 
-		D3DXVECTOR3 v3Rotation;
-
-		switch(m_pParticleProperty->m_byBillboardType) {
+		switch (m_pParticleProperty->m_byBillboardType)
+		{
 		case BILLBOARD_TYPE_LIE:
-			{
-				float fCos = cosf(D3DXToRadian(m_fRotation)), fSin = sinf(D3DXToRadian(m_fRotation));
-				v3Up.x = fCos;
-				v3Up.y = -fSin;
-				v3Up.z = 0;
+		{
+			float fCos = cosf(XMConvertToRadians(m_fRotation));
+			float fSin = sinf(XMConvertToRadians(m_fRotation));
 
-				v3Cross.x = fSin;
-				v3Cross.y = fCos;
-				v3Cross.z = 0;
-			}
-			break;
+			v3Up = { fCos, -fSin, 0.0f };
+			v3Cross = { fSin, fCos, 0.0f };
+		}
+		break;
+
 		case BILLBOARD_TYPE_2FACE:
 		case BILLBOARD_TYPE_3FACE:
-			// using setting with y, and local rotation at render
 		case BILLBOARD_TYPE_Y:
+		{
+			v3Up = { 0.0f, 0.0f, 1.0f };
+
+			const XMFLOAT3& c_rv3View = pCurrentCamera->GetView();
+
+			if (v3Up.x * c_rv3View.y - v3Up.y * c_rv3View.x < 0.0f)
 			{
-				v3Up = D3DXVECTOR3(0.0f,0.0f,1.0f);
-				//v3Up = D3DXVECTOR3(cosf(D3DXToRadian(m_fRotation)),0.0f,-sinf(D3DXToRadian(m_fRotation)));
-				const D3DXVECTOR3 & c_rv3View = pCurrentCamera->GetView();
-				if (v3Up.x * c_rv3View.y - v3Up.y * c_rv3View.x<0)
-					v3Up*=-1;
-				auto d3dd = D3DXVECTOR3(c_rv3View.x, c_rv3View.y, 0);
-				D3DXVec3Cross(&v3Cross, &v3Up, &d3dd);
-				D3DXVec3Normalize(&v3Cross, &v3Cross);
-
-				if (m_fRotation)
-				{
-					float fCos = -sinf(D3DXToRadian(m_fRotation)); // + 90
-					float fSin = cosf(D3DXToRadian(m_fRotation));
-					
-					D3DXVECTOR3 v3Temp = v3Up * fCos - v3Cross * fSin;
-					v3Cross = v3Cross * fCos + v3Up * fSin;
-					v3Up = v3Temp;
-				}
-
-				//D3DXVECTOR3 v3Rotation;
-				//D3DXVec3Cross(&v3Rotation, &v3Up, &v3Cross);
-
+				v3Up.x *= -1.0f;
+				v3Up.y *= -1.0f;
+				v3Up.z *= -1.0f;
 			}
-			break;
+
+			XMVECTOR up = XMLoadFloat3(&v3Up);
+			XMVECTOR view = XMVectorSet(c_rv3View.x, c_rv3View.y, 0.0f, 0.0f);
+			XMVECTOR cross = XMVector3Normalize(XMVector3Cross(up, view));
+
+			XMStoreFloat3(&v3Cross, cross);
+
+			if (m_fRotation)
+			{
+				float fCos = -sinf(XMConvertToRadians(m_fRotation));
+				float fSin = cosf(XMConvertToRadians(m_fRotation));
+
+				XMFLOAT3 v3Temp = {
+					v3Up.x * fCos - v3Cross.x * fSin,
+					v3Up.y * fCos - v3Cross.y * fSin,
+					v3Up.z * fCos - v3Cross.z * fSin
+				};
+
+				v3Cross = {
+					v3Cross.x * fCos + v3Up.x * fSin,
+					v3Cross.y * fCos + v3Up.y * fSin,
+					v3Cross.z * fCos + v3Up.z * fSin
+				};
+
+				v3Up = v3Temp;
+			}
+		}
+		break;
+
 		case BILLBOARD_TYPE_ALL:
 		default:
+		{
+			if (m_fRotation == 0.0f)
 			{
-				// NOTE : Rotation Routine. Camera의 Up Vector와 Cross Vector 자체를 View Vector 기준으로
-				//        Rotation 시킨다.
-				// FIXME : 반드시 최적화 할 것!
-				if (m_fRotation==0.0f)
-				{
-					v3Up = -c_rv3Cross;
-					v3Cross = c_rv3Up;
-				}
-				else
-				{
-					const D3DXVECTOR3 & c_rv3View = pCurrentCamera->GetView();
-					D3DXMATRIX matRotation;
-					
-					D3DXMatrixRotationAxis(&matRotation, &c_rv3View, D3DXToRadian(m_fRotation));
-					auto d3dd = (-c_rv3Cross);
-					D3DXVec3TransformCoord(&v3Up, &d3dd, &matRotation);
-					D3DXVec3TransformCoord(&v3Cross, &c_rv3Up, &matRotation);
-				}
+				v3Up = { -c_rv3Cross.x, -c_rv3Cross.y, -c_rv3Cross.z };
+				v3Cross = c_rv3Up;
 			}
-			break;
+			else
+			{
+				const XMFLOAT3& c_rv3View = pCurrentCamera->GetView();
+
+				XMVECTOR view = XMLoadFloat3(&c_rv3View);
+				XMMATRIX matRotation = XMMatrixRotationAxis(view, XMConvertToRadians(m_fRotation));
+
+				XMFLOAT3 negCross = { -c_rv3Cross.x, -c_rv3Cross.y, -c_rv3Cross.z };
+
+				XMStoreFloat3(&v3Up, XMVector3TransformCoord(XMLoadFloat3(&negCross), matRotation));
+				XMStoreFloat3(&v3Cross, XMVector3TransformCoord(XMLoadFloat3(&c_rv3Up), matRotation));
+			}
+		}
+		break;
 		}
 	}
 	else
 	{
-		v3Up = m_v3Position - m_v3LastPosition;
+		v3Up = {
+			m_v3Position.x - m_v3LastPosition.x,
+			m_v3Position.y - m_v3LastPosition.y,
+			m_v3Position.z - m_v3LastPosition.z
+		};
 
 		if (c_matLocal)
 		{
-			//if (!m_pParticleProperty->m_bAttachFlag)
-				D3DXVec3TransformNormal(&v3Up, &v3Up, c_matLocal);
+			XMVECTOR up = XMLoadFloat3(&v3Up);
+			XMMATRIX matLocal = XMLoadFloat4x4(c_matLocal);
+			XMStoreFloat3(&v3Up, XMVector3TransformNormal(up, matLocal));
 		}
 
-		// NOTE: 속도가 길이에 주는 영향 : log(velocity)만큼 늘어난다.
-		float length = D3DXVec3Length(&v3Up);
+		XMVECTOR up = XMLoadFloat3(&v3Up);
+		float length = XMVectorGetX(XMVector3Length(up));
+
 		if (length == 0.0f)
 		{
-			v3Up = D3DXVECTOR3(0.0f,0.0f,1.0f);
+			v3Up = { 0.0f, 0.0f, 1.0f };
 		}
 		else
-			v3Up *=(1+log(1+length))/length;
-		//D3DXVec3Normalize(&v3Up,&v3Up);
-		//v3Up *= 1+log(1+length);
+		{
+			float scale = (1.0f + logf(1.0f + length)) / length;
+			v3Up.x *= scale;
+			v3Up.y *= scale;
+			v3Up.z *= scale;
+		}
 
-		CCamera * pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
-		const D3DXVECTOR3 & c_rv3View = pCurrentCamera->GetView();
-		D3DXVec3Cross(&v3Cross, &v3Up, &c_rv3View);
-		D3DXVec3Normalize(&v3Cross, &v3Cross);
+		CCamera* pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
+		const XMFLOAT3& c_rv3View = pCurrentCamera->GetView();
 
+		XMVECTOR cross = XMVector3Normalize(XMVector3Cross(XMLoadFloat3(&v3Up), XMLoadFloat3(&c_rv3View)));
+		XMStoreFloat3(&v3Cross, cross);
 	}
 
 	if (c_fZRotation)
@@ -455,25 +478,30 @@ void CParticleInstance::Transform(const D3DXMATRIX * c_matLocal, const float c_f
 		v3Cross.y = y * fCos + x * fSin;
 	}
 
-	v3Cross = -(m_v2HalfSize.x*m_v2Scale.x) * v3Cross;
-	v3Up = (m_v2HalfSize.y*m_v2Scale.y) * v3Up;
+	float crossScale = -(m_v2HalfSize.x * m_v2Scale.x);
+	float upScale = m_v2HalfSize.y * m_v2Scale.y;
+
+	v3Cross.x *= crossScale;
+	v3Cross.y *= crossScale;
+	v3Cross.z *= crossScale;
+
+	v3Up.x *= upScale;
+	v3Up.y *= upScale;
+	v3Up.z *= upScale;
+
+	XMFLOAT3 v3Position = m_v3Position;
 
 	if (c_matLocal && m_pParticleProperty->m_bAttachFlag)
 	{
-		D3DXVECTOR3 v3Position;
-		D3DXVec3TransformCoord(&v3Position, &m_v3Position, c_matLocal);
-		m_ParticleMesh[0].position = v3Position - v3Up + v3Cross;
-		m_ParticleMesh[1].position = v3Position - v3Up - v3Cross;
-		m_ParticleMesh[2].position = v3Position + v3Up + v3Cross;
-		m_ParticleMesh[3].position = v3Position + v3Up - v3Cross;
+		XMVECTOR pos = XMLoadFloat3(&m_v3Position);
+		XMMATRIX matLocal = XMLoadFloat4x4(c_matLocal);
+		XMStoreFloat3(&v3Position, XMVector3TransformCoord(pos, matLocal));
 	}
-	else
-	{
-		m_ParticleMesh[0].position = m_v3Position - v3Up + v3Cross;
-		m_ParticleMesh[1].position = m_v3Position - v3Up - v3Cross;
-		m_ParticleMesh[2].position = m_v3Position + v3Up + v3Cross;
-		m_ParticleMesh[3].position = m_v3Position + v3Up - v3Cross;
-	}
+
+	m_ParticleMesh[0].position = { v3Position.x - v3Up.x + v3Cross.x, v3Position.y - v3Up.y + v3Cross.y, v3Position.z - v3Up.z + v3Cross.z };
+	m_ParticleMesh[1].position = { v3Position.x - v3Up.x - v3Cross.x, v3Position.y - v3Up.y - v3Cross.y, v3Position.z - v3Up.z - v3Cross.z };
+	m_ParticleMesh[2].position = { v3Position.x + v3Up.x + v3Cross.x, v3Position.y + v3Up.y + v3Cross.y, v3Position.z + v3Up.z + v3Cross.z };
+	m_ParticleMesh[3].position = { v3Position.x + v3Up.x - v3Cross.x, v3Position.y + v3Up.y - v3Cross.y, v3Position.z + v3Up.z - v3Cross.z };
 }
 
 void CParticleInstance::Destroy()
@@ -483,21 +511,21 @@ void CParticleInstance::Destroy()
 
 void CParticleInstance::__Initialize()
 {
-	m_v3Position = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+	m_v3Position = {0.0f, 0.0f, 0.0f};
 	m_v3LastPosition = m_v3Position;
-	m_v3Velocity = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+	m_v3Velocity = {0.0f, 0.0f, 0.0f};
 
-	m_v2Scale = D3DXVECTOR2(1.0f, 1.0f);
-	m_Color = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
+	m_v2Scale = {1.0f, 1.0f};
+	m_Color = {1.0f, 1.0f, 1.0f, 1.0f};
 
 	m_byFrameIndex = 0;
 	m_rotationType = CParticleProperty::ROTATION_TYPE_NONE;
 	m_fFrameTime = 0;
 
-	m_ParticleMesh[0].texCoord = D3DXVECTOR2(0.0f, 1.0f);
-	m_ParticleMesh[1].texCoord = D3DXVECTOR2(0.0f, 0.0f);
-	m_ParticleMesh[2].texCoord = D3DXVECTOR2(1.0f, 1.0f);
-	m_ParticleMesh[3].texCoord = D3DXVECTOR2(1.0f, 0.0f);
+	m_ParticleMesh[0].texCoord = {0.0f, 1.0f};
+	m_ParticleMesh[1].texCoord = {0.0f, 0.0f};
+	m_ParticleMesh[2].texCoord = {1.0f, 1.0f};
+	m_ParticleMesh[3].texCoord = {1.0f, 0.0f};
 }
 
 CParticleInstance::CParticleInstance()

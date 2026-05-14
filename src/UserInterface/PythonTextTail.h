@@ -31,7 +31,7 @@ class CPythonTextTail : public CSingleton<CPythonTextTail>
 
 			float							x, y, z;
 			float							fDistanceFromPlayer;
-			D3DXCOLOR						Color;
+			XMFLOAT4						Color;
 			BOOL							bNameFlag;		// 이름도 함께 켤것인지의 플래그
 #ifdef WJ_SHOW_MOB_INFO
 			BOOL							bIsPC;
@@ -72,11 +72,11 @@ class CPythonTextTail : public CSingleton<CPythonTextTail>
 		void ShowCharacterTextTail(DWORD VirtualID);
 		void ShowItemTextTail(DWORD VirtualID);
 
-		void RegisterCharacterTextTail(DWORD dwGuildID, DWORD dwVirtualID, const D3DXCOLOR & c_rColor, float fAddHeight=10.0f);
+		void RegisterCharacterTextTail(DWORD dwGuildID, DWORD dwVirtualID, const XMFLOAT4 & c_rColor, float fAddHeight=10.0f);
 		void RegisterItemTextTail(DWORD VirtualID, const char * c_szText, CGraphicObjectInstance * pOwner);
 		void RegisterChatTail(DWORD VirtualID, const char * c_szChat);
 		void RegisterInfoTail(DWORD VirtualID, const char * c_szChat);
-		void SetCharacterTextTailColor(DWORD VirtualID, const D3DXCOLOR & c_rColor);
+		void SetCharacterTextTailColor(DWORD VirtualID, const XMFLOAT4& c_rColor);
 		void SetItemTextTailOwner(DWORD dwVID, const char * c_szName);
 		void DeleteCharacterTextTail(DWORD VirtualID);
 		void DeleteItemTextTail(DWORD VirtualID);
@@ -89,15 +89,15 @@ class CPythonTextTail : public CSingleton<CPythonTextTail>
 		bool IsChatTextTail(DWORD dwVID);
 
 		void EnablePKTitle(BOOL bFlag);
-		void AttachTitle(DWORD dwVID, const char * c_szName, const D3DXCOLOR& c_rColor);
+		void AttachTitle(DWORD dwVID, const char * c_szName, const XMFLOAT4& c_rColor);
 		void DetachTitle(DWORD dwVID);
 
-		void AttachLevel(DWORD dwVID, const char* c_szText, const D3DXCOLOR& c_rColor);
+		void AttachLevel(DWORD dwVID, const char* c_szText, const XMFLOAT4& c_rColor);
 		void DetachLevel(DWORD dwVID);
 		
 
 	protected:
-		TTextTail * RegisterTextTail(DWORD dwVirtualID, const char * c_szText, CGraphicObjectInstance * pOwner, float fHeight, const D3DXCOLOR & c_rColor);
+		TTextTail * RegisterTextTail(DWORD dwVirtualID, const char * c_szText, CGraphicObjectInstance * pOwner, float fHeight, const XMFLOAT4& c_rColor);
 		void DeleteTextTail(TTextTail * pTextTail);
 
 		void UpdateTextTail(TTextTail * pTextTail);

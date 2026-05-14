@@ -124,11 +124,11 @@ float CLensFlare::Interpolate(float fStart, float fEnd, float fPercent)
 ///////////////////////////////////////////////////////////////////////  
 //	CLensFlare::DrawBeforeFlare
 
-void CLensFlare::Compute(const D3DXVECTOR3 & c_rv3LightDirection)
+void CLensFlare::Compute(const XMFLOAT3& c_rv3LightDirection)
 {
 	float afSunPos[3];
 
-	D3DXVECTOR3 v3Target = CCameraManager::Instance().GetCurrentCamera()->GetTarget();
+	XMFLOAT3 v3Target = CCameraManager::Instance().GetCurrentCamera()->GetTarget();
 	
 	afSunPos[0]	= v3Target.x - c_rv3LightDirection.x * 99999999.0f;
 	afSunPos[1]	= v3Target.y - c_rv3LightDirection.y * 99999999.0f;
@@ -160,7 +160,7 @@ void CLensFlare::Compute(const D3DXVECTOR3 & c_rv3LightDirection)
 		(afSunVector[1] * afCameraDirection[1]) +
 		(afSunVector[2] * afCameraDirection[2]);
 	
-	if (acosf(fDotProduct) < 0.5f * D3DX_PI)
+	if (acosf(fDotProduct) < 0.5f * XM_PI)
 		SetVisible(true);
 	else
 		SetVisible(false);
@@ -192,11 +192,11 @@ void CLensFlare::DrawBeforeFlare()
 	STATEMANAGER.GetRaster().Push();
 	STATEMANAGER.GetBlend().Push();
 
-	D3DXMATRIX matProj;
-	D3DXMatrixOrthoOffCenterRH(&matProj, 0.0f, 1.0f, 1.0f, 0.0f, -1.0f, 1.0f);
+	XMFLOAT4X4 matProj;
+	XMStoreFloat4x4(&matProj, XMMatrixOrthographicOffCenterRH(0.0f, 1.0f, 1.0f, 0.0f, -1.0f, 1.0f));
 
-	D3DXMATRIX matWorld;
-	D3DXMatrixTranslation(&matWorld, m_afFlarePos[0], m_afFlarePos[1], 0.0f);
+	XMFLOAT4X4 matWorld;
+	XMStoreFloat4x4(&matWorld, XMMatrixTranslation(m_afFlarePos[0], m_afFlarePos[1], 0.0f));
 
 	STATEMANAGER.GetTransform().SetProjection(matProj);
 	STATEMANAGER.GetTransform().SetView(ms_matIdentity);
@@ -215,34 +215,34 @@ void CLensFlare::DrawBeforeFlare()
 
 	float fAspectRatio = ms_Viewport.Width / float(ms_Viewport.Height);
 	float fHeight = m_fSunSize * fAspectRatio;
-	D3DXCOLOR color(1.0f, 1.0f, 1.0f, 1.0f);
+	XMFLOAT4 color(1.0f, 1.0f, 1.0f, 1.0f);
 
 	SVertex vertices[4];
 	vertices[0].x = -m_fSunSize;
 	vertices[0].y = -fHeight;
 	vertices[0].z = 0.0f;
-	vertices[0].color = color;
+	vertices[0].color = ColorToUint(color);
 	vertices[0].u = 0.0f;
 	vertices[0].v = 0.0f;
 
 	vertices[1].x = -m_fSunSize;
 	vertices[1].y = fHeight;
 	vertices[1].z = 0.0f;
-	vertices[1].color = color;
+	vertices[1].color = ColorToUint(color);
 	vertices[1].u = 0.0f;
 	vertices[1].v = 1.0f;
 
 	vertices[2].x = m_fSunSize;
 	vertices[2].y = -fHeight;
 	vertices[2].z = 0.0f;
-	vertices[2].color = color;
+	vertices[2].color = ColorToUint(color);
 	vertices[2].u = 1.0f;
 	vertices[2].v = 0.0f;
 
 	vertices[3].x = m_fSunSize;
 	vertices[3].y = fHeight;
 	vertices[3].z = 0.0f;
-	vertices[3].color = color;
+	vertices[3].color = ColorToUint(color);
 	vertices[3].u = 1.0f;
 	vertices[3].v = 1.0f;
 
@@ -309,8 +309,8 @@ void CLensFlare::DrawFlare()
 		STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
 		STATEMANAGER.GetBlend().SetBlendEnable(true);
 
-		D3DXMATRIX matProj;
-		D3DXMatrixOrthoOffCenterRH(&matProj, 0.0f, ms_Viewport.Width, ms_Viewport.Height, 0.0f, -1.0f, 1.0f);
+		XMFLOAT4X4 matProj;
+		XMStoreFloat4x4(&matProj, XMMatrixOrthographicOffCenterRH(0.0f, ms_Viewport.Width, ms_Viewport.Height, 0.0f, -1.0f, 1.0f));
 
 		STATEMANAGER.GetTransform().SetProjection(matProj);
 		STATEMANAGER.GetTransform().SetView(ms_matIdentity);
@@ -335,15 +335,15 @@ void CLensFlare::DrawFlare()
 
 ///////////////////////////////////////////////////////////////////////  
 //	CLensFlare::CharacterizeFlare
-void CLensFlare::CharacterizeFlare(bool bEnabled, bool bShowMainFlare, float fMaxBrightness, const D3DXCOLOR & c_rColor)
+void CLensFlare::CharacterizeFlare(bool bEnabled, bool bShowMainFlare, float fMaxBrightness, const XMFLOAT4 & c_rColor)
 {
 	m_bEnabled = bEnabled;
 	m_bShowMainFlare = bShowMainFlare;
 	m_fMaxBrightness = fMaxBrightness;
 
-	m_afColor[0] = c_rColor.r;
-	m_afColor[1] = c_rColor.g;
-	m_afColor[2] = c_rColor.b;
+	m_afColor[0] = c_rColor.x;
+	m_afColor[1] = c_rColor.y;
+	m_afColor[2] = c_rColor.z;
 }
 
 
@@ -528,7 +528,7 @@ void CFlare::Draw(float fBrightScale, int nWidth, int nHeight, int nX, int nY)
 		float fCenterY = float(nY) - (m_vFlares[i]->m_fPosition + 1.0f) * fDY;
 		float fW = m_vFlares[i]->m_fWidth;
 		
-		D3DXCOLOR d3dColor(m_vFlares[i]->m_pColor[0] * fBrightScale,
+		XMFLOAT4 d3dColor(m_vFlares[i]->m_pColor[0] * fBrightScale,
 						   m_vFlares[i]->m_pColor[1] * fBrightScale,
 						   m_vFlares[i]->m_pColor[2] * fBrightScale,
 						   m_vFlares[i]->m_pColor[3] * fBrightScale);
@@ -542,28 +542,28 @@ void CFlare::Draw(float fBrightScale, int nWidth, int nHeight, int nX, int nY)
 		vertices[0].x = fCenterX - fW;
 		vertices[0].y = fCenterY - fW;
 		vertices[0].z = 0.0f;
-		vertices[0].color = d3dColor;
+		vertices[0].color = ColorToUint(d3dColor);
 
 		vertices[1].u = 0.0f;
 		vertices[1].v = 1.0f;
 		vertices[1].x = fCenterX - fW;
 		vertices[1].y = fCenterY + fW;
 		vertices[1].z = 0.0f;
-		vertices[1].color = d3dColor;
+		vertices[1].color = ColorToUint(d3dColor);
 
 		vertices[2].u = 1.0f;
 		vertices[2].v = 0.0f;
 		vertices[2].x = fCenterX + fW;
 		vertices[2].y = fCenterY - fW;
 		vertices[2].z = 0.0f;
-		vertices[2].color = d3dColor;
+		vertices[2].color = ColorToUint(d3dColor);
 
 		vertices[3].u = 1.0f;
 		vertices[3].v = 1.0f;
 		vertices[3].x = fCenterX + fW;
 		vertices[3].y = fCenterY + fW;
 		vertices[3].z = 0.0f;
-		vertices[3].color = d3dColor;
+		vertices[3].color = ColorToUint(d3dColor);
 
 		STATEMANAGER.DrawPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, 2, sizeof(TVertex), vertices);
 	}

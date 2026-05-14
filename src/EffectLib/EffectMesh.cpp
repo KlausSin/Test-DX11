@@ -90,16 +90,16 @@ bool CEffectMesh::OnLoad(int iSize, const void* c_pvBuf)
 	return ok;
 }
 
-BOOL CEffectMesh::__LoadData_Ver002(int iSize, const BYTE * c_pbBuf)
+BOOL CEffectMesh::__LoadData_Ver002(int iSize, const BYTE* c_pbBuf)
 {
-	std::vector<D3DXVECTOR3> v3VertexVector;
+	std::vector<DirectX::XMFLOAT3> v3VertexVector;
 	std::vector<int> iIndexVector;
-	std::vector<D3DXVECTOR2> v3TextureVertexVector;
+	std::vector<DirectX::XMFLOAT2> v3TextureVertexVector;
 	std::vector<int> iTextureIndexVector;
 
-	m_iGeomCount = *(int *)c_pbBuf;
+	m_iGeomCount = *(int*)c_pbBuf;
 	c_pbBuf += 4;
-	m_iFrameCount = *(int *)c_pbBuf;
+	m_iFrameCount = *(int*)c_pbBuf;
 	c_pbBuf += 4;
 
 	m_pEffectMeshDataVector.clear();
@@ -107,7 +107,7 @@ BOOL CEffectMesh::__LoadData_Ver002(int iSize, const BYTE * c_pbBuf)
 
 	for (short n = 0; n < m_iGeomCount; ++n)
 	{
-		SEffectMeshData * pMeshData = SEffectMeshData::New();
+		SEffectMeshData* pMeshData = SEffectMeshData::New();
 
 		memcpy(pMeshData->szObjectName, c_pbBuf, 32);
 		c_pbBuf += 32;
@@ -117,9 +117,9 @@ BOOL CEffectMesh::__LoadData_Ver002(int iSize, const BYTE * c_pbBuf)
 		pMeshData->EffectFrameDataVector.clear();
 		pMeshData->EffectFrameDataVector.resize(m_iFrameCount);
 
-		for(int i = 0; i < m_iFrameCount; ++i)
+		for (int i = 0; i < m_iFrameCount; ++i)
 		{
-			TEffectFrameData & rFrameData = pMeshData->EffectFrameDataVector[i];
+			TEffectFrameData& rFrameData = pMeshData->EffectFrameDataVector[i];
 
 			memcpy(&rFrameData.byChangedFrame, c_pbBuf, sizeof(BYTE));
 			c_pbBuf += sizeof(BYTE);
@@ -145,22 +145,24 @@ BOOL CEffectMesh::__LoadData_Ver002(int iSize, const BYTE * c_pbBuf)
 			iTextureIndexVector.clear();
 			iTextureIndexVector.resize(rFrameData.dwIndexCount);
 
-			memcpy(&v3VertexVector[0], c_pbBuf, rFrameData.dwVertexCount*sizeof(D3DXVECTOR3));
-			c_pbBuf += rFrameData.dwVertexCount*sizeof(D3DXVECTOR3);
-			memcpy(&iIndexVector[0], c_pbBuf, rFrameData.dwIndexCount*sizeof(int));
-			c_pbBuf += rFrameData.dwIndexCount*sizeof(int);
-			memcpy(&v3TextureVertexVector[0], c_pbBuf, rFrameData.dwTextureVertexCount*sizeof(D3DXVECTOR2));
-			c_pbBuf += rFrameData.dwTextureVertexCount*sizeof(D3DXVECTOR2);
-			memcpy(&iTextureIndexVector[0], c_pbBuf, rFrameData.dwIndexCount*sizeof(int));
-			c_pbBuf += rFrameData.dwIndexCount*sizeof(int);
+			memcpy(v3VertexVector.data(), c_pbBuf, rFrameData.dwVertexCount * sizeof(DirectX::XMFLOAT3));
+			c_pbBuf += rFrameData.dwVertexCount * sizeof(DirectX::XMFLOAT3);
 
-			///////////////////////////////
+			memcpy(iIndexVector.data(), c_pbBuf, rFrameData.dwIndexCount * sizeof(int));
+			c_pbBuf += rFrameData.dwIndexCount * sizeof(int);
+
+			memcpy(v3TextureVertexVector.data(), c_pbBuf, rFrameData.dwTextureVertexCount * sizeof(DirectX::XMFLOAT2));
+			c_pbBuf += rFrameData.dwTextureVertexCount * sizeof(DirectX::XMFLOAT2);
+
+			memcpy(iTextureIndexVector.data(), c_pbBuf, rFrameData.dwIndexCount * sizeof(int));
+			c_pbBuf += rFrameData.dwIndexCount * sizeof(int);
 
 			rFrameData.PDTVertexVector.clear();
 			rFrameData.PDTVertexVector.resize(rFrameData.dwIndexCount);
+
 			for (DWORD j = 0; j < rFrameData.dwIndexCount; ++j)
 			{
-				TPTVertex & rVertex = rFrameData.PDTVertexVector[j];
+				TPTVertex& rVertex = rFrameData.PDTVertexVector[j];
 
 				DWORD dwIndex = iIndexVector[j];
 				DWORD dwTextureIndex = iTextureIndexVector[j];
@@ -170,11 +172,9 @@ BOOL CEffectMesh::__LoadData_Ver002(int iSize, const BYTE * c_pbBuf)
 
 				rVertex.position = v3VertexVector[dwIndex];
 				rVertex.texCoord = v3TextureVertexVector[dwTextureIndex];
-				rVertex.texCoord.y *= -1;
+				rVertex.texCoord.y *= -1.0f;
 			}
 		}
-
-		////////////////////////////////////
 
 		pMeshData->pImageVector.clear();
 
@@ -199,7 +199,7 @@ BOOL CEffectMesh::__LoadData_Ver002(int iSize, const BYTE * c_pbBuf)
 				std::string strTextureFileName;
 				for (DWORD i = 0; i < textFileLoader.GetLineCount(); ++i)
 				{
-					const std::string & c_rstrFileName = textFileLoader.GetLineString(i);
+					const std::string& c_rstrFileName = textFileLoader.GetLineString(i);
 
 					if (c_rstrFileName.empty())
 						continue;
@@ -207,18 +207,16 @@ BOOL CEffectMesh::__LoadData_Ver002(int iSize, const BYTE * c_pbBuf)
 					strTextureFileName = strPathName;
 					strTextureFileName += c_rstrFileName;
 
-					CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(strTextureFileName.c_str());
+					CGraphicImage* pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(strTextureFileName.c_str());
 					pMeshData->pImageVector.push_back(pImage);
 				}
 			}
 		}
 		else
 		{
-			CGraphicImage * pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(pMeshData->szDiffuseMapFileName);
+			CGraphicImage* pImage = CResourceManager::Instance().GetTyped<CGraphicImage>(pMeshData->szDiffuseMapFileName);
 			pMeshData->pImageVector.push_back(pImage);
 		}
-
-		////////////////////////////////////
 
 		m_pEffectMeshDataVector[n] = pMeshData;
 	}
@@ -228,9 +226,9 @@ BOOL CEffectMesh::__LoadData_Ver002(int iSize, const BYTE * c_pbBuf)
 
 BOOL CEffectMesh::__LoadData_Ver001(int iSize, const BYTE * c_pbBuf)
 {
-	std::vector<D3DXVECTOR3> v3VertexVector;
+	std::vector<XMFLOAT3> v3VertexVector;
 	std::vector<int> iIndexVector;
-	std::vector<D3DXVECTOR2> v3TextureVertexVector;
+	std::vector<XMFLOAT2> v3TextureVertexVector;
 	std::vector<int> iTextureIndexVector;
 
 	m_iGeomCount = *(int *)c_pbBuf;
@@ -287,12 +285,12 @@ BOOL CEffectMesh::__LoadData_Ver001(int iSize, const BYTE * c_pbBuf)
 
 			memcpy(&rFrameData.fVisibility, c_pbBuf, sizeof(float));
 			c_pbBuf += sizeof(float);
-			memcpy(&v3VertexVector[0], c_pbBuf, rFrameData.dwVertexCount*sizeof(D3DXVECTOR3));
-			c_pbBuf += rFrameData.dwVertexCount*sizeof(D3DXVECTOR3);
+			memcpy(&v3VertexVector[0], c_pbBuf, rFrameData.dwVertexCount*sizeof(XMFLOAT3));
+			c_pbBuf += rFrameData.dwVertexCount*sizeof(XMFLOAT3);
 			memcpy(&iIndexVector[0], c_pbBuf, rFrameData.dwIndexCount*sizeof(int));
 			c_pbBuf += rFrameData.dwIndexCount*sizeof(int);
-			memcpy(&v3TextureVertexVector[0], c_pbBuf, rFrameData.dwTextureVertexCount*sizeof(D3DXVECTOR2));
-			c_pbBuf += rFrameData.dwTextureVertexCount*sizeof(D3DXVECTOR2);
+			memcpy(&v3TextureVertexVector[0], c_pbBuf, rFrameData.dwTextureVertexCount*sizeof(XMFLOAT2));
+			c_pbBuf += rFrameData.dwTextureVertexCount*sizeof(XMFLOAT2);
 			memcpy(&iTextureIndexVector[0], c_pbBuf, rFrameData.dwIndexCount*sizeof(int));
 			c_pbBuf += rFrameData.dwIndexCount*sizeof(int);
 
@@ -451,7 +449,7 @@ void CEffectMeshScript::ReserveMeshData(DWORD dwMeshCount)
 		rMeshData.byBlendingDestType = D3D11_BLEND_ONE;
 		rMeshData.bTextureAlphaEnable = FALSE;
 		rMeshData.byColorOperationType = BLEND_MODULATE;
-		rMeshData.ColorFactor = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
+		rMeshData.ColorFactor = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 		rMeshData.bTextureAnimationLoopEnable = true;
 		rMeshData.fTextureAnimationFrameDelay = 0.02f;
@@ -532,7 +530,7 @@ BOOL CEffectMeshScript::GetColorOperationType(DWORD dwMeshIndex, BYTE * pbyType)
 
 	return TRUE;
 }
-BOOL CEffectMeshScript::GetColorFactor(DWORD dwMeshIndex, D3DXCOLOR * pColor)
+BOOL CEffectMeshScript::GetColorFactor(DWORD dwMeshIndex, XMFLOAT4* pColor)
 {
 	if (!CheckMeshIndex(dwMeshIndex))
 		return FALSE;
@@ -648,7 +646,7 @@ BOOL CEffectMeshScript::OnLoadScript(CTextFileLoader & rTextFileLoader)
 		}
 		if (!rTextFileLoader.GetTokenColor("colorfactor", &rMeshData.ColorFactor))
 		{
-			rMeshData.ColorFactor = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
+			rMeshData.ColorFactor = { 1.0f, 1.0f, 1.0f, 1.0f };
 		}
 
 		if (!GetTokenTimeEventFloat(rTextFileLoader, "timeeventalpha", &rMeshData.TimeEventAlpha))

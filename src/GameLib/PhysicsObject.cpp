@@ -15,46 +15,45 @@ void CPhysicsObject::Update(float fElapsedTime)
 		m_yPushingPosition.Interpolate(fElapsedTime);
 }
 
-void CPhysicsObject::Accumulate(D3DXVECTOR3 * pv3Position)
+void CPhysicsObject::Accumulate(XMFLOAT3* pv3Position)
 {
-	// If object is moving, give minor power to object.
 	float fForce = 0.0f;
 
 	if (fabs(m_v3Velocity.x) < EPSILON ||
 		fabs(m_v3Velocity.y) < EPSILON ||
-		fabs(m_v3Velocity.z) < EPSILON )
+		fabs(m_v3Velocity.z) < EPSILON)
 	{
 		fForce -= (m_fMass * m_fFriction);
 	}
 
-	m_v3Acceleration = m_v3Direction * (fForce / m_fMass);
-	m_v3Velocity += m_v3Acceleration;
-	if (m_v3Velocity.x * m_v3Direction.x < EPSILON)
-	{
-		m_v3Velocity.x = 0.0f;
-		m_v3Direction.x = 0.0f;
-	}
-	if (m_v3Velocity.y * m_v3Direction.y < EPSILON)
-	{
-		m_v3Velocity.y = 0.0f;
-		m_v3Direction.y = 0.0f;
-	}
-	if (m_v3Velocity.z * m_v3Direction.z < EPSILON)
-	{
-		m_v3Velocity.z = 0.0f;
-		m_v3Direction.z = 0.0f;
-	}
+	XMVECTOR dir = XMLoadFloat3(&m_v3Direction);
+	float s = fForce / m_fMass;
 
-	pv3Position->x += m_v3Velocity.x;
-	pv3Position->y += m_v3Velocity.y;
-	pv3Position->z += m_v3Velocity.z;
+	XMStoreFloat3(&m_v3Acceleration, dir * s);
+	XMStoreFloat3(&m_v3Velocity,
+		XMLoadFloat3(&m_v3Velocity) + XMLoadFloat3(&m_v3Acceleration));
+
+	XMFLOAT3 vel;
+	XMStoreFloat3(&vel, XMLoadFloat3(&m_v3Velocity));
+
+	if (vel.x * m_v3Direction.x < EPSILON) { vel.x = 0.0f; m_v3Direction.x = 0.0f; }
+	if (vel.y * m_v3Direction.y < EPSILON) { vel.y = 0.0f; m_v3Direction.y = 0.0f; }
+	if (vel.z * m_v3Direction.z < EPSILON) { vel.z = 0.0f; m_v3Direction.z = 0.0f; }
+
+	m_v3Velocity = vel;
+
+	XMStoreFloat3(pv3Position,
+		XMLoadFloat3(pv3Position) + XMLoadFloat3(&m_v3Velocity));
 }
 
-void CPhysicsObject::IncreaseExternalForce(const D3DXVECTOR3 & c_rvBasePosition, float fForce)
+void CPhysicsObject::IncreaseExternalForce(const XMFLOAT3 & c_rvBasePosition, float fForce)
 {	
 	// Accumulate Acceleration by External Force
-	m_v3Acceleration = m_v3Direction * (fForce / m_fMass);
-	m_v3Velocity = m_v3Acceleration;
+	XMVECTOR dir = XMLoadFloat3(&m_v3Direction);
+	float s = fForce / m_fMass;
+
+	XMStoreFloat3(&m_v3Acceleration, dir * s);
+	XMStoreFloat3(&m_v3Velocity, dir * s);
 /*
 	Tracenf("force %f, mass %f, accel (%f, %f, %f)", fForce, m_fMass, 
 		m_v3Acceleration.x, 
@@ -63,7 +62,7 @@ void CPhysicsObject::IncreaseExternalForce(const D3DXVECTOR3 & c_rvBasePosition,
 */
 	// NOTE : 최종 위치를 구해둔다. 근데 100보다 크다면? ;
 	const int LoopValue = 100;
-	D3DXVECTOR3 v3Movement(0.0f, 0.0f, 0.0f);
+	XMFLOAT3 v3Movement(0.0f, 0.0f, 0.0f);
 
 	for(int i = 0; i < LoopValue; ++i)
 	{
@@ -73,7 +72,10 @@ void CPhysicsObject::IncreaseExternalForce(const D3DXVECTOR3 & c_rvBasePosition,
 		IPhysicsWorld* pWorld = IPhysicsWorld::GetPhysicsWorld();
 		if (pWorld)
 		{
-			if (pWorld->isPhysicalCollision(c_rvBasePosition + v3Movement))
+			XMFLOAT3 pos;
+			XMStoreFloat3(&pos, XMLoadFloat3(&c_rvBasePosition) + XMLoadFloat3(&v3Movement));
+
+			if (pWorld->isPhysicalCollision(pos))
 			{
 				Initialize();
 				return;
@@ -123,7 +125,7 @@ void CPhysicsObject::GetLastPosition(TPixelPosition * pPosition)
 	pPosition->z = (m_v3LastPosition.z);
 }
 
-void CPhysicsObject::SetDirection(const D3DXVECTOR3 & c_rv3Direction)
+void CPhysicsObject::SetDirection(const XMFLOAT3 & c_rv3Direction)
 {
 	m_v3Direction.x = c_rv3Direction.x;
 	m_v3Direction.y = c_rv3Direction.y;
@@ -143,8 +145,8 @@ float CPhysicsObject::GetYMovement()
 bool CPhysicsObject::isBlending()
 {
 	// NOTE : IncreaseExternalForce() 에 의해 밀리는 처리중인가?
-	if (0.0f != D3DXVec3Length(&m_v3Velocity))
-		return true;
+	if (XMVectorGetX(XMVector3Length(XMLoadFloat3(&m_v3Velocity))) != 0.0f)
+		return true;;
 
 	// NOTE : SetLastPosition() 에 의해 밀리는 처리중인가?
 	if (m_xPushingPosition.isPlaying() ||
@@ -158,10 +160,10 @@ void CPhysicsObject::Initialize()
 {
 	m_fMass = 1.0f;
 	m_fFriction = 0.3f;
-	m_v3Direction = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
-	m_v3Acceleration = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
-	m_v3Velocity = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
-	m_v3LastPosition = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+	m_v3Direction = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	m_v3Acceleration = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	m_v3Velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	m_v3LastPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 	m_xPushingPosition.Initialize();
 	m_yPushingPosition.Initialize();

@@ -16,8 +16,8 @@
 
 struct HardwareTransformPatch_SSourceVertex
 {
-	D3DXVECTOR3 kPosition;
-	D3DXVECTOR3 kNormal;
+	XMFLOAT3 kPosition;
+	XMFLOAT3 kNormal;
 };
 
 struct SWaterVertex
@@ -124,9 +124,9 @@ public:
 
 	void Clear();
 
-	void SetCenterPosition(const D3DXVECTOR3& c_rv3Center);
+	void SetCenterPosition(const XMFLOAT3& c_rv3Center);
 
-	bool IsIn(const D3DXVECTOR3& c_rv3Target, float fRadius);
+	bool IsIn(const XMFLOAT3& c_rv3Target, float fRadius);
 
 	bool isUsed()																	{ return m_bUsed; }
 	void SetUsed(bool bUsed)														{ m_bUsed = bUsed; }
@@ -162,7 +162,7 @@ protected:
 
 	CTerrainPatch *			m_pTerrainPatch;
 
-	D3DXVECTOR3				m_v3Center;
+	XMFLOAT3				m_v3Center;
 };
 
 inline bool CTerrainPatchProxy::isWaterExists()

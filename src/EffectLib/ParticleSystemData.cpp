@@ -60,7 +60,7 @@ BOOL CParticleSystemData::OnLoadScript(CTextFileLoader & rTextFileLoader)
 	}
 	if (!rTextFileLoader.GetTokenPosition("emittingsize", &m_EmitterProperty.m_v3EmittingSize))
 	{
-		m_EmitterProperty.m_v3EmittingSize = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+		m_EmitterProperty.m_v3EmittingSize = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	}
 	if (!rTextFileLoader.GetTokenFloat("emittingradius", &m_EmitterProperty.m_fEmittingRadius))
 	{
@@ -74,7 +74,7 @@ BOOL CParticleSystemData::OnLoadScript(CTextFileLoader & rTextFileLoader)
 	
 	if (!rTextFileLoader.GetTokenPosition("emittingdirection", &m_EmitterProperty.m_v3EmittingDirection))
 	{
-		m_EmitterProperty.m_v3EmittingDirection = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+		m_EmitterProperty.m_v3EmittingDirection = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	}
 
 	if (!GetTokenTimeEventFloat(rTextFileLoader, "timeeventemittingsize", &m_EmitterProperty.m_TimeEventEmittingSize))
@@ -247,10 +247,10 @@ BOOL CParticleSystemData::OnLoadScript(CTextFileLoader & rTextFileLoader)
 			fA = GetTimeEventBlendValue(fTime, TimeEventA);
 			TTimeEventTypeColor t;
 			t.m_fTime = fTime;
-			t.m_Value.r = fR;
-			t.m_Value.g = fG;
-			t.m_Value.b = fB;
-			t.m_Value.a = fA;
+			t.m_Value.x = fR;
+			t.m_Value.y = fG;
+			t.m_Value.z = fB;
+			t.m_Value.w = fA;
 			m_ParticleProperty.m_TimeEventColor.push_back(t);
 		}
 	}

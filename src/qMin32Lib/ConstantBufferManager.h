@@ -4,19 +4,18 @@
 
 struct CBPerFrame
 {
-	D3DXMATRIX matWorld;
-	D3DXMATRIX matView;
-	D3DXMATRIX matProj;
+	XMFLOAT4X4 matWorld;
+	XMFLOAT4X4 matView;
+	XMFLOAT4X4 matProj;
 };
 
 struct CBTexTransform
 {
-	D3DXMATRIX tex0;
-	D3DXMATRIX tex1;
-	D3DXMATRIX tex2;
-	D3DXMATRIX tex3;
+	XMFLOAT4X4 tex0;
+	XMFLOAT4X4 tex1;
+	XMFLOAT4X4 tex2;
+	XMFLOAT4X4 tex3;
 };
-
 
 struct CBMatrix
 {
@@ -83,7 +82,7 @@ struct CBScreenSize
 
 struct CBSpeedTree
 {
-	D3DXMATRIX matCompound;
+	XMFLOAT4X4 matCompound;
 	float treePos[4];
 	float fog[4];
 	float lightDir[4];
@@ -110,12 +109,12 @@ public:
 	CBManager(DxManager* manager);
 
 	// Transforms → constant buffer b0
-	void SetWorldMatrix(const D3DXMATRIX& mat);
-	void SetViewMatrix(const D3DXMATRIX& mat);
-	void SetProjMatrix(const D3DXMATRIX& mat);
+	void SetWorldMatrix(const XMFLOAT4X4& mat);
+	void SetViewMatrix(const XMFLOAT4X4& mat);
+	void SetProjMatrix(const XMFLOAT4X4& mat);
 	void FlushMatrix();
 	// Texture coordinate transform → constant buffer b3
-	void SetTexTransform(DWORD dwStage, const D3DXMATRIX& mat);
+	void SetTexTransform(DWORD dwStage, const XMFLOAT4X4& mat);
 
 	// Lighting → constant buffer b2
 	void SetLightingEnable(BOOL bEnable);
@@ -143,8 +142,8 @@ public:
 
 	void SetScreenSize(float width, float height);
 
-	void SetSpeedTreeCompoundMatrix(const D3DXMATRIX& mat);
-	void SetSpeedTreeTreePosition(const D3DXVECTOR4& pos);
+	void SetSpeedTreeCompoundMatrix(const XMFLOAT4X4& mat);
+	void SetSpeedTreeTreePosition(const XMFLOAT4& pos);
 	void SetSpeedTreeFog(const float* fog);
 	void SetSpeedTreeLight(const float* light);
 	void SetSpeedTreeMaterialConstants(const float* material, float leafLightingAdjustment);
@@ -153,7 +152,7 @@ public:
 
 	//bone mesh
 	bool UploadBonePalette(const DirectX::XMFLOAT4X4* bones, unsigned int count);
-	void SetSpecularPower(float power, const D3DXCOLOR& color);
+	void SetSpecularPower(float power, const XMFLOAT4& color);
 
 	void FlushAllState();
 	void SetAllBuffers();

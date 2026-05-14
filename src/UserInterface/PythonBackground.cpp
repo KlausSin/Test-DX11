@@ -163,7 +163,7 @@ void CPythonBackground::SetViewDistanceSet(int eNum, float fFarClip)
 	m_ViewDistanceSet[eNum].m_fFogEnd		= fFarClip * 0.7f;//0.6666667f;
 	
 	float fSkyBoxScale						= fFarClip * 0.6f;//0.5773502f;
-	m_ViewDistanceSet[eNum].m_v3SkyBoxScale	= D3DXVECTOR3(fSkyBoxScale, fSkyBoxScale, fSkyBoxScale);
+	m_ViewDistanceSet[eNum].m_v3SkyBoxScale	= XMFLOAT3(fSkyBoxScale, fSkyBoxScale, fSkyBoxScale);
 	m_ViewDistanceSet[eNum].m_fFarClip		= fFarClip;
 
 	if (eNum == m_eViewDistanceNum)
@@ -248,25 +248,25 @@ void CPythonBackground::__CreateProperty()
 // Normal Functions
 //////////////////////////////////////////////////////////////////////
 
-bool CPythonBackground::GetPickingPoint(D3DXVECTOR3 * v3IntersectPt)
+bool CPythonBackground::GetPickingPoint(XMFLOAT3 * v3IntersectPt)
 {
 	CMapOutdoor& rkMap=GetMapOutdoorRef();
 	return rkMap.GetPickingPoint(v3IntersectPt);
 }
 
-bool CPythonBackground::GetPickingPointWithRay(const CRay & rRay, D3DXVECTOR3 * v3IntersectPt)
+bool CPythonBackground::GetPickingPointWithRay(const CRay & rRay, XMFLOAT3 * v3IntersectPt)
 {
 	CMapOutdoor& rkMap=GetMapOutdoorRef();
 	return rkMap.GetPickingPointWithRay(rRay, v3IntersectPt);
 }
 
-bool CPythonBackground::GetPickingPointWithRayOnlyTerrain(const CRay & rRay, D3DXVECTOR3 * v3IntersectPt)
+bool CPythonBackground::GetPickingPointWithRayOnlyTerrain(const CRay & rRay, XMFLOAT3 * v3IntersectPt)
 {
 	CMapOutdoor& rkMap=GetMapOutdoorRef();
 	return rkMap.GetPickingPointWithRayOnlyTerrain(rRay, v3IntersectPt);
 }
 
-BOOL CPythonBackground::GetLightDirection(D3DXVECTOR3 & rv3LightDirection)
+BOOL CPythonBackground::GetLightDirection(XMFLOAT3 & rv3LightDirection)
 {
 	if (!mc_pcurEnvironmentData)
 		return FALSE;
@@ -339,7 +339,7 @@ void CPythonBackground::Update(float fCenterX, float fCenterY, float fCenterZ)
 #ifdef __PERFORMANCE_CHECKER__
 	DWORD t3=ELTimer_GetMSec();
 #endif
-	m_SnowEnvironment.Update(D3DXVECTOR3(fCenterX, -fCenterY, fCenterZ));
+	m_SnowEnvironment.Update(XMFLOAT3(fCenterX, -fCenterY, fCenterZ));
 
 #ifdef __PERFORMANCE_CHECKER__
 	{
@@ -506,7 +506,7 @@ void CPythonBackground::RenderCharacterShadowToTexture()
 		m_eShadowLevel == SHADOW_ALL_MAX ||
 		m_eShadowLevel == SHADOW_GROUND_AND_SOLO)
 	{
-		D3DXMATRIX matWorld;
+		XMFLOAT4X4 matWorld;
 		matWorld = STATEMANAGER.GetTransform().GetWorld();
 
 		bool canRender=rkMap.BeginRenderCharacterShadowToTexture();
@@ -819,7 +819,7 @@ void CPythonBackground::DisableSnowEnvironment()
 	m_SnowEnvironment.Disable();
 }
 
-const D3DXVECTOR3 c_v3TreePos = D3DXVECTOR3(76500.0f, -60900.0f, 20215.0f);
+const XMFLOAT3 c_v3TreePos = XMFLOAT3(76500.0f, -60900.0f, 20215.0f);
 
 void CPythonBackground::SetXMaxTree(int iGrade)
 {

@@ -37,7 +37,9 @@ void CMapOutdoor::RenderWater(const RenderContext& ctx)
     state.Push();
     STATEMANAGER.GetSampler().Push(0);
 
-    STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(false);
+    STATEMANAGER.GetDepthStencil().SetDepthEnable(TRUE);
+    STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(FALSE);
+    STATEMANAGER.GetDepthStencil().SetDepthFunc(D3D11_COMPARISON_LESS_EQUAL);
 
     STATEMANAGER.GetBlend().SetBlendEnable(true);
     STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);

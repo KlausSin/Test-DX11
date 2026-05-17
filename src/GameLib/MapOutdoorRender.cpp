@@ -9,8 +9,6 @@
 #include "qMin32Lib/DxManager.h"
 #include "EterBase/Timer.h"
 
-#define MAX_RENDER_SPALT 150
-
 CArea::TCRCWithNumberVector m_dwRenderedCRCWithNumberVector;
 
 CMapOutdoor::TTerrainNumVector CMapOutdoor::FSortPatchDrawStructWithTerrainNum::m_TerrainNumVector;
@@ -329,28 +327,31 @@ void CMapOutdoor::OnRender()
 	SetInverseViewAndDynamicShaodwMatrices();
 	RenderContext ctx = BuildRenderFrameContext();
 
-	RenderSky(ctx);
-
 	SetBlendOperation();
 
-	RenderArea(ctx);
-	RenderTree(ctx);
 
 	if (!m_bEnableTerrainOnlyForHeight)
 		RenderTerrain(ctx);
+	RenderArea(ctx);
+	RenderTree(ctx);
 
 	RenderBlendArea(ctx);
-	RenderCloud(ctx);
 #endif
 }
 
 struct FAreaRenderShadow
 {
 	const RenderContext& ctx;
-	void operator () (CGraphicObjectInstance * pInstance)
+
+	void operator()(CGraphicObjectInstance* pInstance)
 	{
+		if (!pInstance)
+			return;
+
 		pInstance->RenderShadow(ctx);
-		pInstance->Hide();
+
+		if (!pInstance->IsObjectHeight())
+			pInstance->Hide();
 	}
 };
 
@@ -449,15 +450,6 @@ void CMapOutdoor::RenderArea(const RenderContext& ctx, bool bRenderAmbience)
 	m_dwRenderedGraphicThingInstanceNum = 0;
 	m_dwRenderedCRCWithNumberVector.clear();
 
-	for (int j = 0; j < AROUND_AREA_NUM; ++j)
-	{
-		CArea* pArea;
-		if (GetAreaPointer(j, &pArea))
-		{
-			pArea->RenderDungeon(ctx);
-		}
-	}
-
 	std::for_each(m_PCBlockerVector.begin(), m_PCBlockerVector.end(), FPCBlockerHide());
 
 	if (ctx.Frame.DrawShadow && ctx.Frame.DrawCharacterShadow && ctx.Frame.CharacterShadowTexture)
@@ -467,22 +459,32 @@ void CMapOutdoor::RenderArea(const RenderContext& ctx, bool bRenderAmbience)
 		STATEMANAGER.GetTransform().Push();
 		STATEMANAGER.GetTransform().SetTexture1(ctx.Frame.DynamicShadowMatrix);
 
-		STATEMANAGER.SetTexture(4, ctx.Frame.CharacterShadowTexture);
+		STATEMANAGER.SetTexture(3, ctx.Frame.CharacterShadowTexture);
 
-		STATEMANAGER.GetSampler().Push(4);
-		STATEMANAGER.GetSampler().SetAddressUV(4, D3D11_TEXTURE_ADDRESS_BORDER, D3D11_TEXTURE_ADDRESS_BORDER);
-		STATEMANAGER.GetSampler().SetFilter(4, D3D11_FILTER_MIN_MAG_MIP_LINEAR);
+		STATEMANAGER.GetSampler().Push(3);
+		STATEMANAGER.GetSampler().SetAddressUV(3, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
+		STATEMANAGER.GetSampler().SetFilter(3, D3D11_FILTER_MIN_MAG_MIP_LINEAR);
 
 		std::for_each(m_ShadowReceiverVector.begin(), m_ShadowReceiverVector.end(), FAreaRenderShadow(ctx));
 
-		STATEMANAGER.GetSampler().Restore(4);
+		STATEMANAGER.GetSampler().Restore(3);
 		STATEMANAGER.GetTransform().Restore();
 
+		STATEMANAGER.SetTexture(3, NULL);
 		_mgr->GetCbMgr()->SetFogColor(ctx.Frame.FogColor);
 	}
 
+	for (int j = 0; j < AROUND_AREA_NUM; ++j)
+	{
+		CArea* pArea;
+		if (GetAreaPointer(j, &pArea))
+			pArea->RenderDungeon(ctx);
+	}
+
 	STATEMANAGER.GetDepthStencil().Push();
-	STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(true);
+	STATEMANAGER.GetDepthStencil().SetDepthEnable(TRUE);
+	STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(TRUE);
+	STATEMANAGER.GetDepthStencil().SetDepthFunc(D3D11_COMPARISON_LESS_EQUAL);
 
 	static std::vector<CGraphicThingInstance*> s_kVct_pkOpaqueThingInstSort;
 	s_kVct_pkOpaqueThingInstSort.clear();
@@ -497,6 +499,7 @@ void CMapOutdoor::RenderArea(const RenderContext& ctx, bool bRenderAmbience)
 
 	std::sort(s_kVct_pkOpaqueThingInstSort.begin(), s_kVct_pkOpaqueThingInstSort.end(), CMapOutdoor_LessThingInstancePtrRenderOrder());
 	std::for_each(s_kVct_pkOpaqueThingInstSort.begin(), s_kVct_pkOpaqueThingInstSort.end(), CMapOutdoor_FOpaqueThingInstanceRender(ctx));
+
 	STATEMANAGER.GetDepthStencil().Restore();
 
 	if (m_bDrawShadow && m_bDrawChrShadow)

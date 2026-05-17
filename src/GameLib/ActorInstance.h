@@ -14,6 +14,7 @@
 #include "../UserInterface/Locale_inc.h"
 #include "SpeedTreeLib/SpeedTreeForest.h"
 //#include "EterGrnLib/ThingInstance.h"
+#include "qMin32Lib/CollisionObject.h"
 
 class CItemData;
 class CWeaponTrace;
@@ -898,4 +899,10 @@ class CActorInstance : public IActorInstance, public IFlyTargetableObject
 
 	protected:
 		static bool ms_isDirLine;
+
+
+	public:
+		void UpdateJoltCharacterCollision();
+	private:
+		CollisionObject m_JoltCharacterCollision;
 };

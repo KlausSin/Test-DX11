@@ -486,31 +486,21 @@ bool CScreen::GetCursorPosition(float* px, float* py, float* pz)
 
 bool CScreen::GetCursorXYPosition(float* px, float* py)
 {
-	XMFLOAT3 v3Eye = CCameraManager::Instance().GetCurrentCamera()->GetEye();
+	if (!px || !py)
+		return false;
 
-	TPosition posVertices[4];
-	posVertices[0] = TPosition(v3Eye.x-90000000.0f, v3Eye.y+90000000.0f, 0.0f);
-	posVertices[1] = TPosition(v3Eye.x-90000000.0f, v3Eye.y-90000000.0f, 0.0f);
-	posVertices[2] = TPosition(v3Eye.x+90000000.0f, v3Eye.y+90000000.0f, 0.0f);
-	posVertices[3] = TPosition(v3Eye.x+90000000.0f, v3Eye.y-90000000.0f, 0.0f);
+	if (fabsf(ms_vtPickRayDir.z) < 0.00001f)
+		return false;
 
-	static const WORD sc_awFillRectIndices[6] = { 0, 2, 1, 2, 3, 1, };
+	const float t = -ms_vtPickRayOrig.z / ms_vtPickRayDir.z;
 
-	float u, v, t;	
-	for (int i = 0; i < 2; ++i)
-	{
-		if (IntersectTriangle(ms_vtPickRayOrig, ms_vtPickRayDir,
-							 posVertices[sc_awFillRectIndices[i*3+0]],
-							 posVertices[sc_awFillRectIndices[i*3+1]],
-							 posVertices[sc_awFillRectIndices[i*3+2]],
-							 &u, &v, &t))
-		{
-			*px = ms_vtPickRayOrig.x + ms_vtPickRayDir.x * t;
-			*py = ms_vtPickRayOrig.y + ms_vtPickRayDir.y * t;
-			return true;
-		}
-	}
-	return false;
+	if (t < 0.0f)
+		return false;
+
+	*px = ms_vtPickRayOrig.x + ms_vtPickRayDir.x * t;
+	*py = ms_vtPickRayOrig.y + ms_vtPickRayDir.y * t;
+
+	return true;
 }
 
 bool CScreen::GetCursorZPosition(float* pz)

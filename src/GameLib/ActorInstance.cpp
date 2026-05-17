@@ -10,6 +10,33 @@ enum
 	MAIN_RACE_MAX_NUM = 8,
 };
 
+void CActorInstance::UpdateJoltCharacterCollision()
+{
+	const XMFLOAT3& p = GetPosition();
+
+	constexpr float characterRadius = 10.0f;
+	constexpr float characterHalfHeight = 80.0f;
+	constexpr float characterCenterZ = characterRadius + characterHalfHeight;
+
+	float3pos pos = { p.x, -p.y, p.z + characterCenterZ };
+	quatrot rot = { 0.70710678f, 0.0f, 0.0f, 0.70710678f };
+
+	if (!m_JoltCharacterCollision.IsValid())
+	{
+		m_JoltCharacterCollision.CreateStaticCapsule(
+			pos,
+			characterRadius,
+			characterHalfHeight,
+			rot,
+			CollisionKind::Character,
+			this
+		);
+		return;
+	}
+
+	m_JoltCharacterCollision.SetTransform(pos, rot);
+}
+
 void CActorInstance::INSTANCEBASE_Deform()
 {
 	Deform();
@@ -91,6 +118,11 @@ void CActorInstance::OnUpdate()
 		fflush(fp);
 	}
 #endif
+
+	if (IsPC())
+		UpdateJoltCharacterCollision();
+	else
+		m_JoltCharacterCollision.Destroy();
 }
 
 
@@ -864,7 +896,7 @@ void CActorInstance::Destroy()
 	__DestroyTree();
 	//m_PhysicsObject.SetActorInstance(NULL);
 
-
+	m_JoltCharacterCollision.Destroy();
 	__Initialize();
 }
 

@@ -1281,6 +1281,7 @@ void CArea::TAmbienceInstance::Render()
 	}
 }
 
+
 bool CArea::SAmbienceInstance::Picking()
 {
 	return CGraphicCollisionObject::IntersectSphere(XMFLOAT3(fx, fy, fz), dwRange);

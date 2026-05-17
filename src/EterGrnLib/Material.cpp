@@ -53,6 +53,9 @@ CGrannyMaterial::~CGrannyMaterial()
 void CGrannyMaterial::Initialize()
 {
     m_state = TMaterialState{};
+    m_state.images[0] = nullptr;
+    m_state.images[1] = nullptr;
+
     m_dwLastCullRenderStateForTwoSideRendering = D3D11_CULL_FRONT;
     SetSpecularInfo(FALSE, 0.0f, 0);
 }

@@ -4,12 +4,14 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/CylinderShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 
 #include "JoltPhysicsComponent.h"
 #include "JoltPhysicsWorld.h"
 #include "JoltPhysicsLayers.h"
 #include "JoltConversion.h"
+#include "JoltShapeCache.h"
 
 JoltPhysicsComponent::~JoltPhysicsComponent()
 {
@@ -18,31 +20,29 @@ JoltPhysicsComponent::~JoltPhysicsComponent()
 
 bool JoltPhysicsComponent::CreateBox(JoltPhysicsWorld& world, const Transform& transform, const float3pos& halfSize, float mass, JoltBodyType type)
 {
-    JPH::BoxShapeSettings settings(JoltConvert::ToVec3(halfSize));
-    return CreateBody(world, settings, transform, mass, type);
+    return CreateShape(world, transform, JoltShapeCache::Instance().GetBoxShape(halfSize), mass, type);
 }
 
 bool JoltPhysicsComponent::CreateSphere(JoltPhysicsWorld& world, const Transform& transform, float radius, float mass, JoltBodyType type)
 {
-    JPH::SphereShapeSettings settings(radius);
-    return CreateBody(world, settings, transform, mass, type);
+    return CreateShape(world, transform, JoltShapeCache::Instance().GetSphereShape(radius), mass, type);
 }
 
 bool JoltPhysicsComponent::CreateCapsule(JoltPhysicsWorld& world, const Transform& transform, float radius, float halfHeight, float mass, JoltBodyType type)
 {
-    JPH::CapsuleShapeSettings settings(halfHeight, radius);
-    return CreateBody(world, settings, transform, mass, type);
+    return CreateShape(world, transform, JoltShapeCache::Instance().GetCapsuleShape(radius, halfHeight), mass, type);
 }
 
-bool JoltPhysicsComponent::CreateBody(JoltPhysicsWorld& world, const JPH::ShapeSettings& shapeSettings, const Transform& transform, float mass, JoltBodyType type)
+bool JoltPhysicsComponent::CreateCylinder(JoltPhysicsWorld& world, const Transform& transform, float radius, float halfHeight, float mass, JoltBodyType type)
+{
+    return CreateShape(world, transform, JoltShapeCache::Instance().GetCylinderShape(radius, halfHeight), mass, type);
+}
+
+bool JoltPhysicsComponent::CreateShape(JoltPhysicsWorld& world, const Transform& transform, JPH::ShapeRefC shape, float mass, JoltBodyType type)
 {
     Destroy();
 
-    if (!world.IsInitialized())
-        return false;
-
-    JPH::ShapeSettings::ShapeResult shapeResult = shapeSettings.Create();
-    if (shapeResult.HasError())
+    if (!world.IsInitialized() || !shape)
         return false;
 
     JPH::EMotionType motionType = JPH::EMotionType::Static;
@@ -54,7 +54,7 @@ bool JoltPhysicsComponent::CreateBody(JoltPhysicsWorld& world, const JPH::ShapeS
         objectLayer = JoltObjectLayers::MOVING;
     }
 
-    JPH::BodyCreationSettings bodySettings(shapeResult.Get(), JoltConvert::ToRVec3(transform.position), JoltConvert::ToQuat(transform.rotation), motionType, objectLayer);
+    JPH::BodyCreationSettings bodySettings(shape, JoltConvert::ToRVec3(transform.position), JoltConvert::ToQuat(transform.rotation), motionType, objectLayer);
     bodySettings.mOverrideMassProperties = type == JoltBodyType::Dynamic ? JPH::EOverrideMassProperties::CalculateInertia : JPH::EOverrideMassProperties::MassAndInertiaProvided;
     bodySettings.mMassPropertiesOverride.mMass = mass > 0.0f ? mass : 1.0f;
 
@@ -70,6 +70,15 @@ bool JoltPhysicsComponent::CreateBody(JoltPhysicsWorld& world, const JPH::ShapeS
 
     bodyInterface.AddBody(m_bodyID, type == JoltBodyType::Static ? JPH::EActivation::DontActivate : JPH::EActivation::Activate);
     return true;
+}
+
+bool JoltPhysicsComponent::CreateBody(JoltPhysicsWorld& world, const JPH::ShapeSettings& shapeSettings, const Transform& transform, float mass, JoltBodyType type)
+{
+    JPH::ShapeSettings::ShapeResult shapeResult = shapeSettings.Create();
+    if (shapeResult.HasError())
+        return false;
+
+    return CreateShape(world, transform, shapeResult.Get(), mass, type);
 }
 
 void JoltPhysicsComponent::Destroy()

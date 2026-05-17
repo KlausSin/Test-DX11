@@ -132,7 +132,7 @@ void CGraphicImageInstance::OnRender()
 		STATEMANAGER.SetTexture(0, texture->GetSRV());
 		STATEMANAGER.SetTexture(1, nullptr);
 
-		_mgr->SetShader(VF_PDT, BLEND_UI_TEX);
+		_mgr->SetShader(VF_PDT, BLEND_MODULATE);
 
 		STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, 0, 0, 2);
 	}

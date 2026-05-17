@@ -10,7 +10,7 @@
 #include "PythonCharacterManager.h"
 
 #include "ProcessScanner.h"
-
+#include "qMin32Lib/CPhysicsManager.h"
 #include <utf8.h>
 
 float MIN_FOG = 2400.0f;
@@ -233,6 +233,12 @@ void CPythonApplication::UpdateGame()
 	TPixelPosition kPPosMainActor;
 	m_pyPlayer.NEW_GetMainActorPosition(&kPPosMainActor);
 
+	CPhysicsManager::Instance().SetStreamCenter({
+	kPPosMainActor.x,
+	-kPPosMainActor.y,
+	kPPosMainActor.z
+		});
+
 	m_pyBackground.Update(kPPosMainActor.x, kPPosMainActor.y, kPPosMainActor.z);
 
 	m_GameEventManager.SetCenterPosition(kPPosMainActor.x, kPPosMainActor.y, kPPosMainActor.z);
@@ -291,6 +297,8 @@ bool CPythonApplication::Process()
 
 	m_fGlobalTime = rkTimer.GetCurrentSecond();
 	m_fGlobalElapsedTime = rkTimer.GetElapsedSecond();
+
+	CPhysicsManager::Instance().Update(m_fGlobalElapsedTime);
 
 	UINT uiFrameTime = rkTimer.GetElapsedMilliecond();
 	s_uiNextFrameTime += uiFrameTime;	//17 - 1ÃÊ´ç 60fps±âÁØ.
@@ -819,10 +827,17 @@ bool CPythonApplication::Create(PyObject * poSelf, const char * c_szName, int wi
 		return false;
 	}
 
+	if (!CPhysicsManager::Instance().Initialize())
+	{
+		TraceError("Jolt physics initialize failed");
+		return false;
+	}
+
 	if (m_pySystem.IsUseDefaultIME())
 	{
 		CPythonIME::Instance().UseDefaultIME();
 	}
+
 
 #if defined(ENABLE_DISCORD_RPC)
 	m_pyNetworkStream.Discord_Start();

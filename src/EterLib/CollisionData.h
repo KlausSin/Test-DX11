@@ -1,204 +1,156 @@
 #pragma once
+#include <vector>
+#include <cstdint>
+#include "qMin32Lib/JoltTypes.h"
+#include "qMin32Lib/PhysicsObjectComponent.h"
+#include <d3d11.h>
+#include <DirectXMath.h>
+using namespace DirectX;
 
-// Collision Detection
-typedef struct SSphereData
+struct SSphereData { XMFLOAT3 v3Position; float fRadius; };
+typedef SSphereData TSphereData;
+
+struct SPlaneData
 {
-	XMFLOAT3 v3Position;
-	float fRadius;
-} TSphereData;
+    XMFLOAT3 v3Position;
+    XMFLOAT3 v3Normal;
+    XMFLOAT3 v3QuadPosition[4];
+    XMFLOAT3 v3InsideVector[4];
+};
+typedef SPlaneData TPlaneData;
 
-typedef struct SPlaneData
-{
-	XMFLOAT3 v3Position;
-	XMFLOAT3 v3Normal;
+struct SAABBData { XMFLOAT3 v3Min; XMFLOAT3 v3Max; };
+typedef SAABBData TAABBData;
 
-	XMFLOAT3 v3QuadPosition[4];
-	XMFLOAT3 v3InsideVector[4];
-} TPlaneData;
+struct SOBBData { XMFLOAT3 v3Min; XMFLOAT3 v3Max; XMFLOAT4X4 matRot; };
+typedef SOBBData TOBBData;
 
-typedef struct SAABBData
-{
-	XMFLOAT3 v3Min;
-	XMFLOAT3 v3Max;
-
-} TAABBData;
-
-typedef struct SOBBData
-{
-	XMFLOAT3 v3Min;
-	XMFLOAT3 v3Max;
-	XMFLOAT4X4 matRot;
-
-} TOBBData;
-
-typedef struct SCylinderData
-{
-	XMFLOAT3 v3Position;
-	float fRadius;
-	float fHeight;
-} TCylinderData;
+struct SCylinderData { XMFLOAT3 v3Position; float fRadius; float fHeight; };
+typedef SCylinderData TCylinderData;
 
 enum ECollisionType
 {
-	COLLISION_TYPE_PLANE,
-	COLLISION_TYPE_BOX,
-	COLLISION_TYPE_SPHERE,
-	COLLISION_TYPE_CYLINDER,
-	COLLISION_TYPE_AABB,
-	COLLISION_TYPE_OBB,
+    COLLISION_TYPE_PLANE,
+    COLLISION_TYPE_BOX,
+    COLLISION_TYPE_SPHERE,
+    COLLISION_TYPE_CYLINDER,
+    COLLISION_TYPE_AABB,
+    COLLISION_TYPE_OBB,
 };
 
 struct CDynamicSphereInstance
 {
-	XMFLOAT3 v3Position;
-	XMFLOAT3 v3LastPosition;
-
-	float fRadius;
+    XMFLOAT3 v3Position;
+    XMFLOAT3 v3LastPosition;
+    float fRadius;
 };
 
 class CStaticCollisionData
 {
 public:
-	uint32_t dwType;
-	char szName[32 + 1];
-
-	XMFLOAT3 v3Position;
-	float fDimensions[3];
-	XMFLOAT4 quatRotation;
+    uint32_t dwType;
+    char szName[32 + 1];
+    XMFLOAT3 v3Position;
+    float fDimensions[3];
+    XMFLOAT4 quatRotation;
 };
 
 void DestroyCollisionInstanceSystem();
-
 typedef std::vector<CStaticCollisionData> CStaticCollisionDataVector;
 
-/////////////////////////////////////////////
-// Base
 class CBaseCollisionInstance
 {
 public:
-	virtual void Render(D3D11_FILL_MODE D3D11_FILL_MODE = D3D11_FILL_SOLID) = 0;
+    CBaseCollisionInstance() = default;
+    virtual ~CBaseCollisionInstance();
 
-	bool MovementCollisionDynamicSphere(const CDynamicSphereInstance& s) const
-	{
-		return OnMovementCollisionDynamicSphere(s);
-	}
-	bool CollisionDynamicSphere(const CDynamicSphereInstance& s) const
-	{
-		return OnCollisionDynamicSphere(s);
-	}
+    virtual void Render(D3D11_FILL_MODE fillMode = D3D11_FILL_SOLID) {}
 
+    bool MovementCollisionDynamicSphere(const CDynamicSphereInstance& s) const;
+    bool CollisionDynamicSphere(const CDynamicSphereInstance& s) const;
+    XMFLOAT3 GetCollisionMovementAdjust(const CDynamicSphereInstance& s) const;
 
-	XMFLOAT3 GetCollisionMovementAdjust(const CDynamicSphereInstance& s) const
-	{
-		return OnGetCollisionMovementAdjust(s);
-	}
+    void Destroy();
+    void ReleaseJoltBody() const;
+    bool EnsureJoltBody(bool immediateQuery) const;
+    bool HasJoltBody() const;
+    const float3pos& GetJoltWorldCenter() const;
+    float GetJoltRadius() const;
 
-	void Destroy();
+    static CBaseCollisionInstance* BuildCollisionInstance(const CStaticCollisionData* c_pCollisionData, const XMFLOAT4X4* pMat);
 
-	static CBaseCollisionInstance* BuildCollisionInstance(const CStaticCollisionData* c_pCollisionData, const XMFLOAT4X4* pMat);
+    void SetDebugInfo(DWORD type, const char* name);
+    DWORD GetDebugType() const;
+    const char* GetDebugName() const;
 
 protected:
-	virtual XMFLOAT3 OnGetCollisionMovementAdjust(const CDynamicSphereInstance& s) const = 0;
-	virtual bool OnMovementCollisionDynamicSphere(const CDynamicSphereInstance& s) const = 0;
-	virtual bool OnCollisionDynamicSphere(const CDynamicSphereInstance& s) const = 0;
-	virtual void OnDestroy() = 0;
+    virtual bool CreateJoltBodyInternal() = 0;
+    virtual void OnDestroy() {}
+
+    bool CreateStaticBox(const XMFLOAT3& center, const XMFLOAT3& halfSize, const XMFLOAT4& rotation);
+    bool CreateStaticSphere(const XMFLOAT3& center, float radius);
+    bool CreateStaticCylinder(const XMFLOAT3& center, float radius, float height, const XMFLOAT4& rotation);
+
+    void SetJoltBounds(const XMFLOAT3& center, float radius);
+
+protected:
+    mutable PhysicsObjectComponent m_body;
+    mutable bool m_joltCreated = false;
+    float3pos m_joltWorldCenter = { 0.0f, 0.0f, 0.0f };
+    float m_joltRadius = 0.0f;
+
+    DWORD m_debugType = 0;
+    char m_debugName[32] = {};
 };
 
-/////////////////////////////////////////////
-// Sphere
 class CSphereCollisionInstance : public CBaseCollisionInstance
 {
 public:
-	TSphereData& GetAttribute();
-	const TSphereData& GetAttribute() const;
-	virtual void Render(D3D11_FILL_MODE D3D11_FILL_MODE = D3D11_FILL_SOLID);
-
+    TSphereData& GetAttribute() { return m_attribute; }
+    const TSphereData& GetAttribute() const { return m_attribute; }
 protected:
-	void OnDestroy();
-	bool OnMovementCollisionDynamicSphere(const CDynamicSphereInstance& s) const;
-	virtual bool OnCollisionDynamicSphere(const CDynamicSphereInstance& s) const;
-	virtual XMFLOAT3 OnGetCollisionMovementAdjust(const CDynamicSphereInstance& s) const;
-
-protected:
-	TSphereData m_attribute;
+    bool CreateJoltBodyInternal() override;
+    TSphereData m_attribute{};
 };
 
-/////////////////////////////////////////////
-// Plane
 class CPlaneCollisionInstance : public CBaseCollisionInstance
 {
 public:
-	TPlaneData& GetAttribute();
-	const TPlaneData& GetAttribute() const;
-	virtual void Render(D3D11_FILL_MODE D3D11_FILL_MODE = D3D11_FILL_SOLID);
-
+    TPlaneData& GetAttribute() { return m_attribute; }
+    const TPlaneData& GetAttribute() const { return m_attribute; }
 protected:
-	void OnDestroy();
-	bool OnMovementCollisionDynamicSphere(const CDynamicSphereInstance& s) const;
-	virtual bool OnCollisionDynamicSphere(const CDynamicSphereInstance& s) const;
-	virtual XMFLOAT3 OnGetCollisionMovementAdjust(const CDynamicSphereInstance& s) const;
-
-protected:
-	TPlaneData m_attribute;
+    bool CreateJoltBodyInternal() override;
+    TPlaneData m_attribute{};
 };
 
-/////////////////////////////////////////////
-// AABB (Aligned Axis Bounding Box)
 class CAABBCollisionInstance : public CBaseCollisionInstance
 {
 public:
-	TAABBData& GetAttribute();
-	const TAABBData& GetAttribute() const;
-	virtual void Render(D3D11_FILL_MODE D3D11_FILL_MODE = D3D11_FILL_SOLID);
-
+    TAABBData& GetAttribute() { return m_attribute; }
+    const TAABBData& GetAttribute() const { return m_attribute; }
 protected:
-	void OnDestroy();
-	bool OnMovementCollisionDynamicSphere(const CDynamicSphereInstance& s) const;
-	virtual bool OnCollisionDynamicSphere(const CDynamicSphereInstance& s) const;
-	virtual XMFLOAT3 OnGetCollisionMovementAdjust(const CDynamicSphereInstance& s) const;
-
-protected:
-	TAABBData m_attribute;
+    bool CreateJoltBodyInternal() override;
+    TAABBData m_attribute{};
 };
 
-/////////////////////////////////////////////
-// OBB
 class COBBCollisionInstance : public CBaseCollisionInstance
 {
 public:
-	TOBBData& GetAttribute();
-	const TOBBData& GetAttribute() const;
-	virtual void Render(D3D11_FILL_MODE D3D11_FILL_MODE = D3D11_FILL_SOLID);
-
+    TOBBData& GetAttribute() { return m_attribute; }
+    const TOBBData& GetAttribute() const { return m_attribute; }
 protected:
-	void OnDestroy();
-	bool OnMovementCollisionDynamicSphere(const CDynamicSphereInstance& s) const;
-	virtual bool OnCollisionDynamicSphere(const CDynamicSphereInstance& s) const;
-	virtual XMFLOAT3 OnGetCollisionMovementAdjust(const CDynamicSphereInstance& s) const;
-
-protected:
-	TOBBData m_attribute;
+    bool CreateJoltBodyInternal() override;
+    TOBBData m_attribute{};
 };
 
-/////////////////////////////////////////////
-// Cylinder
 class CCylinderCollisionInstance : public CBaseCollisionInstance
 {
 public:
-	TCylinderData& GetAttribute();
-	const TCylinderData& GetAttribute() const;
-	virtual void Render(D3D11_FILL_MODE D3D11_FILL_MODE = D3D11_FILL_SOLID);
-
+    TCylinderData& GetAttribute() { return m_attribute; }
+    const TCylinderData& GetAttribute() const { return m_attribute; }
 protected:
-	void OnDestroy();
-	bool OnMovementCollisionDynamicSphere(const CDynamicSphereInstance& s) const;
-	virtual bool OnCollisionDynamicSphere(const CDynamicSphereInstance& s) const;
-	virtual XMFLOAT3 OnGetCollisionMovementAdjust(const CDynamicSphereInstance& s) const;
-
-	bool CollideCylinderVSDynamicSphere(const TCylinderData& c_rattribute, const CDynamicSphereInstance& s) const;
-
-protected:
-	TCylinderData m_attribute;
+    bool CreateJoltBodyInternal() override;
+    TCylinderData m_attribute{};
 };
 
 typedef std::vector<CSphereCollisionInstance> CSphereCollisionInstanceVector;

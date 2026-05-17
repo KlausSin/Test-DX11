@@ -409,7 +409,14 @@ void CGraphicObjectInstance::RegisterBoundingSphere()
 
 void CGraphicObjectInstance::AddCollision(const CStaticCollisionData * pscd, const XMFLOAT4X4* pMat)
 {
-	m_StaticCollisionInstanceVector.push_back(CBaseCollisionInstance::BuildCollisionInstance(pscd, pMat));
+	CBaseCollisionInstance* instance = CBaseCollisionInstance::BuildCollisionInstance(pscd, pMat);
+	if (!instance)
+	{
+		TraceError("AddCollision failed type=%u", pscd ? pscd->dwType : 999);
+		return;
+	}
+
+	m_StaticCollisionInstanceVector.push_back(instance);
 }
 
 void CGraphicObjectInstance::ClearCollision()

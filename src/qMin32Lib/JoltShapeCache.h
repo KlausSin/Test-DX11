@@ -4,11 +4,13 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <cmath>
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/CylinderShape.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
 
@@ -28,6 +30,7 @@ public:
         m_boxShapes.clear();
         m_sphereShapes.clear();
         m_capsuleShapes.clear();
+        m_cylinderShapes.clear();
         m_meshShapes.clear();
         m_heightFieldShapes.clear();
     }
@@ -35,7 +38,6 @@ public:
     JPH::ShapeRefC GetBoxShape(const float3pos& halfSize)
     {
         uint64_t key = MakeBoxKey(halfSize);
-
         auto it = m_boxShapes.find(key);
         if (it != m_boxShapes.end())
             return it->second;
@@ -48,7 +50,6 @@ public:
     JPH::ShapeRefC GetSphereShape(float radius)
     {
         uint32_t key = FloatKey(radius);
-
         auto it = m_sphereShapes.find(key);
         if (it != m_sphereShapes.end())
             return it->second;
@@ -61,13 +62,24 @@ public:
     JPH::ShapeRefC GetCapsuleShape(float radius, float halfHeight)
     {
         uint64_t key = MakeCapsuleKey(radius, halfHeight);
-
         auto it = m_capsuleShapes.find(key);
         if (it != m_capsuleShapes.end())
             return it->second;
 
         JPH::ShapeRefC shape = new JPH::CapsuleShape(halfHeight, radius);
         m_capsuleShapes.emplace(key, shape);
+        return shape;
+    }
+
+    JPH::ShapeRefC GetCylinderShape(float radius, float halfHeight)
+    {
+        uint64_t key = MakeCapsuleKey(radius, halfHeight);
+        auto it = m_cylinderShapes.find(key);
+        if (it != m_cylinderShapes.end())
+            return it->second;
+
+        JPH::ShapeRefC shape = new JPH::CylinderShape(halfHeight, radius);
+        m_cylinderShapes.emplace(key, shape);
         return shape;
     }
 
@@ -79,7 +91,6 @@ public:
 
         JPH::MeshShapeSettings settings(vertices, triangles);
         JPH::ShapeSettings::ShapeResult result = settings.Create();
-
         if (result.HasError())
             return nullptr;
 
@@ -94,15 +105,8 @@ public:
         if (it != m_heightFieldShapes.end())
             return it->second;
 
-        JPH::HeightFieldShapeSettings settings(
-            samples.data(),
-            JPH::Vec3::sZero(),
-            JPH::Vec3(scaleX, scaleY, scaleZ),
-            size
-        );
-
+        JPH::HeightFieldShapeSettings settings(samples.data(), JPH::Vec3::sZero(), JPH::Vec3(scaleX, scaleY, scaleZ), size);
         JPH::ShapeSettings::ShapeResult result = settings.Create();
-
         if (result.HasError())
             return nullptr;
 
@@ -114,26 +118,18 @@ public:
 private:
     JoltShapeCache() = default;
     ~JoltShapeCache() = default;
-
     JoltShapeCache(const JoltShapeCache&) = delete;
     JoltShapeCache& operator=(const JoltShapeCache&) = delete;
 
 private:
     static uint32_t FloatKey(float value)
     {
-        union
-        {
-            float f;
-            uint32_t u;
-        } data;
-
-        data.f = value;
-        return data.u;
+        return uint32_t(std::roundf(value * 100.0f));
     }
 
     static uint64_t MakeCapsuleKey(float radius, float halfHeight)
     {
-        return ((uint64_t)FloatKey(radius) << 32) | FloatKey(halfHeight);
+        return (uint64_t(FloatKey(radius)) << 32) | FloatKey(halfHeight);
     }
 
     static uint64_t MakeBoxKey(const float3pos& value)
@@ -141,7 +137,6 @@ private:
         uint64_t x = FloatKey(value.x);
         uint64_t y = FloatKey(value.y);
         uint64_t z = FloatKey(value.z);
-
         return (x * 73856093ull) ^ (y * 19349663ull) ^ (z * 83492791ull);
     }
 
@@ -149,6 +144,7 @@ private:
     std::unordered_map<uint64_t, JPH::ShapeRefC> m_boxShapes;
     std::unordered_map<uint32_t, JPH::ShapeRefC> m_sphereShapes;
     std::unordered_map<uint64_t, JPH::ShapeRefC> m_capsuleShapes;
+    std::unordered_map<uint64_t, JPH::ShapeRefC> m_cylinderShapes;
     std::unordered_map<std::string, JPH::ShapeRefC> m_meshShapes;
     std::unordered_map<std::string, JPH::ShapeRefC> m_heightFieldShapes;
 };

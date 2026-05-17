@@ -169,3 +169,18 @@ after that build the source
 /////////////////////////////   replace D3DXMath with DirectXMath   /////////////////////////////
 replace old math with DirectXMath
 /////////////////////////////             /////////////////////////////
+
+
+/////////////////////////////   Jolt Physics implementation PART 1    /////////////////////////////
+https://github.com/jrouwe/JoltPhysics link to source 
+
+All collision code moved to JoltPhysics for client source.
+COLLISION_TYPE_BOX and COLLISION_TYPE_AABB are now separated for more control.
+
+Fix Bridge 
+Fix Clouds 
+Fix font crash.
+Fix Shadow 
+
+/////////////////////////////             /////////////////////////////
+

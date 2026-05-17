@@ -89,17 +89,42 @@ void CActorInstance::GetPixelPosition(TPixelPosition * pPixelPosition)
 
 void CActorInstance::SetPixelPosition(const TPixelPosition& c_rPixelPos)
 {
-	if (m_pkTree)
+	TPixelPosition nextPos = c_rPixelPos;
+
+	constexpr float characterRadius = 10.0f;
+	constexpr float characterHalfHeight = 80.0f;
+	constexpr float characterCenterZ = characterRadius + characterHalfHeight;
+
+	if (CPhysicsManager::Instance().IsInitialized())
 	{
-		__SetTreePosition(c_rPixelPos.x, c_rPixelPos.y, c_rPixelPos.z);
+		float3pos from = { m_x, -m_y, m_z + characterCenterZ };
+		float3pos to = { nextPos.x, -nextPos.y, nextPos.z + characterCenterZ };
+		quatrot rot = { 0.70710678f, 0.0f, 0.0f, 0.70710678f };
+
+		JoltShapeCastHit hit = CPhysicsManager::Instance().CastCapsule(
+			from,
+			to,
+			characterRadius,
+			characterHalfHeight,
+			rot,
+			this
+		);
+
+		if (hit.hit)
+		{
+			return;
+		}
 	}
 
+	if (m_pkTree)
+		__SetTreePosition(nextPos.x, nextPos.y, nextPos.z);
+
 	if (m_pkHorse)
-		m_pkHorse->SetPixelPosition(c_rPixelPos);
-	
-	m_x = c_rPixelPos.x;
-	m_y = c_rPixelPos.y;
-	m_z = c_rPixelPos.z;
+		m_pkHorse->SetPixelPosition(nextPos);
+
+	m_x = nextPos.x;
+	m_y = nextPos.y;
+	m_z = nextPos.z;
 	m_bNeedUpdateCollision = TRUE;
 }
 

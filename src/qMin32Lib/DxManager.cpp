@@ -27,7 +27,6 @@ void DxManager::SetShader(ED3D11VertexFormat format, uint32_t flags)
 
 	if ((!shader || !shader->IsValid()) && flags != SHADER_NONE)
 	{
-		TraceError("Shader fallback: format=%u flags=%u", format, flags);
 		shader = m_shaderContainer->GetShader(format, SHADER_NONE);
 	}
 

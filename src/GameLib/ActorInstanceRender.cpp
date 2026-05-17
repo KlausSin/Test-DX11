@@ -248,8 +248,6 @@ void CActorInstance::RenderCollisionData()
 {
 	static CScreen s_Screen;
 
-	_mgr->GetCbMgr()->SetLightingEnable(false);
-
 	STATEMANAGER.GetStateCache().Push();
 
 	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
@@ -331,8 +329,7 @@ void CActorInstance::RenderCollisionData()
 	}
 
 	STATEMANAGER.GetStateCache().Restore();
-
-	_mgr->GetCbMgr()->SetLightingEnable(true);
+	STATEMANAGER.GetDepthStencil().SetDepthEnable(true);
 }
 
 

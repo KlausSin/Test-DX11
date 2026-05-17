@@ -22,12 +22,15 @@ public:
     JoltPhysicsWorld() = default;
     ~JoltPhysicsWorld();
 
-    bool Initialize(uint32_t maxBodies = 65536, uint32_t numBodyMutexes = 0, uint32_t maxBodyPairs = 65536, uint32_t maxContactConstraints = 10240);
+    bool Initialize(uint32_t maxBodies = 262144, uint32_t numBodyMutexes = 0, uint32_t maxBodyPairs = 262144, uint32_t maxContactConstraints = 65536);
     void Shutdown();
     void Step(float deltaTime, int collisionSteps = 1);
     void OptimizeBroadPhase();
 
     RaycastHit Raycast(const float3pos& origin, const float3pos& direction, float distance) const;
+    JoltSphereQueryResult CollideSphere(const float3pos& position, float radius, const void* userDataFilter = nullptr) const;
+    JoltSphereQueryResult CastSphere(const float3pos& from, const float3pos& to, float radius, const void* userDataFilter = nullptr) const;
+    JoltShapeCastHit CastCapsule(const float3pos& from, const float3pos& to, float radius, float halfHeight, const quatrot& rotation, const void* userDataFilter = nullptr) const;
 
     JPH::PhysicsSystem* GetSystem();
     const JPH::PhysicsSystem* GetSystem() const;

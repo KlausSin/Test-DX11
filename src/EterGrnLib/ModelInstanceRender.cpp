@@ -298,7 +298,7 @@ void CGrannyModelInstance::RenderMeshNodeList(const RenderContext& ctx, TextureM
 				meshCtx.Object.TwoSided = meshCtx.Object.TwoSided || material.IsTwoSided();
 
 				material.ApplyRenderState();
-
+				
 				STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, vertexBase, triGroup->idxPos, triGroup->triCount);
 
 				material.RestoreRenderState();

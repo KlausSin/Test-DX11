@@ -124,7 +124,10 @@ public:
 	void FlushLighting();
 
 	DWORD GetAlphaRef() const { return DWORD(m_cbMaterial.alphaRef); }
-
+	bool GetUseTexture0() const { return m_cbMaterial.useTexture0 != 0; }
+	bool GetAlphaTestEnable() const { return m_cbMaterial.alphaTestEnable != 0; }
+	bool GetFogEnable() const { return m_cbFog.fogEnable != 0; }
+	bool GetLightingEnable() const { return m_cbLighting.lightingEnable != 0; }
 	// Fog → constant buffer b4
 	void SetFogEnable(BOOL bEnable);
 	void SetFogColor(DWORD dwColor);
@@ -141,6 +144,7 @@ public:
 	void FlushMaterial();
 
 	void SetScreenSize(float width, float height);
+	void SetScreenSize(float x, float y, float width, float height);
 
 	void SetSpeedTreeCompoundMatrix(const XMFLOAT4X4& mat);
 	void SetSpeedTreeTreePosition(const XMFLOAT4& pos);

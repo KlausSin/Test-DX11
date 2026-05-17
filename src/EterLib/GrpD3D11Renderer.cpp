@@ -48,7 +48,7 @@ bool CD3D11Renderer::Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCon
 	m_StateCache.Sampler.SetFilter(D3D11_FILTER_MIN_MAG_MIP_LINEAR);
 	m_StateCache.Sampler.SetAddressAll(D3D11_TEXTURE_ADDRESS_WRAP);
 	m_StateCache.Sampler.SetMaxAnisotropy(1);
-	m_StateCache.Sampler.SetComparisonFunc(D3D11_COMPARISON_NEVER);
+	m_StateCache.Sampler.SetComparisonFunc(D3D11_COMPARISON_LESS_EQUAL);
 	m_StateCache.Sampler.SetLOD(0.0f, D3D11_FLOAT32_MAX);
 
 	_mgr->GetCbMgr()->m_cbMaterial.textureFactor[0] = 1.0f;

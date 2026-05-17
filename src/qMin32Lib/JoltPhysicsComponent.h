@@ -3,6 +3,7 @@
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/MotionType.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
 #include "JoltTypes.h"
 
 class JoltPhysicsWorld;
@@ -16,6 +17,8 @@ public:
     bool CreateBox(JoltPhysicsWorld& world, const Transform& transform, const float3pos& halfSize, float mass, JoltBodyType type);
     bool CreateSphere(JoltPhysicsWorld& world, const Transform& transform, float radius, float mass, JoltBodyType type);
     bool CreateCapsule(JoltPhysicsWorld& world, const Transform& transform, float radius, float halfHeight, float mass, JoltBodyType type);
+    bool CreateCylinder(JoltPhysicsWorld& world, const Transform& transform, float radius, float halfHeight, float mass, JoltBodyType type);
+    bool CreateShape(JoltPhysicsWorld& world, const Transform& transform, JPH::ShapeRefC shape, float mass, JoltBodyType type);
 
     void Destroy();
     void SyncFromPhysics(Transform& transform) const;

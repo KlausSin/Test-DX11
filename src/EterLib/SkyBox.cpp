@@ -543,6 +543,9 @@ void CSkyBox::RenderCloud(const RenderContext& ctx)
 	_mgr->GetCbMgr()->SetLightingEnable(FALSE);
 	_mgr->GetCbMgr()->SetFogEnable(FALSE);
 
+	XMFLOAT4X4 matProjCloud;
+	XMStoreFloat4x4(&matProjCloud, XMMatrixPerspectiveFovRH(XM_PIDIV4, 1.33333f, 50.0f, 999999.0f));
+
 	const float delta = ctx.Frame.DeltaTime > 0.0f ? ctx.Frame.DeltaTime : 0.0f;
 	m_fCloudPositionU += m_fCloudScrollSpeedU * delta;
 	m_fCloudPositionV += m_fCloudScrollSpeedV * delta;
@@ -555,7 +558,7 @@ void CSkyBox::RenderCloud(const RenderContext& ctx)
 	STATEMANAGER.GetTransform().SetWorld(m_matWorldCloud);
 	STATEMANAGER.GetTransform().SetTexture0(m_matTextureCloud);
 	STATEMANAGER.GetTransform().SetView(ctx.Frame.View);
-	STATEMANAGER.GetTransform().SetProjection(ctx.Frame.Projection);
+	STATEMANAGER.GetTransform().SetProjection(matProjCloud);
 	STATEMANAGER.SetTexture(0, imageInstance->GetTexturePointer()->GetSRV());
 	m_FaceCloud.Render();
 	STATEMANAGER.SetTexture(0, NULL);

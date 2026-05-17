@@ -72,32 +72,54 @@ void CBlockTexture::Render(int ix, int iy)
 	}
 }
 
-void CBlockTexture::InvalidateRect(const RECT & c_rsrcRect)
+void CBlockTexture::InvalidateRect(const RECT& c_rsrcRect)
 {
-	if (!ms_lpd3d11Context || !m_lpTex)
+	if (!ms_lpd3d11Context || !m_lpTex || !m_pDIB)
+		return;
+
+	void* dibPtr = m_pDIB->GetPointer();
+	if (!dibPtr)
+		return;
+
+	const DWORD dibWidth = m_pDIB->GetWidth();
+	const DWORD dibHeight = m_pDIB->GetHeight();
+
+	if (dibWidth == 0 || dibHeight == 0 || m_dwWidth == 0 || m_dwHeight == 0)
+		return;
+
+	if (m_rect.left < 0 || m_rect.top < 0)
+		return;
+
+	if ((DWORD)m_rect.left >= dibWidth || (DWORD)m_rect.top >= dibHeight)
+		return;
+
+	DWORD copyWidth = m_dwWidth;
+	DWORD copyHeight = m_dwHeight;
+
+	if ((DWORD)m_rect.left + copyWidth > dibWidth)
+		copyWidth = dibWidth - (DWORD)m_rect.left;
+
+	if ((DWORD)m_rect.top + copyHeight > dibHeight)
+		copyHeight = dibHeight - (DWORD)m_rect.top;
+
+	if (copyWidth == 0 || copyHeight == 0)
 		return;
 
 	D3D11_MAPPED_SUBRESOURCE mapped;
 	if (FAILED(ms_lpd3d11Context->Map(m_lpTex, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
-	{
-		Tracef("CBlockTexture::InvalidateRect failed to map\n");
 		return;
-	}
 
-	DWORD* pdwSrc = (DWORD*)m_pDIB->GetPointer();
-	pdwSrc += m_rect.left + m_rect.top * m_pDIB->GetWidth();
+	DWORD* pdwSrc = (DWORD*)dibPtr;
+	pdwSrc += m_rect.left + m_rect.top * dibWidth;
 
 	DWORD* pdwDst = (DWORD*)mapped.pData;
-	DWORD dwDstPitch = mapped.RowPitch / 4;
-	DWORD dwBlockWidth = m_dwWidth;
-	DWORD dwBlockHeight = m_dwHeight;
-	DWORD dwDIBWidth = m_pDIB->GetWidth();
+	DWORD dstPitch = mapped.RowPitch / 4;
 
-	for (DWORD y = 0; y < dwBlockHeight; ++y)
+	for (DWORD y = 0; y < copyHeight; ++y)
 	{
-		memcpy(pdwDst, pdwSrc, dwBlockWidth * sizeof(DWORD));
-		pdwDst += dwDstPitch;
-		pdwSrc += dwDIBWidth;
+		memcpy(pdwDst, pdwSrc, copyWidth * sizeof(DWORD));
+		pdwDst += dstPitch;
+		pdwSrc += dibWidth;
 	}
 
 	ms_lpd3d11Context->Unmap(m_lpTex, 0);

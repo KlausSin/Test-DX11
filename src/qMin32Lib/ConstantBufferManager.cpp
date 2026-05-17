@@ -224,7 +224,15 @@ void CBManager::SetScreenSize(float width, float height)
 
 	m_pCBScreenSize->Update(m_cbScreenSize);
 }
+void CBManager::SetScreenSize(float x, float y, float width, float height)
+{
+	m_cbScreenSize.screenWidth = x;
+	m_cbScreenSize.screenHeight = y;
+	m_cbScreenSize.pad0 = width;
+	m_cbScreenSize.pad1 = height;
 
+	m_pCBScreenSize->Update(m_cbScreenSize);
+}
 bool CBManager::UploadBonePalette(const DirectX::XMFLOAT4X4* bones, unsigned int count)
 {
 	if (!bones || !m_pCBBonePalette)

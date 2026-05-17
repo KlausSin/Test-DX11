@@ -14,7 +14,7 @@ SD3D11DepthStencilStateKey::SD3D11DepthStencilStateKey()
 	frontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
 	frontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
 	frontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	frontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	frontFace.StencilFunc = D3D11_COMPARISON_LESS_EQUAL;
 	backFace = frontFace;
 }
 

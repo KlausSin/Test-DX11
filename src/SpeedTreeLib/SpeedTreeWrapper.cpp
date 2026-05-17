@@ -1397,42 +1397,40 @@ void CSpeedTreeWrapper::GetTreeSize(float& r_fSize, float& r_fVariance)
 	m_pSpeedTree->GetTreeSize(r_fSize, r_fVariance);
 }
 
-// pscdVector may be null
-void CSpeedTreeWrapper::OnUpdateCollisionData(const CStaticCollisionDataVector* /*pscdVector*/)
+void CSpeedTreeWrapper::OnUpdateCollisionData(const CStaticCollisionDataVector*)
 {
 	XMFLOAT4X4 mat;
 	XMStoreFloat4x4(&mat, XMMatrixTranslation(m_afPos[0], m_afPos[1], m_afPos[2]));
 
-	/////
 	for (UINT i = 0; i < GetCollisionObjectCount(); ++i)
 	{
 		CSpeedTreeRT::ECollisionObjectType ObjectType;
-		CStaticCollisionData CollisionData;
-
+		CStaticCollisionData CollisionData{};
 		GetCollisionObject(i, ObjectType, (float*)&CollisionData.v3Position, CollisionData.fDimensions);
-
-		if (ObjectType == CSpeedTreeRT::CO_BOX)
-			continue;
 
 		switch (ObjectType)
 		{
+		case CSpeedTreeRT::CO_BOX:
+			CollisionData.dwType = COLLISION_TYPE_BOX;
+			CollisionData.fDimensions[0] *= 0.55f;
+			CollisionData.fDimensions[1] *= 0.55f;
+			CollisionData.fDimensions[2] *= 0.85f;
+			break;
+
 		case CSpeedTreeRT::CO_SPHERE:
 			CollisionData.dwType = COLLISION_TYPE_SPHERE;
-			CollisionData.fDimensions[0] = CollisionData.fDimensions[0] /** fSizeRatio*/;
-			//AddCollision(&CollisionData);
+			CollisionData.fDimensions[0] *= 0.55f;
 			break;
 
 		case CSpeedTreeRT::CO_CAPSULE:
 			CollisionData.dwType = COLLISION_TYPE_CYLINDER;
-			CollisionData.fDimensions[0] = CollisionData.fDimensions[0] /** fSizeRatio*/;
-			CollisionData.fDimensions[1] = CollisionData.fDimensions[1] /** fSizeRatio*/;
-			//AddCollision(&CollisionData);
+			CollisionData.fDimensions[0] *= 0.45f;
+			CollisionData.fDimensions[1] *= 0.85f;
 			break;
 
-			/*case CSpeedTreeRT::CO_BOX:
-			break;*/
+		default:
+			continue;
 		}
 		AddCollision(&CollisionData, &mat);
 	}
 }
-

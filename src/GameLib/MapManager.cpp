@@ -484,9 +484,8 @@ bool CMapManager::isPhysicalCollision(const XMFLOAT3& c_rvCheckPosition)
 {
 	if (!IsMapReady())
 		return false;
-	
-	CMapOutdoor& rkMap=GetMapOutdoorRef();
-	return rkMap.isAttrOn(c_rvCheckPosition.x, -c_rvCheckPosition.y, CTerrainImpl::ATTRIBUTE_BLOCK);
+
+	return false;
 }
 
 bool CMapManager::isAttrOn(float fX, float fY, BYTE byAttr)

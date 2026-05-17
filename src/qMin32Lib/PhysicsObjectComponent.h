@@ -4,6 +4,7 @@
 #include "CPhysicsManager.h"
 #include "JoltPhysicsComponent.h"
 
+// Pastreaza API-ul vechi si adauga doar tipurile lipsa.
 enum class PhysicsCollisionType : uint8_t
 {
     None,
@@ -14,7 +15,10 @@ enum class PhysicsCollisionType : uint8_t
     DynamicSphere,
     StaticCapsule,
     DynamicCapsule,
-    KinematicCapsule
+    KinematicCapsule,
+    StaticCylinder,
+    DynamicCylinder,
+    KinematicCylinder
 };
 
 class PhysicsObjectComponent
@@ -63,6 +67,21 @@ public:
         return CreateCapsule(transform, radius, halfHeight, 1.0f, owner, PhysicsCollisionType::KinematicCapsule, JoltBodyType::Kinematic);
     }
 
+    bool CreateStaticCylinder(const Transform& transform, float radius, float halfHeight, void* owner = nullptr)
+    {
+        return CreateCylinder(transform, radius, halfHeight, 0.0f, owner, PhysicsCollisionType::StaticCylinder, JoltBodyType::Static);
+    }
+
+    bool CreateDynamicCylinder(const Transform& transform, float radius, float halfHeight, float mass, void* owner = nullptr)
+    {
+        return CreateCylinder(transform, radius, halfHeight, mass, owner, PhysicsCollisionType::DynamicCylinder, JoltBodyType::Dynamic);
+    }
+
+    bool CreateKinematicCylinder(const Transform& transform, float radius, float halfHeight, void* owner = nullptr)
+    {
+        return CreateCylinder(transform, radius, halfHeight, 1.0f, owner, PhysicsCollisionType::KinematicCylinder, JoltBodyType::Kinematic);
+    }
+
     void Destroy()
     {
         m_body.Destroy();
@@ -91,13 +110,14 @@ private:
     bool CreateBox(const Transform& transform, const float3pos& halfSize, float mass, void* owner, PhysicsCollisionType collisionType, JoltBodyType bodyType)
     {
         Destroy();
-
         if (!CPhysicsManager::Instance().IsInitialized())
-            return false;
+        {
+            if (!CPhysicsManager::Instance().Initialize())
+                return false;
+        }
 
         if (!m_body.CreateBox(CPhysicsManager::Instance().GetWorld(), transform, halfSize, mass, bodyType))
             return false;
-
         m_type = collisionType;
         m_owner = owner;
         m_body.SetUserData(owner);
@@ -107,13 +127,14 @@ private:
     bool CreateSphere(const Transform& transform, float radius, float mass, void* owner, PhysicsCollisionType collisionType, JoltBodyType bodyType)
     {
         Destroy();
-
         if (!CPhysicsManager::Instance().IsInitialized())
-            return false;
+        {
+            if (!CPhysicsManager::Instance().Initialize())
+                return false;
+        }
 
         if (!m_body.CreateSphere(CPhysicsManager::Instance().GetWorld(), transform, radius, mass, bodyType))
             return false;
-
         m_type = collisionType;
         m_owner = owner;
         m_body.SetUserData(owner);
@@ -123,13 +144,31 @@ private:
     bool CreateCapsule(const Transform& transform, float radius, float halfHeight, float mass, void* owner, PhysicsCollisionType collisionType, JoltBodyType bodyType)
     {
         Destroy();
-
         if (!CPhysicsManager::Instance().IsInitialized())
-            return false;
+        {
+            if (!CPhysicsManager::Instance().Initialize())
+                return false;
+        }
 
         if (!m_body.CreateCapsule(CPhysicsManager::Instance().GetWorld(), transform, radius, halfHeight, mass, bodyType))
             return false;
+        m_type = collisionType;
+        m_owner = owner;
+        m_body.SetUserData(owner);
+        return true;
+    }
 
+    bool CreateCylinder(const Transform& transform, float radius, float halfHeight, float mass, void* owner, PhysicsCollisionType collisionType, JoltBodyType bodyType)
+    {
+        Destroy();
+        if (!CPhysicsManager::Instance().IsInitialized())
+        {
+            if (!CPhysicsManager::Instance().Initialize())
+                return false;
+        }
+
+        if (!m_body.CreateCylinder(CPhysicsManager::Instance().GetWorld(), transform, radius, halfHeight, mass, bodyType))
+            return false;
         m_type = collisionType;
         m_owner = owner;
         m_body.SetUserData(owner);

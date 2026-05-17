@@ -28,6 +28,26 @@ struct RaycastHit
     float3pos normal = { 0.0f, 0.0f, 0.0f };
 };
 
+struct JoltSphereQueryResult
+{
+    bool hit = false;
+    float fraction = 0.0f;
+    uint32_t bodyID = 0;
+    void* userData = nullptr;
+    float3pos position = { 0.0f, 0.0f, 0.0f };
+    float3pos normal = { 0.0f, 0.0f, 0.0f };
+};
+
+struct JoltShapeCastHit
+{
+    bool hit = false;
+    float fraction = 0.0f;
+    uint32_t bodyID = 0;
+    void* userData = nullptr;
+    float3pos position = { 0.0f, 0.0f, 0.0f };
+    float3pos normal = { 0.0f, 0.0f, 0.0f };
+};
+
 enum class JoltBodyType : uint8_t
 {
     Static,

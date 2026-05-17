@@ -1,6 +1,7 @@
 #pragma once
 
 #include "JoltPhysicsWorld.h"
+#include "JoltCollisionStreamer.h"
 
 class CPhysicsManager
 {
@@ -34,8 +35,21 @@ public:
 
     void Update(float dt)
     {
-        if (m_initialized)
-            m_world.Step(dt);
+        if (!m_initialized)
+            return;
+
+        JoltCollisionStreamer::Instance().Update(dt);
+        m_world.Step(dt);
+    }
+
+    void SetStreamCenter(const float3pos& center)
+    {
+        JoltCollisionStreamer::Instance().SetCenter(center);
+    }
+
+    void SetStreamConfig(const JoltPhysicsConfig& config)
+    {
+        JoltCollisionStreamer::Instance().SetConfig(config);
     }
 
     void OptimizeBroadPhase()
@@ -47,6 +61,21 @@ public:
     RaycastHit Raycast(const float3pos& origin, const float3pos& direction, float distance) const
     {
         return m_world.Raycast(origin, direction, distance);
+    }
+
+    JoltSphereQueryResult CollideSphere(const float3pos& position, float radius, const void* userDataFilter = nullptr) const
+    {
+        return m_world.CollideSphere(position, radius, userDataFilter);
+    }
+
+    JoltSphereQueryResult CastSphere(const float3pos& from, const float3pos& to, float radius, const void* userDataFilter = nullptr) const
+    {
+        return m_world.CastSphere(from, to, radius, userDataFilter);
+    }
+
+    JoltShapeCastHit CastCapsule(const float3pos& from, const float3pos& to, float radius, float halfHeight, const quatrot& rotation, const void* userDataFilter = nullptr) const
+    {
+        return m_world.CastCapsule(from, to, radius, halfHeight, rotation, userDataFilter);
     }
 
     JoltPhysicsWorld& GetWorld() { return m_world; }

@@ -14,6 +14,7 @@ target_compile_definitions(UserInterface PRIVATE
     SODIUM_STATIC
 )
 
+
 target_link_libraries(UserInterface PRIVATE
 	AudioLib
 	Discord
@@ -42,6 +43,24 @@ target_link_libraries(UserInterface PRIVATE
 	ws2_32
 	version
 	Dbghelp
+)
+
+target_compile_definitions(UserInterface PRIVATE
+    JPH_FLOATING_POINT_EXCEPTIONS_ENABLED
+    JPH_USE_DX12
+    JPH_USE_CPU_COMPUTE
+    JPH_DEBUG_RENDERER
+    JPH_PROFILE_ENABLED
+    JPH_OBJECT_STREAM
+
+    JPH_USE_AVX2
+    JPH_USE_AVX
+    JPH_USE_SSE4_1
+    JPH_USE_SSE4_2
+    JPH_USE_LZCNT
+    JPH_USE_TZCNT
+    JPH_USE_F16C
+    JPH_USE_FMADD
 )
 
 GroupSourcesByFolder(UserInterface)

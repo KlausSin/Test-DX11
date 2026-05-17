@@ -268,8 +268,6 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 	}
 
 	STATEMANAGER.GetStateCache().Push();
-	STATEMANAGER.GetSampler().Push(0);
-	STATEMANAGER.GetSampler().Push(1);
 
 	STATEMANAGER.GetSampler().SetFilter(0, D3D11_FILTER_MIN_MAG_MIP_POINT);
 	STATEMANAGER.GetSampler().SetAddressUV(0, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
@@ -287,28 +285,26 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 	for (BYTE byTerrainNum = 0; byTerrainNum < AROUND_AREA_NUM; ++byTerrainNum)
 	{
 		ID3D11ShaderResourceView* pMiniMapTexture = m_lpMiniMapTexture[byTerrainNum];
-		STATEMANAGER.SetTexture(0, pMiniMapTexture);
 
 		if (pMiniMapTexture)
 		{
-			STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, byTerrainNum * 4, byTerrainNum * 6, 2);
+			STATEMANAGER.SetTexture(0, pMiniMapTexture);
+			_mgr->SetShader(VF_PT, TERRAIN_BASE);
 		}
 		else
 		{
 			_mgr->GetCbMgr()->SetTextureFactor(0xFF000000);
 			_mgr->SetShader(VF_PT, TERRAIN_SPLAT);
-
-			STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, byTerrainNum * 4, byTerrainNum * 6, 2);
-
-			_mgr->GetCbMgr()->SetTextureFactor(0xFFFFFFFF);
-			_mgr->SetShader(VF_PT, TERRAIN_BASE);
 		}
+
+		STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, byTerrainNum * 4, byTerrainNum * 6, 2);
 	}
+
+	_mgr->GetCbMgr()->SetTextureFactor(0xFFFFFFFF);
 
 	STATEMANAGER.SetTexture(1, nullptr);
 	STATEMANAGER.GetTransform().SetWorld(m_matIdentity);
 
-	_mgr->GetCbMgr()->SetTextureFactor(0xFFFFFFFF);
 	_mgr->SetShader(VF_PT, MINIMAP_MARK);
 
 	TInstancePositionVectorIterator aIterator;
@@ -433,8 +429,6 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 		m_MiniMapCameraraphicImageInstance.Render();
 	}
 
-	STATEMANAGER.GetSampler().Restore(1);
-	STATEMANAGER.GetSampler().Restore(0);
 	STATEMANAGER.GetStateCache().Restore();
 }
 

@@ -182,7 +182,7 @@ struct RenderObjectContext
 {
 	XMFLOAT4X4 World{};
 	bool AlphaBlend = false;
-	bool AlphaTest = true;
+	bool AlphaTest = false;
 	bool TwoSided = false;
 	bool Skinned = false;
 

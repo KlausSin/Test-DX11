@@ -1,0 +1,50 @@
+{
+    "reserved": false,
+    "directionallight": {
+        "direction": [0.5, 0.5, -0.5],
+        "background": {
+            "enable": true,
+            "diffuse": [0.858824, 0.913725, 0.992157, 1.0],
+            "ambient": [0.239216, 0.364706, 0.329412, 1.0]
+        },
+        "character": {
+            "enable": true,
+            "diffuse": [0.858824, 0.913725, 0.992157, 1.0],
+            "ambient": [0.389216, 0.514706, 0.479412, 1.0]
+        }
+    },
+    "material": {
+        "diffuse": [1.0, 1.0, 1.0, 1.0],
+        "ambient": [0.0, 0.0, 0.0, 1.0],
+        "emissive": [0.0, 0.0, 0.0, 1.0]
+    },
+    "fog": {
+        "color": [0.0, 0.0, 0.0, 1.0]
+    },
+    "filter": {
+        "enable": false,
+        "color": [0.294118, 0.094118, 0.094118, 0.0],
+        "alphasrc": 2,
+        "alphadest": 2
+    },
+    "skybox": {
+        "gradient": [],
+        "scale": [3500.0, 3500.0, 3500.0],
+        "gradientlevelupper": 0,
+        "gradientlevellower": 0,
+        "cloudscale": [200000.0, 200000.0],
+        "cloudheight": 30000.0,
+        "cloudtexturescale": [4.0, 4.0],
+        "cloudspeed": [0.001, 0.001],
+        "cloudtexturefilename": "",
+        "cloudcolor": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    },
+    "lensflare": {
+        "enable": true,
+        "brightnesscolor": [0.976471, 0.976471, 0.976471, 1.0],
+        "maxbrightness": 1.0,
+        "mainflareenable": false,
+        "mainflaretexturefilename": "",
+        "mainflaresize": 0.2
+    }
+}

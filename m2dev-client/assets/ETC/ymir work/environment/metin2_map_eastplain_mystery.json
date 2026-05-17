@@ -1,0 +1,61 @@
+{
+    "reserved": false,
+    "directionallight": {
+        "direction": [0.596551, 0.28178, -0.751483],
+        "background": {
+            "enable": true,
+            "diffuse": [0.74902, 0.713726, 0.756863, 1.0],
+            "ambient": [0.576471, 0.513726, 0.619608, 1.0]
+        },
+        "character": {
+            "enable": true,
+            "diffuse": [0.74902, 0.713726, 0.756863, 1.0],
+            "ambient": [0.726471, 0.663726, 0.769608, 1.0]
+        }
+    },
+    "material": {
+        "diffuse": [1.0, 1.0, 1.0, 1.0],
+        "ambient": [0.211765, 0.266667, 0.231373, 1.0],
+        "emissive": [0.039216, 0.019608, 0.058824, 1.0]
+    },
+    "fog": {
+        "foglevel": 3,
+        "color": [0.054902, 0.003922, 0.101961, 1.0]
+    },
+    "filter": {
+        "enable": false,
+        "color": [0.176471, 0.164706, 0.164706, 0.0],
+        "alphasrc": 1,
+        "alphadest": 2
+    },
+    "skybox": {
+        "gradient": [
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        ],
+        "btexturerendermode": false,
+        "scale": [3500.0, 3500.0, 3500.0],
+        "gradientlevelupper": 1,
+        "gradientlevellower": 1,
+        "frontfacefilename": "",
+        "backfacefilename": "",
+        "leftfacefilename": "",
+        "rightfacefilename": "",
+        "topfacefilename": "",
+        "bottomfacefilename": "",
+        "cloudscale": [200000.0, 200000.0],
+        "cloudheight": 30000.0,
+        "cloudtexturescale": [1.0, 1.0],
+        "cloudspeed": [0.0, 0.0],
+        "cloudtexturefilename": "D:/ymir work/environment/clouds_zone06.tga",
+        "cloudcolor": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    },
+    "lensflare": {
+        "enable": true,
+        "brightnesscolor": [1.0, 0.886275, 0.886275, 1.0],
+        "maxbrightness": 0.74,
+        "mainflareenable": true,
+        "mainflaretexturefilename": "D:/ymir work/environment/clouds_zone06.tga",
+        "mainflaresize": 0.0
+    }
+}

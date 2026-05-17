@@ -1,0 +1,63 @@
+{
+    "reserved": false,
+    "directionallight": {
+        "direction": [-0.210052, -0.298942, -0.930866],
+        "background": {
+            "enable": true,
+            "diffuse": [0.737255, 0.729412, 0.756863, 1.0],
+            "ambient": [0.286275, 0.247059, 0.321569, 1.0]
+        },
+        "character": {
+            "enable": true,
+            "diffuse": [0.737255, 0.729412, 0.756863, 1.0],
+            "ambient": [0.436275, 0.397059, 0.471569, 1.0]
+        }
+    },
+    "material": {
+        "diffuse": [0.654902, 0.576471, 0.713726, 1.0],
+        "ambient": [0.364706, 0.309804, 0.431373, 1.0],
+        "emissive": [0.14902, 0.121569, 0.239216, 1.0]
+    },
+    "fog": {
+        "foglevel": 3,
+        "color": [0.156863, 0.058824, 0.184314, 1.0]
+    },
+    "filter": {
+        "enable": false,
+        "color": [0.109804, 0.411765, 0.184314, 0.0],
+        "alphasrc": 1,
+        "alphadest": 2
+    },
+    "skybox": {
+        "gradient": [
+            [0.192157, 0.329412, 0.501961, 0.0, 0.192157, 0.329412, 0.501961, 0.0],
+            [0.192157, 0.333333, 0.505882, 0.0, 0.239216, 0.411765, 0.772549, 0.0],
+            [0.239216, 0.411765, 0.772549, 0.0, 0.262745, 0.270588, 0.380392, 0.0],
+            [0.262745, 0.270588, 0.380392, 0.0, 0.262745, 0.270588, 0.380392, 0.0]
+        ],
+        "btexturerendermode": true,
+        "scale": [3500.0, 3500.0, 3500.0],
+        "gradientlevelupper": 3,
+        "gradientlevellower": 1,
+        "frontfacefilename": "D:/ymir work/environment/skybox/smhtower_f.dds",
+        "backfacefilename": "D:/ymir work/environment/skybox/smhtower_b.dds",
+        "leftfacefilename": "D:/ymir work/environment/skybox/smhtower_l.dds",
+        "rightfacefilename": "D:/ymir work/environment/skybox/smhtower_r.dds",
+        "topfacefilename": "D:/ymir work/environment/skybox/smhtower_t.dds",
+        "bottomfacefilename": "",
+        "cloudscale": [2900000.0, 2900000.0],
+        "cloudheight": 30000.0,
+        "cloudtexturescale": [20.0, 20.0],
+        "cloudspeed": [0.001, 0.001],
+        "cloudtexturefilename": "D:/Ymir Work/environment/clouds_zone10.tga",
+        "cloudcolor": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    },
+    "lensflare": {
+        "enable": true,
+        "brightnesscolor": [0.384314, 0.392157, 0.584314, 1.0],
+        "maxbrightness": 0.74,
+        "mainflareenable": false,
+        "mainflaretexturefilename": "D:/Ymir Work/environment/sunflare.dds",
+        "mainflaresize": 0.35
+    }
+}

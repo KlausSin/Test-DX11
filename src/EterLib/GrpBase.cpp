@@ -141,7 +141,7 @@ bool CGraphicBase::SetPDTStream(SPDTVertex* pSrcVertices, UINT uVtxCount)
 	if (!vb)
 		return false;
 
-	if (!vb->Update(pSrcVertices))
+	if (!vb->Update(pSrcVertices, uVtxCount))
 		return false;
 
 	m_mgr->SetVertexBuffer(vb, sizeof(TPDTVertex));

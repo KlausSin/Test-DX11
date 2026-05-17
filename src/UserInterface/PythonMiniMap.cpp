@@ -297,105 +297,94 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 			_mgr->SetShader(VF_PT, TERRAIN_SPLAT);
 		}
 
-		STATEMANAGER.DrawIndexedPrimitive11(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, byTerrainNum * 4, byTerrainNum * 6, 2);
+		STATEMANAGER.DrawIndexedPrimitive11(
+			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
+			byTerrainNum * 4,
+			byTerrainNum * 6,
+			2);
 	}
-
-	_mgr->GetCbMgr()->SetTextureFactor(0xFFFFFFFF);
 
 	STATEMANAGER.SetTexture(1, nullptr);
 	STATEMANAGER.GetTransform().SetWorld(m_matIdentity);
-
-	_mgr->SetShader(VF_PT, MINIMAP_MARK);
 
 	TInstancePositionVectorIterator aIterator;
 
 	if (m_fScale >= 2.0f)
 	{
-		_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_MOB)));
-
-		aIterator = m_MonsterPositionVector.begin();
-		while (aIterator != m_MonsterPositionVector.end())
 		{
-			TMarkPosition& rPosition = *aIterator;
-			m_WhiteMark.SetPosition(rPosition.m_fX, rPosition.m_fY);
-			m_WhiteMark.Render();
-			++aIterator;
+			XMFLOAT4 col = CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_MOB);
+			aIterator = m_MonsterPositionVector.begin();
+			while (aIterator != m_MonsterPositionVector.end())
+			{
+				TMarkPosition& rPosition = *aIterator;
+				m_WhiteMark.SetPosition(rPosition.m_fX, rPosition.m_fY);
+				m_WhiteMark.SetDiffuseColor(col.x, col.y, col.z, col.w);
+				m_WhiteMark.Render();
+				++aIterator;
+			}
 		}
 
-		aIterator = m_OtherPCPositionVector.begin();
-		while (aIterator != m_OtherPCPositionVector.end())
 		{
-			TMarkPosition& rPosition = *aIterator;
-			_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(CInstanceBase::GetIndexedNameColor(rPosition.m_eNameColor)));
-			m_WhiteMark.SetPosition(rPosition.m_fX, rPosition.m_fY);
-			m_WhiteMark.Render();
-			++aIterator;
+			aIterator = m_OtherPCPositionVector.begin();
+			while (aIterator != m_OtherPCPositionVector.end())
+			{
+				TMarkPosition& rPosition = *aIterator;
+				XMFLOAT4 col = CInstanceBase::GetIndexedNameColor(rPosition.m_eNameColor);
+				m_WhiteMark.SetPosition(rPosition.m_fX, rPosition.m_fY);
+				m_WhiteMark.SetDiffuseColor(col.x, col.y, col.z, col.w);
+				m_WhiteMark.Render();
+				++aIterator;
+			}
 		}
 
 		if (!m_PartyPCPositionVector.empty())
 		{
 			float v = (1 + sinf(CTimer::Instance().GetCurrentSecond() * 6)) / 5 + 0.6f;
-
 			XMFLOAT4 base = CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_PARTY);
-
-			XMFLOAT4 mod(v, v, v, 1.0f);
-
-			XMFLOAT4 c;
-			c.x = base.x * mod.x;
-			c.y = base.y * mod.y;
-			c.z = base.z * mod.z;
-			c.w = base.w * mod.w;
-
-			_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(c));
-
-			for (auto it = m_PartyPCPositionVector.begin();
-				it != m_PartyPCPositionVector.end();
-				++it)
+			for (auto it = m_PartyPCPositionVector.begin(); it != m_PartyPCPositionVector.end(); ++it)
 			{
 				const TMarkPosition& rPosition = *it;
 				m_WhiteMark.SetPosition(rPosition.m_fX, rPosition.m_fY);
+				m_WhiteMark.SetDiffuseColor(base.x * v, base.y * v, base.z * v, base.w);
 				m_WhiteMark.Render();
 			}
 		}
 	}
 
-	_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_NPC)));
-
-	aIterator = m_NPCPositionVector.begin();
-	while (aIterator != m_NPCPositionVector.end())
 	{
-		TMarkPosition& rPosition = *aIterator;
-		m_WhiteMark.SetPosition(rPosition.m_fX, rPosition.m_fY);
-		m_WhiteMark.Render();
-		++aIterator;
+		XMFLOAT4 col = CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_NPC);
+		aIterator = m_NPCPositionVector.begin();
+		while (aIterator != m_NPCPositionVector.end())
+		{
+			TMarkPosition& rPosition = *aIterator;
+			m_WhiteMark.SetPosition(rPosition.m_fX, rPosition.m_fY);
+			m_WhiteMark.SetDiffuseColor(col.x, col.y, col.z, col.w);
+			m_WhiteMark.Render();
+			++aIterator;
+		}
 	}
 
-	_mgr->GetCbMgr()->SetTextureFactor(ColorToUint(CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WARP)));
-
-	aIterator = m_WarpPositionVector.begin();
-	while (aIterator != m_WarpPositionVector.end())
 	{
-		TMarkPosition& rPosition = *aIterator;
-		m_WhiteMark.SetPosition(rPosition.m_fX, rPosition.m_fY);
-		m_WhiteMark.Render();
-		++aIterator;
+		XMFLOAT4 col = CInstanceBase::GetIndexedNameColor(CInstanceBase::NAMECOLOR_WARP);
+		aIterator = m_WarpPositionVector.begin();
+		while (aIterator != m_WarpPositionVector.end())
+		{
+			TMarkPosition& rPosition = *aIterator;
+			m_WhiteMark.SetPosition(rPosition.m_fX, rPosition.m_fY);
+			m_WhiteMark.SetDiffuseColor(col.x, col.y, col.z, col.w);
+			m_WhiteMark.Render();
+			++aIterator;
+		}
 	}
-
-	_mgr->GetCbMgr()->SetTextureFactor(0xFFFFFFFF);
 
 	STATEMANAGER.GetSampler().SetFilter(0, D3D11_FILTER_MIN_MAG_MIP_LINEAR);
 
-	_mgr->SetShader(VF_PT);
-
 	CInstanceBase* pkInst = CPythonCharacterManager::Instance().GetMainInstancePtr();
-
 	if (pkInst)
 	{
 		float fRotation = 540.0f - pkInst->GetRotation();
-
 		while (fRotation > 360.0f)
 			fRotation -= 360.0f;
-
 		while (fRotation < 0.0f)
 			fRotation += 360.0f;
 
@@ -409,10 +398,8 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 
 		if (TYPE_TARGET != rAtlasMarkInfo.m_byType)
 			continue;
-
 		if (rAtlasMarkInfo.m_fMiniMapX <= 0.0f)
 			continue;
-
 		if (rAtlasMarkInfo.m_fMiniMapY <= 0.0f)
 			continue;
 
@@ -422,7 +409,6 @@ void CPythonMiniMap::Render(float fScreenX, float fScreenY)
 	}
 
 	CCamera* pkCmrCur = CCameraManager::Instance().GetCurrentCamera();
-
 	if (pkCmrCur)
 	{
 		m_MiniMapCameraraphicImageInstance.SetRotation(pkCmrCur->GetRoll());

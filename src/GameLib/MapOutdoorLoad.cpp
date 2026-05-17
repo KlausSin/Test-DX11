@@ -39,8 +39,15 @@ bool CMapOutdoor::Load(float x, float y, float z)
 
 	__HeightCache_Init();
 
-	// LOCAL_ENVIRONMENT_DATA
 	std::string local_envDataName = GetMapDataDirectory() + "\\" + m_settings_envDataName;
+
+	{
+		size_t pos = local_envDataName.rfind(".msenv");
+
+		if (pos != std::string::npos)
+			local_envDataName.replace(pos, 6, ".json");
+	}
+
 	if (CPackManager::instance().IsExist(local_envDataName.c_str()))
 	{
 		m_envDataName = local_envDataName;
@@ -49,12 +56,22 @@ bool CMapOutdoor::Load(float x, float y, float z)
 	{
 		const std::string& c_rstrEnvironmentRoot = "d:/ymir work/environment/";
 		const std::string& c_rstrMapName = GetName();
+
 		m_envDataName = c_rstrEnvironmentRoot + m_settings_envDataName;
+
+		{
+			size_t pos = m_envDataName.rfind(".msenv");
+
+			if (pos != std::string::npos)
+				m_envDataName.replace(pos, 6, ".json");
+		}
 
 		if (0 == m_envDataName.compare(c_rstrEnvironmentRoot))
 		{
-			const std::string& strAppendName = c_rstrMapName.substr(c_rstrMapName.size() - 2, 2);
-			m_envDataName = c_rstrEnvironmentRoot + strAppendName + ".msenv";
+			const std::string& strAppendName =
+				c_rstrMapName.substr(c_rstrMapName.size() - 2, 2);
+
+			m_envDataName = c_rstrEnvironmentRoot + strAppendName + ".json";
 		}
 	}
 	// LOCAL_ENVIRONMENT_DATA_END

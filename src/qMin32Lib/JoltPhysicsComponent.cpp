@@ -83,7 +83,26 @@ bool JoltPhysicsComponent::CreateBody(JoltPhysicsWorld& world, const JPH::ShapeS
 
 void JoltPhysicsComponent::Destroy()
 {
-    if (!m_valid || !m_world || !m_world->IsInitialized())
+    if (!m_valid)
+    {
+        m_world = nullptr;
+        return;
+    }
+
+    if (!m_world)
+    {
+        m_valid = false;
+        return;
+    }
+
+    if (reinterpret_cast<uintptr_t>(m_world) == UINTPTR_MAX)
+    {
+        m_valid = false;
+        m_world = nullptr;
+        return;
+    }
+
+    if (!m_world->IsInitialized())
     {
         m_valid = false;
         m_world = nullptr;
@@ -96,6 +115,7 @@ void JoltPhysicsComponent::Destroy()
         bodyInterface.RemoveBody(m_bodyID);
 
     bodyInterface.DestroyBody(m_bodyID);
+
     m_valid = false;
     m_world = nullptr;
 }

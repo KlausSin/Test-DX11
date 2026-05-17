@@ -1,0 +1,62 @@
+{
+    "reserved": false,
+    "directionallight": {
+        "direction": [0.350156, 0.562609, -0.748907],
+        "background": {
+            "enable": true,
+            "diffuse": [1.0, 0.972549, 0.972549, 1.0],
+            "ambient": [0.0, 0.0, 0.0, 1.0]
+        },
+        "character": {
+            "enable": true,
+            "diffuse": [1.0, 0.972549, 0.972549, 1.0],
+            "ambient": [0.15, 0.15, 0.15, 1.0]
+        }
+    },
+    "material": {
+        "diffuse": [1.0, 1.0, 1.0, 1.0],
+        "ambient": [0.882353, 0.854902, 0.784314, 1.0],
+        "emissive": [0.321569, 0.321569, 0.411765, 1.0]
+    },
+    "fog": {
+        "foglevel": 7,
+        "color": [0.384314, 0.435294, 0.501961, 1.0]
+    },
+    "filter": {
+        "enable": false,
+        "color": [0.556863, 0.329412, 0.329412, 0.0],
+        "alphasrc": 1,
+        "alphadest": 2
+    },
+    "skybox": {
+        "gradient": [
+            [0.176471, 0.192157, 0.219608, 0.0, 0.231373, 0.313726, 0.87451, 0.0],
+            [0.231373, 0.313726, 0.87451, 0.0, 0.545098, 0.670588, 0.784314, 0.0],
+            [0.545098, 0.670588, 0.784314, 0.0, 0.854902, 0.882353, 0.886275, 0.0]
+        ],
+        "btexturerendermode": false,
+        "scale": [3500.0, 3500.0, 3500.0],
+        "gradientlevelupper": 2,
+        "gradientlevellower": 1,
+        "frontfacefilename": "",
+        "backfacefilename": "",
+        "leftfacefilename": "",
+        "rightfacefilename": "",
+        "topfacefilename": "",
+        "bottomfacefilename": "",
+        "cloudscale": [200000.0, 200000.0],
+        "cloudheight": 30000.0,
+        "cloudtexturescale": [4.0, 4.0],
+        "cloudspeed": [0.004, 0.004],
+        "cloudtexturefilename": "d:/ymir work/environment/clouds_zone01.tga",
+        "cloudcolor": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    },
+    "lensflare": {
+        "enable": true,
+        "brightnesscolor": [1.0, 0.886275, 0.886275, 1.0],
+        "maxbrightness": 0.74,
+        "mainflareenable": true,
+        "mainflaretexturefilename": "D:/Ymir Work/environment/sunflare.dds",
+        "mainflaresize": 0.35
+    }
+}

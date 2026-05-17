@@ -426,12 +426,22 @@ void CMapManager::DeleteEnvironmentData(TEnvironmentData * pEnvironmentData)
 	pEnvironmentData = NULL;
 }
 
-BOOL CMapManager::LoadEnvironmentData(const char * c_szFileName, TEnvironmentData * pEnvironmentData)
+
+BOOL CMapManager::LoadEnvironmentData(const char* c_szFileName, TEnvironmentData* pEnvironmentData)
 {
 	if (!pEnvironmentData)
 		return FALSE;
 
-	return (BOOL)Environment_Load(*pEnvironmentData, c_szFileName);
+	if (Environment_Load(*pEnvironmentData, c_szFileName))
+		return TRUE;
+
+	TraceError("Cannot load environment: %s", c_szFileName);
+	TraceError("Loading fallback environment");
+
+	//return (BOOL)Environment_Load(
+	//	*pEnvironmentData,
+	//	"d:/ymir work/environment/basic_environment.json"
+	//);
 }
 
 DWORD CMapManager::GetShadowMapColor(float fx, float fy)

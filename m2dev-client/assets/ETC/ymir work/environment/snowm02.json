@@ -1,0 +1,58 @@
+{
+    "reserved": false,
+    "directionallight": {
+        "direction": [0.596551, 0.28178, -0.751483],
+        "background": {
+            "enable": true,
+            "diffuse": [0.658824, 0.658824, 0.658824, 1.0],
+            "ambient": [0.266667, 0.27451, 0.294118, 1.0]
+        },
+        "character": {
+            "enable": true,
+            "diffuse": [0.658824, 0.658824, 0.658824, 1.0],
+            "ambient": [0.416667, 0.42451, 0.444118, 1.0]
+        }
+    },
+    "material": {
+        "diffuse": [1.0, 0.984314, 0.984314, 1.0],
+        "ambient": [0.666667, 0.666667, 0.67451, 1.0],
+        "emissive": [0.203922, 0.203922, 0.211765, 1.0]
+    },
+    "fog": {
+        "foglevel": 3,
+        "color": [0.682353, 0.686275, 0.729412, 1.0]
+    },
+    "filter": {
+        "enable": false,
+        "color": [0.086275, 0.164706, 0.266667, 0.0],
+        "alphasrc": 1,
+        "alphadest": 2
+    },
+    "skybox": {
+        "gradient": [
+            [0.039216, 0.176471, 0.34902, 0.0, 0.039216, 0.176471, 0.34902, 0.0],
+            [0.039216, 0.176471, 0.352941, 0.0, 0.094118, 0.188235, 0.305882, 0.0],
+            [0.094118, 0.188235, 0.305882, 0.0, 0.133333, 0.196078, 0.368627, 0.0],
+            [0.133333, 0.196078, 0.368627, 0.0, 0.290196, 0.352941, 0.513726, 0.0],
+            [0.290196, 0.352941, 0.513726, 0.0, 0.682353, 0.690196, 0.729412, 0.0],
+            [0.682353, 0.690196, 0.729412, 0.0, 0.058824, 0.0, 0.313726, 0.0]
+        ],
+        "scale": [3500.0, 3500.0, 3500.0],
+        "gradientlevelupper": 5,
+        "gradientlevellower": 1,
+        "cloudscale": [280000.0, 280000.0],
+        "cloudheight": 30000.0,
+        "cloudtexturescale": [5.0, 5.0],
+        "cloudspeed": [0.01, 0.01],
+        "cloudtexturefilename": "D:/ymir work/environment/clouds_zone05.tga",
+        "cloudcolor": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    },
+    "lensflare": {
+        "enable": true,
+        "brightnesscolor": [1.0, 0.886275, 0.886275, 1.0],
+        "maxbrightness": 0.74,
+        "mainflareenable": true,
+        "mainflaretexturefilename": "D:/ymir work/environment/clouds_zone05.tga",
+        "mainflaresize": 0.35
+    }
+}

@@ -1,5 +1,7 @@
 #include "StdAfx.h"
 #include "MapUtil.h"
+#include "PackLib/PackManager.h"
+#include <EterBase/FileLoaderJson.h>
 
 void Environment_Init(SEnvironmentData& envData)
 {
@@ -72,150 +74,169 @@ void Environment_Init(SEnvironmentData& envData)
 
 bool Environment_Load(SEnvironmentData& envData, const char* envFileName)
 {
-	CTextFileLoader textLoader;
-	
-	if (!textLoader.Load(envFileName))
-		return false;
+    CMemoryJsonFileLoader json;
 
-	textLoader.SetTop();
+    if (!json.Load(envFileName))
+        return false;
 
-	textLoader.GetTokenBoolean("reserved", &envData.bReserve);
+    json.GetTokenBoolean("reserved", &envData.bReserve);
 
-	if (textLoader.SetChildNode("directionallight"))
-	{
-		XMFLOAT3 v3Dir;
-		textLoader.GetTokenDirection("direction", &v3Dir);
+    if (json.SetChildNode("directionallight"))
+    {
+        XMFLOAT3 v3Dir{};
+        json.GetTokenVector3("direction", &v3Dir);
 
-		if (textLoader.SetChildNode("background"))
-		{
-			envData.DirLights[ENV_DIRLIGHT_BACKGROUND].Direction = v3Dir;
-			textLoader.GetTokenBoolean("enable", &envData.bDirLightsEnable[ENV_DIRLIGHT_BACKGROUND]);
-			textLoader.GetTokenColor("diffuse", &envData.DirLights[ENV_DIRLIGHT_BACKGROUND].Diffuse);
-			textLoader.GetTokenColor("ambient", &envData.DirLights[ENV_DIRLIGHT_BACKGROUND].Ambient);
-			textLoader.SetParentNode();
-		}
+        if (json.SetChildNode("background"))
+        {
+            envData.DirLights[ENV_DIRLIGHT_BACKGROUND].Direction = v3Dir;
 
-		if (textLoader.SetChildNode("character"))
-		{
-			envData.DirLights[ENV_DIRLIGHT_CHARACTER].Direction = v3Dir;
-			textLoader.GetTokenBoolean("enable", &envData.bDirLightsEnable[ENV_DIRLIGHT_CHARACTER]);
-			textLoader.GetTokenColor("diffuse", &envData.DirLights[ENV_DIRLIGHT_CHARACTER].Diffuse);
-			textLoader.GetTokenColor("ambient", &envData.DirLights[ENV_DIRLIGHT_CHARACTER].Ambient);
-			textLoader.SetParentNode();
-		}
+            json.GetTokenBoolean("enable", &envData.bDirLightsEnable[ENV_DIRLIGHT_BACKGROUND]);
+            json.GetTokenColor("diffuse", &envData.DirLights[ENV_DIRLIGHT_BACKGROUND].Diffuse);
+            json.GetTokenColor("ambient", &envData.DirLights[ENV_DIRLIGHT_BACKGROUND].Ambient);
 
-		textLoader.SetParentNode();
-	}
+            json.SetParentNode();
+        }
 
-	if (textLoader.SetChildNode("material"))
-	{
-		textLoader.GetTokenColor("diffuse", &envData.Material.Diffuse);
-		textLoader.GetTokenColor("ambient", &envData.Material.Ambient);
-		textLoader.GetTokenColor("emissive", &envData.Material.Emissive);
-		textLoader.SetParentNode();
-	}
+        if (json.SetChildNode("character"))
+        {
+            envData.DirLights[ENV_DIRLIGHT_CHARACTER].Direction = v3Dir;
 
-	if (textLoader.SetChildNode("fog"))
-	{
-		if (textLoader.GetTokenByte("foglevel", &envData.bFogLevel))
-		{
-			envData.bDensityFog = true;
-		}
-		else
-		{
-			envData.bDensityFog = false;
-			textLoader.GetTokenBoolean("enable", &envData.bFogEnable);
-			textLoader.GetTokenFloat("neardistance", &envData.m_fFogNearDistance);
-			textLoader.GetTokenFloat("fardistance", &envData.m_fFogFarDistance);
-		}
+            json.GetTokenBoolean("enable", &envData.bDirLightsEnable[ENV_DIRLIGHT_CHARACTER]);
+            json.GetTokenColor("diffuse", &envData.DirLights[ENV_DIRLIGHT_CHARACTER].Diffuse);
+            json.GetTokenColor("ambient", &envData.DirLights[ENV_DIRLIGHT_CHARACTER].Ambient);
 
-		textLoader.GetTokenColor("color", &envData.FogColor);
+            json.SetParentNode();
+        }
 
-		textLoader.SetParentNode();
-	}
-	
-	if (textLoader.SetChildNode("filter"))
-	{
-		textLoader.GetTokenBoolean("enable", (BOOL *) &envData.bFilteringEnable);
-		textLoader.GetTokenColor("color", &envData.FilteringColor);
-		textLoader.GetTokenByte("alphasrc", &envData.byFilteringAlphaSrc);
-		textLoader.GetTokenByte("alphadest", &envData.byFilteringAlphaDest);
-		textLoader.SetParentNode();
-	}
-	
-	if (textLoader.SetChildNode("skybox"))
-	{
-		textLoader.GetTokenBoolean("btexturerendermode", (BOOL *) &envData.bSkyBoxTextureRenderMode);
-		textLoader.GetTokenVector3("scale", &envData.v3SkyBoxScale);
-		textLoader.GetTokenByte("gradientlevelupper", &envData.bySkyBoxGradientLevelUpper);
-		textLoader.GetTokenByte("gradientlevellower", &envData.bySkyBoxGradientLevelLower);
+        json.SetParentNode();
+    }
 
-		textLoader.GetTokenString("frontfacefilename", &envData.strSkyBoxFaceFileName[0]);
-		textLoader.GetTokenString("backfacefilename", &envData.strSkyBoxFaceFileName[1]);
-		textLoader.GetTokenString("leftfacefilename", &envData.strSkyBoxFaceFileName[2]);
-		textLoader.GetTokenString("rightfacefilename", &envData.strSkyBoxFaceFileName[3]);
-		textLoader.GetTokenString("topfacefilename", &envData.strSkyBoxFaceFileName[4]);
-		textLoader.GetTokenString("bottomfacefilename", &envData.strSkyBoxFaceFileName[5]);
+    if (json.SetChildNode("material"))
+    {
+        json.GetTokenColor("diffuse", &envData.Material.Diffuse);
+        json.GetTokenColor("ambient", &envData.Material.Ambient);
+        json.GetTokenColor("emissive", &envData.Material.Emissive);
 
+        json.SetParentNode();
+    }
 
-		textLoader.GetTokenVector2("cloudscale", &envData.v2CloudScale);
-		textLoader.GetTokenFloat("cloudheight", &envData.fCloudHeight);
-		textLoader.GetTokenVector2("cloudtexturescale", &envData.v2CloudTextureScale);
-		textLoader.GetTokenVector2("cloudspeed", &envData.v2CloudSpeed);
-		textLoader.GetTokenString("cloudtexturefilename", &envData.strCloudTextureFileName);
+    if (json.SetChildNode("fog"))
+    {
+        if (json.GetTokenByte("foglevel", &envData.bFogLevel))
+        {
+            envData.bDensityFog = true;
+        }
+        else
+        {
+            envData.bDensityFog = false;
 
-		CTokenVector * pTokenVectorCloudColor;
-		if(textLoader.GetTokenVector("cloudcolor", &pTokenVectorCloudColor))
-		if ( 0 == pTokenVectorCloudColor->size()%8)
-		{
-			envData.CloudGradientColor.m_FirstColor.r = atof(pTokenVectorCloudColor->at(0).c_str());
-			envData.CloudGradientColor.m_FirstColor.g = atof(pTokenVectorCloudColor->at(1).c_str());
-			envData.CloudGradientColor.m_FirstColor.b = atof(pTokenVectorCloudColor->at(2).c_str());
-			envData.CloudGradientColor.m_FirstColor.a = atof(pTokenVectorCloudColor->at(3).c_str());
+            json.GetTokenBoolean("enable", &envData.bFogEnable);
+            json.GetTokenFloat("neardistance", &envData.m_fFogNearDistance);
+            json.GetTokenFloat("fardistance", &envData.m_fFogFarDistance);
+        }
 
-			envData.CloudGradientColor.m_SecondColor.r = atof(pTokenVectorCloudColor->at(4).c_str());
-			envData.CloudGradientColor.m_SecondColor.g = atof(pTokenVectorCloudColor->at(5).c_str());
-			envData.CloudGradientColor.m_SecondColor.b = atof(pTokenVectorCloudColor->at(6).c_str());
-			envData.CloudGradientColor.m_SecondColor.a = atof(pTokenVectorCloudColor->at(7).c_str());
-		}
+        json.GetTokenColor("color", &envData.FogColor);
 
-		BYTE byGradientCount = envData.bySkyBoxGradientLevelUpper+envData.bySkyBoxGradientLevelLower;
-		CTokenVector * pTokenVector;
-		if (textLoader.GetTokenVector("gradient", &pTokenVector))
-		if (0 == pTokenVector->size()%8)
-		if (byGradientCount == pTokenVector->size()/8)
-		{
-			envData.SkyBoxGradientColorVector.clear();
-			envData.SkyBoxGradientColorVector.resize(byGradientCount);
-			for (DWORD i = 0; i < byGradientCount; ++i)
-			{
-				envData.SkyBoxGradientColorVector[i].m_FirstColor.r = atof(pTokenVector->at(i*8+0).c_str());
-				envData.SkyBoxGradientColorVector[i].m_FirstColor.g = atof(pTokenVector->at(i*8+1).c_str());
-				envData.SkyBoxGradientColorVector[i].m_FirstColor.b = atof(pTokenVector->at(i*8+2).c_str());
-				envData.SkyBoxGradientColorVector[i].m_FirstColor.a = atof(pTokenVector->at(i*8+3).c_str());
+        json.SetParentNode();
+    }
 
-				envData.SkyBoxGradientColorVector[i].m_SecondColor.r = atof(pTokenVector->at(i*8+4).c_str());
-				envData.SkyBoxGradientColorVector[i].m_SecondColor.g = atof(pTokenVector->at(i*8+5).c_str());
-				envData.SkyBoxGradientColorVector[i].m_SecondColor.b = atof(pTokenVector->at(i*8+6).c_str());
-				envData.SkyBoxGradientColorVector[i].m_SecondColor.a = atof(pTokenVector->at(i*8+7).c_str());
-			}
-		}
+    if (json.SetChildNode("filter"))
+    {
+        json.GetTokenBoolean("enable", &envData.bFilteringEnable);
+        json.GetTokenColor("color", &envData.FilteringColor);
+        json.GetTokenByte("alphasrc", &envData.byFilteringAlphaSrc);
+        json.GetTokenByte("alphadest", &envData.byFilteringAlphaDest);
 
-		textLoader.SetParentNode();
-	}
+        json.SetParentNode();
+    }
 
-	if (textLoader.SetChildNode("lensflare"))
-	{
-		textLoader.GetTokenBoolean("enable", &envData.bLensFlareEnable);
-		textLoader.GetTokenColor("brightnesscolor", &envData.LensFlareBrightnessColor);
-		textLoader.GetTokenFloat("maxbrightness", &envData.fLensFlareMaxBrightness);
-		textLoader.GetTokenBoolean("mainflareenable", &envData.bMainFlareEnable);
-		textLoader.GetTokenString("mainflaretexturefilename", &envData.strMainFlareTextureFileName);
-		textLoader.GetTokenFloat("mainflaresize", &envData.fMainFlareSize);
+    if (json.SetChildNode("skybox"))
+    {
+        json.GetTokenBoolean("btexturerendermode", &envData.bSkyBoxTextureRenderMode);
+        json.GetTokenVector3("scale", &envData.v3SkyBoxScale);
 
-		textLoader.SetParentNode();
-	}
-	return true;
+        json.GetTokenByte("gradientlevelupper", &envData.bySkyBoxGradientLevelUpper);
+        json.GetTokenByte("gradientlevellower", &envData.bySkyBoxGradientLevelLower);
+
+        json.GetTokenString("frontfacefilename", &envData.strSkyBoxFaceFileName[0]);
+        json.GetTokenString("backfacefilename", &envData.strSkyBoxFaceFileName[1]);
+        json.GetTokenString("leftfacefilename", &envData.strSkyBoxFaceFileName[2]);
+        json.GetTokenString("rightfacefilename", &envData.strSkyBoxFaceFileName[3]);
+        json.GetTokenString("topfacefilename", &envData.strSkyBoxFaceFileName[4]);
+        json.GetTokenString("bottomfacefilename", &envData.strSkyBoxFaceFileName[5]);
+
+        json.GetTokenVector2("cloudscale", &envData.v2CloudScale);
+        json.GetTokenFloat("cloudheight", &envData.fCloudHeight);
+        json.GetTokenVector2("cloudtexturescale", &envData.v2CloudTextureScale);
+        json.GetTokenVector2("cloudspeed", &envData.v2CloudSpeed);
+
+        json.GetTokenString("cloudtexturefilename", &envData.strCloudTextureFileName);
+
+        std::vector<float> cloudColor;
+
+        if (json.GetTokenArray("cloudcolor", &cloudColor) && cloudColor.size() >= 8)
+        {
+            envData.CloudGradientColor.m_FirstColor.r = cloudColor[0];
+            envData.CloudGradientColor.m_FirstColor.g = cloudColor[1];
+            envData.CloudGradientColor.m_FirstColor.b = cloudColor[2];
+            envData.CloudGradientColor.m_FirstColor.a = cloudColor[3];
+
+            envData.CloudGradientColor.m_SecondColor.r = cloudColor[4];
+            envData.CloudGradientColor.m_SecondColor.g = cloudColor[5];
+            envData.CloudGradientColor.m_SecondColor.b = cloudColor[6];
+            envData.CloudGradientColor.m_SecondColor.a = cloudColor[7];
+        }
+
+        auto gradient = json.GetArray("gradient");
+
+        envData.SkyBoxGradientColorVector.clear();
+
+        for (auto g : gradient)
+        {
+            simdjson::dom::array arr;
+
+            if (g.get(arr))
+                continue;
+
+            std::vector<float> vals;
+
+            for (auto v : arr)
+                vals.push_back(float(double(v)));
+
+            if (vals.size() < 8)
+                continue;
+
+            TGradientColor color{};
+
+            color.m_FirstColor.r = vals[0];
+            color.m_FirstColor.g = vals[1];
+            color.m_FirstColor.b = vals[2];
+            color.m_FirstColor.a = vals[3];
+
+            color.m_SecondColor.r = vals[4];
+            color.m_SecondColor.g = vals[5];
+            color.m_SecondColor.b = vals[6];
+            color.m_SecondColor.a = vals[7];
+
+            envData.SkyBoxGradientColorVector.push_back(color);
+        }
+
+        json.SetParentNode();
+    }
+
+    if (json.SetChildNode("lensflare"))
+    {
+        json.GetTokenBoolean("enable", &envData.bLensFlareEnable);
+        json.GetTokenColor("brightnesscolor", &envData.LensFlareBrightnessColor);
+        json.GetTokenFloat("maxbrightness", &envData.fLensFlareMaxBrightness);
+        json.GetTokenBoolean("mainflareenable", &envData.bMainFlareEnable);
+        json.GetTokenString("mainflaretexturefilename", &envData.strMainFlareTextureFileName);
+        json.GetTokenFloat("mainflaresize", &envData.fMainFlareSize);
+
+        json.SetParentNode();
+    }
+
+    return true;
 }
 
 void GetInterpolatedPosition(float curPositionRate, TPixelPosition * PixelPosition)

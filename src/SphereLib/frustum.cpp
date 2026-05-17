@@ -55,57 +55,61 @@ ViewState Frustum::ViewVolumeTest(const Vector3d& c, float r) const
 
 void Frustum::BuildViewFrustum(XMFLOAT4X4& mat)
 {
-	m_bUsingSphere = false;
+    m_bUsingSphere = false;
 
-	XMMATRIX m = XMLoadFloat4x4(&mat);
+    XMMATRIX m = XMLoadFloat4x4(&mat);
 
-	m_plane[0] = XMFLOAT4(
-		XMVectorGetZ(m.r[0]),
-		XMVectorGetZ(m.r[1]),
-		XMVectorGetZ(m.r[2]),
-		XMVectorGetZ(m.r[3])
-	);
+    XMFLOAT4X4 f;
+    XMStoreFloat4x4(&f, m);
 
-	m_plane[1] = XMFLOAT4(
-		XMVectorGetW(m.r[0]) - XMVectorGetZ(m.r[0]),
-		XMVectorGetW(m.r[1]) - XMVectorGetZ(m.r[1]),
-		XMVectorGetW(m.r[2]) - XMVectorGetZ(m.r[2]),
-		XMVectorGetW(m.r[3]) - XMVectorGetZ(m.r[3])
-	);
+    // LEFT
+    m_plane[0] = XMFLOAT4(
+        f._14 + f._11,
+        f._24 + f._21,
+        f._34 + f._31,
+        f._44 + f._41);
 
-	m_plane[2] = XMFLOAT4(
-		XMVectorGetW(m.r[0]) + XMVectorGetX(m.r[0]),
-		XMVectorGetW(m.r[1]) + XMVectorGetX(m.r[1]),
-		XMVectorGetW(m.r[2]) + XMVectorGetX(m.r[2]),
-		XMVectorGetW(m.r[3]) + XMVectorGetX(m.r[3])
-	);
+    // RIGHT
+    m_plane[1] = XMFLOAT4(
+        f._14 - f._11,
+        f._24 - f._21,
+        f._34 - f._31,
+        f._44 - f._41);
 
-	m_plane[3] = XMFLOAT4(
-		XMVectorGetW(m.r[0]) - XMVectorGetX(m.r[0]),
-		XMVectorGetW(m.r[1]) - XMVectorGetX(m.r[1]),
-		XMVectorGetW(m.r[2]) - XMVectorGetX(m.r[2]),
-		XMVectorGetW(m.r[3]) - XMVectorGetX(m.r[3])
-	);
+    // TOP
+    m_plane[2] = XMFLOAT4(
+        f._14 - f._12,
+        f._24 - f._22,
+        f._34 - f._32,
+        f._44 - f._42);
 
-	m_plane[4] = XMFLOAT4(
-		XMVectorGetW(m.r[0]) + XMVectorGetY(m.r[0]),
-		XMVectorGetW(m.r[1]) + XMVectorGetY(m.r[1]),
-		XMVectorGetW(m.r[2]) + XMVectorGetY(m.r[2]),
-		XMVectorGetW(m.r[3]) + XMVectorGetY(m.r[3])
-	);
+    // BOTTOM
+    m_plane[3] = XMFLOAT4(
+        f._14 + f._12,
+        f._24 + f._22,
+        f._34 + f._32,
+        f._44 + f._42);
 
-	m_plane[5] = XMFLOAT4(
-		XMVectorGetW(m.r[0]) - XMVectorGetY(m.r[0]),
-		XMVectorGetW(m.r[1]) - XMVectorGetY(m.r[1]),
-		XMVectorGetW(m.r[2]) - XMVectorGetY(m.r[2]),
-		XMVectorGetW(m.r[3]) - XMVectorGetY(m.r[3])
-	);
+    // NEAR
+    m_plane[4] = XMFLOAT4(
+        f._13,
+        f._23,
+        f._33,
+        f._43);
 
-	for (int i = 0; i < 6; ++i)
-	{
-		XMStoreFloat4(&m_plane[i],
-			XMPlaneNormalize(XMLoadFloat4(&m_plane[i])));
-	}
+    // FAR
+    m_plane[5] = XMFLOAT4(
+        f._14 - f._13,
+        f._24 - f._23,
+        f._34 - f._33,
+        f._44 - f._43);
+
+    for (int i = 0; i < 6; ++i)
+    {
+        XMVECTOR p = XMLoadFloat4(&m_plane[i]);
+        p = XMPlaneNormalize(p);
+        XMStoreFloat4(&m_plane[i], p);
+    }
 }
 
 void Frustum::BuildViewFrustum2(XMFLOAT4X4& mat,

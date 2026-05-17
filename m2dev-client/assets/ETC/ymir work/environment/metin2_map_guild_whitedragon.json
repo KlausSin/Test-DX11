@@ -1,0 +1,58 @@
+{
+    "reserved": false,
+    "directionallight": {
+        "direction": [0.350156, 0.562609, -0.748907],
+        "background": {
+            "enable": true,
+            "diffuse": [0.972549, 0.984314, 1.0, 1.0],
+            "ambient": [0.219608, 0.192157, 0.192157, 1.0]
+        },
+        "character": {
+            "enable": true,
+            "diffuse": [0.972549, 0.984314, 1.0, 1.0],
+            "ambient": [0.369608, 0.342157, 0.342157, 1.0]
+        }
+    },
+    "material": {
+        "diffuse": [1.0, 1.0, 1.0, 1.0],
+        "ambient": [0.784314, 0.839216, 0.882353, 1.0],
+        "emissive": [0.321569, 0.321569, 0.411765, 1.0]
+    },
+    "fog": {
+        "foglevel": 6,
+        "color": [0.701961, 0.807843, 0.858824, 1.0]
+    },
+    "filter": {
+        "enable": false,
+        "color": [0.556863, 0.329412, 0.329412, 0.0],
+        "alphasrc": 1,
+        "alphadest": 2
+    },
+    "skybox": {
+        "gradient": [],
+        "btexturerendermode": true,
+        "scale": [3500.0, 3500.0, 3500.0],
+        "gradientlevelupper": 3,
+        "gradientlevellower": 1,
+        "frontfacefilename": "D:/ymir work/environment/skybox/dawnmistwood-f.dds",
+        "backfacefilename": "D:/ymir work/environment/skybox/dawnmistwood-b.dds",
+        "leftfacefilename": "D:/ymir work/environment/skybox/dawnmistwood-l.dds",
+        "rightfacefilename": "D:/ymir work/environment/skybox/dawnmistwood-r.dds",
+        "topfacefilename": "D:/ymir work/environment/skybox/dawnmistwood-t.dds",
+        "bottomfacefilename": "",
+        "cloudscale": [200000.0, 200000.0],
+        "cloudheight": 30000.0,
+        "cloudtexturescale": [4.0, 4.0],
+        "cloudspeed": [0.004, 0.004],
+        "cloudtexturefilename": "",
+        "cloudcolor": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    },
+    "lensflare": {
+        "enable": true,
+        "brightnesscolor": [1.0, 0.886275, 0.886275, 1.0],
+        "maxbrightness": 0.74,
+        "mainflareenable": true,
+        "mainflaretexturefilename": "D:/Ymir Work/environment/sunflare.dds",
+        "mainflaresize": 0.35
+    }
+}

@@ -184,3 +184,13 @@ Fix Shadow
 
 /////////////////////////////             /////////////////////////////
 
+
+/////////////////////////////   convert all .msenv to .json    /////////////////////////////
+ETC/ymir work/environment and delete all .msenv files
+if you have more .msenv, run convertor.bat to create .json files (the environment file need to be in the same place with the bat file)
+
+
+Fix Crash vertex buffer update
+Fix crash from jolt 
+
+/////////////////////////////             /////////////////////////////

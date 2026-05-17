@@ -1,0 +1,54 @@
+{
+    "reserved": false,
+    "directionallight": {
+        "direction": [0.596551, 0.28178, -0.751483],
+        "background": {
+            "enable": true,
+            "diffuse": [0.756863, 0.721569, 0.713726, 1.0],
+            "ambient": [0.513726, 0.513726, 0.619608, 1.0]
+        },
+        "character": {
+            "enable": true,
+            "diffuse": [0.756863, 0.721569, 0.713726, 1.0],
+            "ambient": [0.663725, 0.663725, 0.769608, 1.0]
+        }
+    },
+    "material": {
+        "diffuse": [0.509804, 0.431373, 0.607843, 1.0],
+        "ambient": [0.337255, 0.309804, 0.309804, 1.0],
+        "emissive": [0.011765, 0.003922, 0.003922, 1.0]
+    },
+    "fog": {
+        "foglevel": 4,
+        "color": [0.0, 0.0, 0.0, 1.0]
+    },
+    "filter": {
+        "enable": false,
+        "color": [0.176471, 0.164706, 0.164706, 0.0],
+        "alphasrc": 1,
+        "alphadest": 2
+    },
+    "skybox": {
+        "gradient": [
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        ],
+        "scale": [3500.0, 3500.0, 3500.0],
+        "gradientlevelupper": 1,
+        "gradientlevellower": 1,
+        "cloudscale": [200000.0, 200000.0],
+        "cloudheight": 30000.0,
+        "cloudtexturescale": [5.0, 5.0],
+        "cloudspeed": [0.01, 0.01],
+        "cloudtexturefilename": "D:/YMIR WORK/environment/blackout.dds",
+        "cloudcolor": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    },
+    "lensflare": {
+        "enable": true,
+        "brightnesscolor": [1.0, 0.886275, 0.886275, 1.0],
+        "maxbrightness": 0.74,
+        "mainflareenable": true,
+        "mainflaretexturefilename": "D:/YMIR WORK/environment/blackout.dds",
+        "mainflaresize": 0.35
+    }
+}

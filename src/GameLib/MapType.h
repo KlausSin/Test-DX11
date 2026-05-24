@@ -5,6 +5,8 @@ class CProperty;
 
 #include "EterLib/SkyBox.h"
 #include "AudioLib/SoundEngine.h"
+#include <qMin32Lib/entity/LightComponent.h>
+#include <qMin32Lib/ConstantBufferManager.h>
 
 /////////////////////////////////////////////////////////////////
 // Property
@@ -127,11 +129,8 @@ typedef struct SEnvironmentData
 {
 	// Light
 	BOOL bDirLightsEnable[ENV_DIRLIGHT_NUM];
-	D3DLIGHT11 DirLights[ENV_DIRLIGHT_NUM];
-
-	// Material
-	D3DMATERIAL11 Material;
-
+	CLightComponent DirLights[ENV_DIRLIGHT_NUM];
+	CBMaterialX Material;
 	// Fog
 	BOOL bFogEnable;
 	BOOL bDensityFog;

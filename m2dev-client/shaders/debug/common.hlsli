@@ -28,26 +28,6 @@ cbuffer cbMaterial : register(b1)
 	int alphaRef;
 };
 
-cbuffer cbLighting : register(b2)
-{
-    float4 lightPosition;
-	float4 lightDir; 
-	float4 lightDiffuse; 
-	float4 lightAmbient;
-    
-	float4 matDiffuse; 
-	float4 matAmbient; 
-	float4 matEmissive;
-    
-    float4 lightAttenuation;
-    float4 lightSpot;
-    
-	int lightingEnable; 
-	int pad0; int pad1; int pad2;
-	float4 specularColor; // rgb = culoare, a = power
-    float pad[12];
-};
-
 cbuffer cbFog : register(b4)
 {
     float4 fogColor;
@@ -90,3 +70,97 @@ cbuffer GrannyBonePalette : register(b6)
 {
     row_major float4x4 bonePalette[256];
 };
+cbuffer TerrainLayerCB : register(b8)
+{
+    float4 gBrush;
+    float4 gFlags;
+    float4 gEye;
+    float4 gLayerTiling[8];
+    float4 gLayerStrength[8];
+    float4 gLayerEnabled[8];
+};
+
+
+#define MAX_ENTITY_LIGHTS 32
+
+struct EntityLight
+{
+    float4 position;
+    float4 direction;
+    float4 diffuse;
+    float4 ambient;
+    float4 attenuation;
+    float4 spot;
+    int4 params;
+};
+
+struct CBMaterialX
+{
+    float4 diffuse;
+    float4 ambient;
+    float4 emissive;
+    float4 specular;
+    float4 params;
+};
+
+cbuffer EntityLightingBuffer : register(b9)
+{
+    EntityLight g_entityLights[MAX_ENTITY_LIGHTS];
+    CBMaterialX material;
+    float4 g_entityGlobalAmbient;
+    int4 g_entityLightingSettings;
+};
+
+float3 ApplyEntityLights(float3 worldPos, float3 normal)
+{
+    float3 n = normalize(normal);
+    float3 result = material.emissive.rgb + material.ambient.rgb * g_entityGlobalAmbient.rgb;
+
+    if (g_entityLightingSettings.y == 0)
+        return saturate(material.diffuse.rgb);
+
+    int count = g_entityLightingSettings.x;
+
+    for (int i = 0; i < count; ++i)
+    {
+        EntityLight l = g_entityLights[i];
+
+        if (l.params.y == 0)
+            continue;
+
+        int type = l.params.x;
+        float3 lightColor = l.diffuse.rgb * l.diffuse.a;
+        float3 ambient = material.ambient.rgb * l.ambient.rgb;
+
+        if (type == 3)
+        {
+            float3 L = normalize(-l.direction.xyz);
+            float ndl = saturate(dot(n, L));
+            result += ambient + material.diffuse.rgb * lightColor * ndl;
+        }
+        else
+        {
+            float3 toLight = l.position.xyz - worldPos;
+            float dist = length(toLight);
+            float3 L = toLight / max(dist, 0.0001f);
+
+            float range = max(l.attenuation.w, 0.0001f);
+            float att = saturate(1.0f - dist / range);
+            att *= att;
+
+            float ndl = saturate(dot(n, L));
+
+            if (type == 2)
+            {
+                float3 spotDir = normalize(l.direction.xyz);
+                float spot = dot(-L, spotDir);
+                float cone = saturate((spot - cos(l.spot.y)) / max(cos(l.spot.x) - cos(l.spot.y), 0.0001f));
+                att *= pow(cone, l.spot.z);
+            }
+
+            result += ambient * att + material.diffuse.rgb * lightColor * ndl * att;
+        }
+    }
+
+    return saturate(result);
+}

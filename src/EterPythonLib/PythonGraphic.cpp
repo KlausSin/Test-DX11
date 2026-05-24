@@ -3,6 +3,7 @@
 #include "PythonGraphic.h"
 #include <string>
 #include <DirectXTex/DirectXTex.h>
+#include <qMin32Lib/entity/LightComponent.h>
 
 void CPythonGraphic::Destroy()
 {	
@@ -33,7 +34,7 @@ void CPythonGraphic::SetInterfaceRenderState()
 	CPythonGraphic::Instance().SetBlendOperation();
 	CPythonGraphic::Instance().SetOrtho2D(ms_iWidth, ms_iHeight, GetOrthoDepth());
 
-	cb->SetLightingEnable(false);
+	cb->SetEntityLightingEnable(FALSE);
 }
 
 void CPythonGraphic::SetGameRenderState()
@@ -46,7 +47,7 @@ void CPythonGraphic::SetGameRenderState()
 
 	state.Blend.SetBlendEnable(false);
 
-	cb->SetLightingEnable(true);
+	cb->SetEntityLightingEnable(TRUE);
 }
 
 void CPythonGraphic::SetCursorPosition(int x, int y)
@@ -56,35 +57,36 @@ void CPythonGraphic::SetCursorPosition(int x, int y)
 
 void CPythonGraphic::SetOmniLight()
 {
-    // Set up a material
-    D3DMATERIAL11 Material;
-	Material.Ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
-	Material.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	Material.Emissive = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	STATEMANAGER.GetLight().SetMaterial(Material);
+	auto cb = _mgr->GetCbMgr();
+	cb->ClearEntityLights();
+	cb->SetEntityLightingEnable(TRUE);
+	cb->SetEntityGlobalAmbient(0xFF4C4C4C);
 
-	D3DLIGHT11 Light;
-	Light.Type = D3DLIGHT_SPOT11;
-    Light.Position = XMFLOAT3(50.0f, 150.0f, 350.0f);
-    Light.Direction = XMFLOAT3(-0.15f, -0.3f, -0.9f);
-	Light.Theta = XMConvertToRadians(30.0f);
-	Light.Phi = XMConvertToRadians(45.0f);
-    Light.Falloff = 1.0f;
-    Light.Attenuation0 = 0.0f;
-    Light.Attenuation1 = 0.005f;
-    Light.Attenuation2 = 0.0f;
-	Light.Diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
-	Light.Ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
+	CLightComponent& spot = cb->CreateEntityLight();
 
-    Light.Range = 500.0f;
-	STATEMANAGER.GetLight().SetLight(0, Light);
+	spot.SetType(LIGHT_TYPE_SPOT);
+	spot.SetPosition(XMFLOAT3(50.0f, 150.0f, 350.0f));
+	spot.SetDirection(XMFLOAT3(-0.15f, -0.3f, -0.9f));
+	spot.SetTheta(XMConvertToRadians(30.0f));
+	spot.SetPhi(XMConvertToRadians(45.0f));
+	spot.SetFalloff(1.0f);
+	spot.SetAttenuation(0.0f, 0.005f, 0.0f);
+	spot.SetDiffuse(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+	spot.SetAmbient(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+	spot.SetRange(500.0f);
+	spot.SetEnable(true);
 
-	Light.Type = D3DLIGHT_POINT11;
-	Light.Position = XMFLOAT3(0.0f, 200.0f, 200.0f);
-	Light.Attenuation0 = 0.1f;
-	Light.Attenuation1 = 0.01f;
-	Light.Attenuation2 = 0.0f;
-	STATEMANAGER.GetLight().SetLight(1, Light);
+	CLightComponent& point = cb->CreateEntityLight();
+
+	point.SetType(LIGHT_TYPE_POINT);
+	point.SetPosition(XMFLOAT3(0.0f, 200.0f, 200.0f));
+	point.SetAttenuation(0.1f, 0.01f, 0.0f);
+	point.SetDiffuse(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+	point.SetAmbient(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+	point.SetRange(500.0f);
+	point.SetEnable(true);
+
+	cb->UploadEntityLights();
 }
 
 void CPythonGraphic::SetViewport(float fx, float fy, float fWidth, float fHeight)

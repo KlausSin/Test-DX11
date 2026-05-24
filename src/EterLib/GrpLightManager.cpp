@@ -32,7 +32,7 @@ void CLightManager::Initialize()
 	m_LightPool.FreeAll();
 }
 
-void CLightManager::RegisterLight(ELightType /*LightType*/, TLightID * poutLightID, D3DLIGHT11 & LightData)
+void CLightManager::RegisterLight(ELightType /*LightType*/, TLightID * poutLightID, const CLightComponent& LightData)
 {
 	CLight * pLight = m_LightPool.Alloc();
 	TLightID ID = NewLightID();
@@ -130,7 +130,7 @@ void CLightManager::FlushLight()
 	std::sort(m_LightSortVector.begin(), m_LightSortVector.end(), LightComp());
 
 	// NOTE - 거리로 정렬된 라이트를 Limit 갯수 만큼 제한해서 켜준다.
-	_mgr->GetCbMgr()->SetLightingEnable(true);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(TRUE);
 
 	for (DWORD k = 0; k < std::min((size_t)m_dwLimitLightCount, m_LightSortVector.size()); ++k)
 	{
@@ -142,7 +142,7 @@ void CLightManager::FlushLight()
 
 void CLightManager::RestoreLight()
 {
-	_mgr->GetCbMgr()->SetLightingEnable(false);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(FALSE);
 
 	for (DWORD k = 0; k < std::min((size_t)m_dwLimitLightCount, m_LightSortVector.size()); ++k)
 		m_LightSortVector[k]->SetDeviceLight(FALSE);
@@ -185,16 +185,12 @@ CLight::~CLight()
 
 void CLight::Initialize()
 {
-	m_LightID	= 0;
-	m_isEdited	= TRUE;
-	m_fDistance	= 0.0f;
+	m_LightID = 0;
+	m_isEdited = TRUE;
+	m_fDistance = 0.0f;
 
-	memset(&m_d3dLight, 0, sizeof(m_d3dLight));
-
-	m_d3dLight.Type			= D3DLIGHT_POINT11;
-	m_d3dLight.Attenuation0	= 0.0f;
-	m_d3dLight.Attenuation1	= 1.0f;
-	m_d3dLight.Attenuation2	= 0.0f;
+	m_d3dLight.SetType(LIGHT_TYPE_POINT);
+	m_d3dLight.SetAttenuation(0.0f, 1.0f, 0.0f);
 }
 
 void CLight::Clear()
@@ -206,16 +202,13 @@ void CLight::Clear()
 
 void CLight::SetDeviceLight(BOOL bActive)
 {
-	// Forward to StateManager which routes to D3D11 renderer
+	m_d3dLight.SetEnable(bActive);
+
 	if (bActive && m_isEdited)
-	{
-		STATEMANAGER.GetLight().SetLight(m_LightID, m_d3dLight);
-	}
-	// D3D11 has no LightEnable — lighting is handled in shaders via lightingEnable flag
-	(void)bActive;
+		_mgr->GetCbMgr()->SetEntityLight(m_LightID, m_d3dLight);
 }
 
-void CLight::SetParameter(TLightID id, const D3DLIGHT11 & c_rLight)
+void CLight::SetParameter(TLightID id, const CLightComponent& c_rLight)
 {
 	m_LightID	= id;
 	m_d3dLight	= c_rLight;
@@ -223,56 +216,56 @@ void CLight::SetParameter(TLightID id, const D3DLIGHT11 & c_rLight)
 
 void CLight::SetDiffuseColor(float fr, float fg, float fb, float fa)
 {
-	if (m_d3dLight.Diffuse.x == fr
-		&& m_d3dLight.Diffuse.y == fg
-		&& m_d3dLight.Diffuse.z == fb
-		&& m_d3dLight.Diffuse.w == fa
-		)
-		return;	
-	m_d3dLight.Diffuse.x = fr;
-	m_d3dLight.Diffuse.y = fg;
-	m_d3dLight.Diffuse.z = fb;
-	m_d3dLight.Diffuse.w = fa;
+	const XMFLOAT4 color(fr, fg, fb, fa);
+
+	if (m_d3dLight.GetDiffuse().x == fr &&
+		m_d3dLight.GetDiffuse().y == fg &&
+		m_d3dLight.GetDiffuse().z == fb &&
+		m_d3dLight.GetDiffuse().w == fa)
+		return;
+
+	m_d3dLight.SetDiffuse(color);
 	m_isEdited = TRUE;
 }
 
 void CLight::SetAmbientColor(float fr, float fg, float fb, float fa)
 {
-	if (m_d3dLight.Ambient.x == fr
-		&& m_d3dLight.Ambient.y == fg
-		&& m_d3dLight.Ambient.z == fb
-		&& m_d3dLight.Ambient.w == fa
-		)
+	const XMFLOAT4 color(fr, fg, fb, fa);
+
+	if (m_d3dLight.GetAmbient().x == fr &&
+		m_d3dLight.GetAmbient().y == fg &&
+		m_d3dLight.GetAmbient().z == fb &&
+		m_d3dLight.GetAmbient().w == fa)
 		return;
-	m_d3dLight.Ambient.x = fr;
-	m_d3dLight.Ambient.y = fg;
-	m_d3dLight.Ambient.z = fb;
-	m_d3dLight.Ambient.w = fa;
+
+	m_d3dLight.SetAmbient(color);
 	m_isEdited = TRUE;
 }
 
 void CLight::SetRange(float fRange)
 {
-	if (m_d3dLight.Range == fRange)
+	if (m_d3dLight.GetRange() == fRange)
 		return;
-	
-	m_d3dLight.Range = fRange;
+
+	m_d3dLight.SetRange(fRange);
 	m_isEdited = TRUE;
 }
 
 const XMFLOAT3& CLight::GetPosition() const
 {
-	return m_d3dLight.Position;
+	return m_d3dLight.GetPosition();
 }
 
 void CLight::SetPosition(float fx, float fy, float fz)
 {
-	if (m_d3dLight.Position.x == fx && m_d3dLight.Position.y == fy && m_d3dLight.Position.z == fz)
+	const XMFLOAT3 pos(fx, fy, fz);
+
+	if (m_d3dLight.GetPosition().x == fx &&
+		m_d3dLight.GetPosition().y == fy &&
+		m_d3dLight.GetPosition().z == fz)
 		return;
 
-	m_d3dLight.Position.x = fx;
-	m_d3dLight.Position.y = fy;
-	m_d3dLight.Position.z = fz;
+	m_d3dLight.SetPosition(pos);
 	m_isEdited = TRUE;
 }
 
@@ -283,19 +276,17 @@ void CLight::SetDistance(float fDistance)
 
 void CLight::BlendDiffuseColor(const XMFLOAT4& c_rColor, float fBlendTime, float fDelayTime)
 {
-	XMFLOAT4 Color(m_d3dLight.Diffuse);
-	m_DiffuseColorTransitor.SetTransition(Color, c_rColor, ms_fCurTime + fDelayTime, fBlendTime);
+	m_DiffuseColorTransitor.SetTransition(m_d3dLight.GetDiffuse(), c_rColor, ms_fCurTime + fDelayTime, fBlendTime);
 }
 
 void CLight::BlendAmbientColor(const XMFLOAT4& c_rColor, float fBlendTime, float fDelayTime)
 {
-	XMFLOAT4 Color(m_d3dLight.Ambient);
-	m_AmbientColorTransitor.SetTransition(Color, c_rColor, ms_fCurTime + fDelayTime, fBlendTime);
+	m_AmbientColorTransitor.SetTransition(m_d3dLight.GetAmbient(), c_rColor, ms_fCurTime + fDelayTime, fBlendTime);
 }
 
 void CLight::BlendRange(float fRange, float fBlendTime, float fDelayTime)
 {
-	m_RangeTransitor.SetTransition(m_d3dLight.Range, fRange, ms_fCurTime + fDelayTime, fBlendTime);
+	m_RangeTransitor.SetTransition(m_d3dLight.GetRange(), fRange, ms_fCurTime + fDelayTime, fBlendTime);
 }
 
 void CLight::Update()
@@ -305,7 +296,7 @@ void CLight::Update()
 		if (!m_AmbientColorTransitor.isActive())
 		{
 			m_AmbientColorTransitor.SetActive();
-			m_AmbientColorTransitor.SetSourceValue(m_d3dLight.Ambient);
+			m_AmbientColorTransitor.SetSourceValue(m_d3dLight.GetAmbient());
 		}
 		else
 		{
@@ -321,7 +312,7 @@ void CLight::Update()
 		if (!m_DiffuseColorTransitor.isActive())
 		{
 			m_DiffuseColorTransitor.SetActive();
-			m_DiffuseColorTransitor.SetSourceValue(m_d3dLight.Diffuse);
+			m_DiffuseColorTransitor.SetSourceValue(m_d3dLight.GetDiffuse());
 		}
 		else
 		{
@@ -336,7 +327,7 @@ void CLight::Update()
 		if (!m_RangeTransitor.isActive())
 		{
 			m_RangeTransitor.SetActive();
-			m_RangeTransitor.SetSourceValue(m_d3dLight.Range);
+			m_RangeTransitor.SetSourceValue(m_d3dLight.GetRange());
 		}
 		else
 		{

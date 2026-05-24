@@ -335,7 +335,7 @@ struct FCheckBackgroundDuringFlying {
 
 		if (!bHit && p->GetType() != ACTOR_OBJECT)
 		{
-			if (p->CollisionDynamicSphere(s))
+			if (p->CollisionComponent().CollisionDynamicSphere(s))
 			{
 				bHit = true;
 			}

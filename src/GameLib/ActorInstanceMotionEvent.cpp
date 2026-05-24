@@ -120,7 +120,7 @@ void CActorInstance::ProcessMotionEventEffectEvent(const CRaceMotionData::TMotio
 		));
 
 		XMFLOAT4X4 matWorld;
-		XMStoreFloat4x4(&matWorld, XMLoadFloat4x4(&matLocalPosition) * XMLoadFloat4x4(&m_worldMatrix));
+		XMStoreFloat4x4(&matWorld, XMLoadFloat4x4(&matLocalPosition) * XMLoadFloat4x4(&TransformComponent().GetWorldMatrix()));
 
 		CEffectManager::Instance().SelectEffectInstance(iIndex);
 		CEffectManager::Instance().SetEffectInstanceGlobalMatrix(matWorld);
@@ -157,7 +157,7 @@ void CActorInstance::ProcessMotionEventEffectEvent(const CRaceMotionData::TMotio
 				));
 
 				XMFLOAT4X4 matWorld;
-				XMStoreFloat4x4(&matWorld, XMLoadFloat4x4(pBoneMat) * XMLoadFloat4x4(&matLocalPosition) * XMLoadFloat4x4(&m_worldMatrix));
+				XMStoreFloat4x4(&matWorld, XMLoadFloat4x4(pBoneMat) * XMLoadFloat4x4(&matLocalPosition) * XMLoadFloat4x4(&TransformComponent().GetWorldMatrix()));
 
 				int iIndex = CEffectManager::Instance().CreateEffect(
 					c_pEffectData->dwEffectIndex,
@@ -273,7 +273,7 @@ void CActorInstance::ProcessMotionEventFly(const CRaceMotionData::TMotionEventDa
 		CFlyingManager& rfm = CFlyingManager::Instance();
 
 		XMFLOAT3 v3Start(c_pFlyData->v3FlyPosition);
-		XMStoreFloat3(&v3Start, XMLoadFloat3(&v3Start) + XMLoadFloat3(&m_v3Position));
+		XMStoreFloat3(&v3Start, XMLoadFloat3(&v3Start) + XMLoadFloat3(&TransformComponent().GetPosition()));
 
 		if (c_pFlyData->isAttaching)
 		{

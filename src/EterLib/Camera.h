@@ -10,7 +10,7 @@
 #endif // _MSC_VER > 1000
 
 #include <map>
-
+#include <windows.h>
 #include "EterBase/Singleton.h"
 #include "Ray.h"
 

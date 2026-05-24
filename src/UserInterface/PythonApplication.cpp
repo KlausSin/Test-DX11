@@ -10,7 +10,7 @@
 #include "PythonCharacterManager.h"
 
 #include "ProcessScanner.h"
-#include "qMin32Lib/CPhysicsManager.h"
+#include "qMin32Lib/jolt/CPhysicsManager.h"
 #include <utf8.h>
 
 float MIN_FOG = 2400.0f;
@@ -1077,7 +1077,6 @@ void CPythonApplication::Destroy()
 
 	CPythonSystem::Instance().SaveConfig();
 
-	DestroyCollisionInstanceSystem();
 
 	m_pySystem.SaveInterfaceStatus();
 
@@ -1117,6 +1116,7 @@ void CPythonApplication::Destroy()
 	m_pyRes.Destroy();
 
 	m_kGuildMarkDownloader.Disconnect();
+	DestroyCollisionInstanceSystem();
 
 	CGrannyModelInstance::DestroySystem();
 	CGraphicImageInstance::DestroySystem();

@@ -1,8 +1,8 @@
 #pragma once
 #include <vector>
 #include <cstdint>
-#include "qMin32Lib/JoltTypes.h"
-#include "qMin32Lib/PhysicsObjectComponent.h"
+#include "qMin32Lib/jolt/JoltTypes.h"
+#include "qMin32Lib/jolt/PhysicsObjectComponent.h"
 #include <d3d11.h>
 #include <DirectXMath.h>
 using namespace DirectX;

@@ -1,127 +1,122 @@
 #pragma once
 
 #include "EterBase/Singleton.h"
-
 #include "GrpBase.h"
 #include "Util.h"
 #include "Pool.h"
-
 #include <deque>
+#include <qMin32Lib/entity/LightComponent.h>
 
 typedef DWORD TLightID;
 
 enum ELightType
 {
-	LIGHT_TYPE_STATIC,			// Continuously turning on light
-	LIGHT_TYPE_DYNAMIC,			// Immediately turning off light
+	LIGHT_TYPE_STATIC,
+	LIGHT_TYPE_DYNAMIC,
 };
 
 class CLightBase
 {
-	public:
-		CLightBase() {};
-		virtual ~CLightBase() {};
+public:
+	CLightBase() {}
+	virtual ~CLightBase() {}
 
-		void	SetCurrentTime();
+	void SetCurrentTime();
 
-	protected:
-		static float ms_fCurTime;
+protected:
+	static float ms_fCurTime;
 };
 
 class CLight : public CGraphicBase, public CLightBase
 {
-	public:
-		CLight();
-		virtual ~CLight();
+public:
+	CLight();
+	virtual ~CLight();
 
-		void		Initialize();
-		void		Clear();
-		
-		void		Update();
+	void Initialize();
+	void Clear();
+	void Update();
 
-		void		SetParameter(TLightID id, const D3DLIGHT11 & c_rLight);
+	void SetParameter(TLightID id, const CLightComponent& light);
 
-		void		SetDistance(float fDistance);
-		float		GetDistance() const { return m_fDistance;	}
+	void SetDistance(float fDistance);
+	float GetDistance() const { return m_fDistance; }
 
-		TLightID	GetLightID()	{ return m_LightID;		}
+	TLightID GetLightID() { return m_LightID; }
 
-		BOOL		isEdited()		{ return m_isEdited;	}
-		void		SetDeviceLight(BOOL bActive);
+	BOOL isEdited() { return m_isEdited; }
+	void SetDeviceLight(BOOL bActive);
 
-		void		SetDiffuseColor(float fr, float fg, float fb, float fa = 1.0f);
-		void		SetAmbientColor(float fr, float fg, float fb, float fa = 1.0f);
-		void		SetRange(float fRange);
-		void		SetPosition(float fx, float fy, float fz);
+	void SetDiffuseColor(float fr, float fg, float fb, float fa = 1.0f);
+	void SetAmbientColor(float fr, float fg, float fb, float fa = 1.0f);
+	void SetRange(float fRange);
+	void SetPosition(float fx, float fy, float fz);
 
-		const XMFLOAT3& GetPosition() const;
+	const XMFLOAT3& GetPosition() const;
 
-		void		BlendDiffuseColor(const XMFLOAT4& c_rColor, float fBlendTime, float fDelayTime = 0.0f);
-		void		BlendAmbientColor(const XMFLOAT4& c_rColor, float fBlendTime, float fDelayTime = 0.0f);
-		void		BlendRange(float fRange, float fBlendTime, float fDelayTime = 0.0f);
+	void BlendDiffuseColor(const XMFLOAT4& c_rColor, float fBlendTime, float fDelayTime = 0.0f);
+	void BlendAmbientColor(const XMFLOAT4& c_rColor, float fBlendTime, float fDelayTime = 0.0f);
+	void BlendRange(float fRange, float fBlendTime, float fDelayTime = 0.0f);
 
-	private:
-		TLightID		m_LightID;		// Light ID. equal to D3D light index
+	CLightComponent& LightComponent() { return m_d3dLight; }
+	const CLightComponent& LightComponent() const { return m_d3dLight; }
 
-		D3DLIGHT11		m_d3dLight;
-		BOOL			m_isEdited;
-		float			m_fDistance;
+private:
+	TLightID m_LightID;
+	CLightComponent m_d3dLight;
 
-		TTransitorColor	m_DiffuseColorTransitor;
-		TTransitorColor	m_AmbientColorTransitor;
-		TTransitorFloat m_RangeTransitor;
+	BOOL m_isEdited;
+	float m_fDistance;
+
+	TTransitorColor m_DiffuseColorTransitor;
+	TTransitorColor m_AmbientColorTransitor;
+	TTransitorFloat m_RangeTransitor;
 };
 
 class CLightManager : public CGraphicBase, public CLightBase, public CSingleton<CLightManager>
 {
-	public:
-		enum
-		{
-			LIGHT_LIMIT_DEFAULT = 3,
-//			LIGHT_MAX_NUM = 32,
-		};
+public:
+	enum
+	{
+		LIGHT_LIMIT_DEFAULT = 3,
+	};
 
-		typedef std::deque<TLightID>			TLightIDDeque;
-		typedef std::map<TLightID, CLight *>	TLightMap;
-		typedef std::vector<CLight *>			TLightSortVector;
+	typedef std::deque<TLightID> TLightIDDeque;
+	typedef std::map<TLightID, CLight*> TLightMap;
+	typedef std::vector<CLight*> TLightSortVector;
 
-	public:
-		CLightManager();
-		virtual ~CLightManager();
-		
-		void		Destroy();
+public:
+	CLightManager();
+	virtual ~CLightManager();
 
-		void		Initialize();
+	void Destroy();
+	void Initialize();
 
-		// NOTE : FlushLight후 렌더링
-		//        그 후 반드시 RestoreLight를 해줘야만 한다.
-		void		Update();
-		void		FlushLight();
-		void		RestoreLight();
+	void Update();
+	void FlushLight();
+	void RestoreLight();
 
-		/////
-		void		RegisterLight(ELightType LightType, TLightID * poutLightID, D3DLIGHT11 & LightData);
-		CLight *	GetLight(TLightID LightID);
-		void		DeleteLight(TLightID LightID);
-		/////
+	void RegisterLight(ELightType LightType, TLightID* poutLightID, const CLightComponent& LightData);
+	CLight* GetLight(TLightID LightID);
+	void DeleteLight(TLightID LightID);
 
-		void		SetCenterPosition(const XMFLOAT3& c_rv3Position);
-		void		SetLimitLightCount(DWORD dwLightCount);
-		void		SetSkipIndex(DWORD dwSkipIndex);
+	void SetCenterPosition(const XMFLOAT3& c_rv3Position);
+	void SetLimitLightCount(DWORD dwLightCount);
+	void SetSkipIndex(DWORD dwSkipIndex);
 
-	protected:
-		TLightIDDeque			m_NonUsingLightIDDeque;
+protected:
+	TLightIDDeque m_NonUsingLightIDDeque;
 
-		TLightMap				m_LightMap;
-		TLightSortVector		m_LightSortVector;
+	TLightMap m_LightMap;
+	TLightSortVector m_LightSortVector;
 
-		XMFLOAT3				m_v3CenterPosition;
-		DWORD					m_dwLimitLightCount;
-		DWORD					m_dwSkipIndex;
+	XMFLOAT3 m_v3CenterPosition;
+	DWORD m_dwLimitLightCount;
+	DWORD m_dwSkipIndex;
 
-	protected:
-		TLightID				NewLightID();
-		void					ReleaseLightID(TLightID LightID);
+protected:
+	TLightID NewLightID();
+	void ReleaseLightID(TLightID LightID);
 
-		CDynamicPool<CLight>	m_LightPool;
+	CDynamicPool<CLight> m_LightPool;
 };

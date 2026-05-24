@@ -1,7 +1,7 @@
 #include "Stdafx.h"
 #include "CollisionData.h"
-#include "qMin32Lib/CPhysicsManager.h"
-#include "qMin32Lib/JoltCollisionStreamer.h"
+#include "qMin32Lib/jolt/CPhysicsManager.h"
+#include "qMin32Lib/jolt/JoltCollisionStreamer.h"
 #include <algorithm>
 #include <cmath>
 

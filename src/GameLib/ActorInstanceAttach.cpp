@@ -514,7 +514,7 @@ void CActorInstance::UpdateAttachingInstances()
 				{
 					XMFLOAT4X4 matTransform;
 
-					XMStoreFloat4x4(&matTransform, XMLoadFloat4x4(&it->matTranslation) * XMLoadFloat4x4(&m_worldMatrix));
+					XMStoreFloat4x4(&matTransform, XMLoadFloat4x4(&it->matTranslation) * XMLoadFloat4x4(&TransformComponent().GetWorldMatrix()));
 
 					rkEftMgr.SetEffectInstanceGlobalMatrix(matTransform);
 				}
@@ -526,7 +526,7 @@ void CActorInstance::UpdateAttachingInstances()
 					{
 						XMFLOAT4X4 matTransform;
 
-						XMStoreFloat4x4(&matTransform, XMLoadFloat4x4(pBoneMat) * XMLoadFloat4x4(&it->matTranslation) * XMLoadFloat4x4(&m_worldMatrix));
+						XMStoreFloat4x4(&matTransform, XMLoadFloat4x4(pBoneMat) * XMLoadFloat4x4(&it->matTranslation) * XMLoadFloat4x4(&TransformComponent().GetWorldMatrix()));
 
 						rkEftMgr.SetEffectInstanceGlobalMatrix(matTransform);
 					}

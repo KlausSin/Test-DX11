@@ -134,7 +134,7 @@ void CPythonTextTail::UpdateTextTail(TTextTail * pTextTail)
 	CPythonGraphic & rpyGraphic = CPythonGraphic::Instance();
 	rpyGraphic.Identity();
 
-	const XMFLOAT3 & c_rv3Position = pTextTail->pOwner->GetPosition();
+	const XMFLOAT3 & c_rv3Position = pTextTail->pOwner->TransformComponent().GetPosition();
 	rpyGraphic.ProjectPosition(c_rv3Position.x,
 							   c_rv3Position.y,
 							   c_rv3Position.z + pTextTail->fHeight,
@@ -334,7 +334,7 @@ void CPythonTextTail::Render()
 	for (TChatTailMap::iterator itorChat = m_ChatTailMap.begin(); itorChat!=m_ChatTailMap.end(); ++itorChat)
 	{
 		TTextTail * pTextTail = itorChat->second;
-		if (pTextTail->pOwner->isShow())
+		if (pTextTail->pOwner->RenderComponent().IsVisible())
 			RenderTextTailName(pTextTail);
 	}
 }
@@ -373,7 +373,7 @@ void CPythonTextTail::HideAllTextTail()
 
 void CPythonTextTail::UpdateDistance(const TPixelPosition& c_rCenterPosition, TTextTail* pTextTail)
 {
-	const XMFLOAT3& c_rv3Position = pTextTail->pOwner->GetPosition();
+	const XMFLOAT3& c_rv3Position = pTextTail->pOwner->TransformComponent().GetPosition();
 
 	XMFLOAT2 v2Distance(
 		c_rv3Position.x - c_rCenterPosition.x,
@@ -418,7 +418,7 @@ void CPythonTextTail::ShowCharacterTextTail(DWORD VirtualID)
 
 	// NOTE : ShowAll 시에는 모든 Instance 의 Pointer 를 찾아서 체크하므로 부하가 걸릴 가능성도 있다.
 	//        CInstanceBase 가 TextTail 을 직접 가지고 있는 것이 가장 좋은 형태일 듯..
-	if (!pTextTail->pOwner->isShow())
+	if (!pTextTail->pOwner->RenderComponent().IsVisible())
 		return;
 	
 	CInstanceBase * pInstance = CPythonCharacterManager::Instance().GetInstancePtr(pTextTail->dwVirtualID);

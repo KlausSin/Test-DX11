@@ -3,7 +3,7 @@
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include "GrpBase.h"
-#include "qMin32Lib/D3D11StateCacheSet.h"
+#include "qMin32Lib/state/D3D11StateCacheSet.h"
 #include "qMin32Lib/Core.h"
 
 class CD3D11Renderer

@@ -110,7 +110,6 @@ public:
 	CD3D11DepthStencilStateCache& GetDepthStencil();
 	CD3D11BlendStateCache& GetBlend();
 	CD3D11TransformStateCache& GetTransform();
-	CD3D11LightingStateCache& GetLight();
 
 #ifdef _DEBUG
 	void ResetDrawCallCounter();

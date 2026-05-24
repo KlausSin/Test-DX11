@@ -10,7 +10,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include "qMin32Lib/AssetTypes.h"
+#include "qMin32Lib/assets/AssetTypes.h"
+#include <Windows.h>
 
 class CResource : public CReferenceObject
 {

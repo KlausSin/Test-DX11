@@ -15,7 +15,7 @@ XMFLOAT3 CActorInstance::OnGetFlyTargetPosition()
 		v3Center = m_v3Center;
 	}
 
-	XMStoreFloat3(&v3Center, XMVector3TransformCoord(XMLoadFloat3(&v3Center), XMLoadFloat4x4(&GetTransform())));
+	XMStoreFloat3(&v3Center, XMVector3TransformCoord(XMLoadFloat3(&v3Center), XMLoadFloat4x4(&TransformComponent().GetTransformMatrix())));
 
 	return v3Center;
 }
@@ -69,7 +69,7 @@ XMFLOAT3 CActorInstance::__GetFlyTargetPosition()
 float CActorInstance::GetFlyTargetDistance()
 {
 	const XMFLOAT3& c_rv3FlyTargetPos=m_kFlyTarget.GetFlyTargetPosition();
-	const XMFLOAT3& c_rkPosSrc=GetPosition();
+	const XMFLOAT3& c_rkPosSrc= TransformComponent().GetPosition();
 
 	XMFLOAT3 kPPosDelta;
 	XMStoreFloat3(&kPPosDelta, XMLoadFloat3(&c_rv3FlyTargetPos) - XMLoadFloat3(&c_rkPosSrc));

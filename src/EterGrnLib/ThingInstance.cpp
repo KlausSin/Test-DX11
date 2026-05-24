@@ -62,33 +62,31 @@ void CGraphicThingInstance::SetMotionAtEnd()
 
 bool CGraphicThingInstance::Picking(const XMFLOAT3& v, const XMFLOAT3& dir, float& out_x, float& out_y)
 {
-	if (!m_pHeightAttributeInstance)
-		return false;
-	return m_pHeightAttributeInstance->Picking(v, dir, out_x, out_y);
+	CAttributeInstance* attr = AttributeComponent().GetHeightInstance();
+
+	return attr && attr->Picking(v, dir, out_x, out_y);
 }
 
 
 void CGraphicThingInstance::OnUpdateCollisionData(const CStaticCollisionDataVector* pscdVector)
 {
 	assert(pscdVector);
-	CStaticCollisionDataVector::const_iterator it;
-	for (it = pscdVector->begin(); it != pscdVector->end(); ++it)
-	{
-		AddCollision(&(*it), &GetTransform());
-	}
+
+	for (const auto& data : *pscdVector)
+		CollisionComponent().Add(&data, &TransformComponent().GetTransformMatrix());
 }
 
 void CGraphicThingInstance::OnUpdateHeighInstance(CAttributeInstance* pAttributeInstance)
 {
 	assert(pAttributeInstance);
-	SetHeightInstance(pAttributeInstance);
+	AttributeComponent().SetHeightInstance(pAttributeInstance);
 }
 
 bool CGraphicThingInstance::OnGetObjectHeight(float fX, float fY, float* pfHeight)
 {
-	if (m_pHeightAttributeInstance && m_pHeightAttributeInstance->GetHeight(fX, fY, pfHeight))
-		return true;
-	return false;
+	CAttributeInstance* attr = AttributeComponent().GetHeightInstance();
+
+	return attr && attr->GetHeight(fX, fY, pfHeight);
 }
 
 void CGraphicThingInstance::BuildBoundingSphere()
@@ -127,7 +125,7 @@ bool CGraphicThingInstance::GetBoundingSphere(XMFLOAT3& v3Center, float& fRadius
 		&v3Center,
 		XMVector3TransformCoord(
 			XMLoadFloat3(&v3Center),
-			XMLoadFloat4x4(&GetTransform())
+			XMLoadFloat4x4(&TransformComponent().GetTransformMatrix())
 		)
 	);
 
@@ -162,7 +160,7 @@ bool CGraphicThingInstance::GetBoundingAABB(XMFLOAT3& v3Min, XMFLOAT3& v3Max)
 		&m_v3Center,
 		XMVector3TransformCoord(
 			XMLoadFloat3(&m_v3Center),
-			XMLoadFloat4x4(&GetTransform())
+			XMLoadFloat4x4(&TransformComponent().GetTransformMatrix())
 		)
 	);
 
@@ -171,39 +169,13 @@ bool CGraphicThingInstance::GetBoundingAABB(XMFLOAT3& v3Min, XMFLOAT3& v3Max)
 
 void CGraphicThingInstance::CalculateBBox()
 {
-	GetBoundBox(&m_v3BBoxMin, &m_v3BBoxMax);
+	XMFLOAT3 bboxMin;
+	XMFLOAT3 bboxMax;
 
-	m_v4TBBox[0] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMin.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[1] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMax.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[2] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMin.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[3] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMax.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[4] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMin.y, m_v3BBoxMax.z, 1.0f);
-	m_v4TBBox[5] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMax.y, m_v3BBoxMax.z, 1.0f);
-	m_v4TBBox[6] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMin.y, m_v3BBoxMax.z, 1.0f);
-	m_v4TBBox[7] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMax.y, m_v3BBoxMax.z, 1.0f);
+	GetBoundBox(&bboxMin, &bboxMax);
 
-	const XMFLOAT4X4& c_rmatTransform = GetTransform();
-
-	for (DWORD i = 0; i < 8; ++i)
-	{
-		XMStoreFloat4(&m_v4TBBox[i], XMVector4Transform(XMLoadFloat4(&m_v4TBBox[i]), XMLoadFloat4x4(&c_rmatTransform)));
-
-		if (i == 0)
-		{
-			m_v3TBBoxMin = XMFLOAT3(m_v4TBBox[i].x, m_v4TBBox[i].y, m_v4TBBox[i].z);
-			m_v3TBBoxMax = XMFLOAT3(m_v4TBBox[i].x, m_v4TBBox[i].y, m_v4TBBox[i].z);
-		}
-		else
-		{
-			m_v3TBBoxMin.x = std::min(m_v3TBBoxMin.x, m_v4TBBox[i].x);
-			m_v3TBBoxMin.y = std::min(m_v3TBBoxMin.y, m_v4TBBox[i].y);
-			m_v3TBBoxMin.z = std::min(m_v3TBBoxMin.z, m_v4TBBox[i].z);
-
-			m_v3TBBoxMax.x = std::max(m_v3TBBoxMax.x, m_v4TBBox[i].x);
-			m_v3TBBoxMax.y = std::max(m_v3TBBoxMax.y, m_v4TBBox[i].y);
-			m_v3TBBoxMax.z = std::max(m_v3TBBoxMax.z, m_v4TBBox[i].z);
-		}
-	}
+	BoundsComponent().SetBBox(bboxMin, bboxMax);
+	BoundsComponent().CalculateTransformed(TransformComponent().GetTransformMatrix());
 }
 
 bool CGraphicThingInstance::CreateDeviceObjects()
@@ -605,7 +577,7 @@ float CGraphicThingInstance::GetAverageSecondElapsed()
 
 bool CGraphicThingInstance::Intersect(float* pu, float* pv, float* pt)
 {
-	if (!CGraphicObjectInstance::isShow())
+	if (!RenderComponent().IsVisible())
 		return false;
 	if (!m_bUpdated)
 		return false;
@@ -616,7 +588,7 @@ bool CGraphicThingInstance::Intersect(float* pu, float* pv, float* pt)
 		return false;
 	}
 
-	return m_LODControllerVector[0]->Intersect(&GetTransform(), pu, pv, pt);
+	return m_LODControllerVector[0]->Intersect(&TransformComponent().GetTransformMatrix(), pu, pv, pt);
 }
 
 void CGraphicThingInstance::GetBoundBox(XMFLOAT3* vtMin, XMFLOAT3* vtMax)
@@ -711,7 +683,7 @@ void CGraphicThingInstance::DeformAll()
 	m_bUpdated = true;
 
 	CGrannyLODController::FDeformAll deform;
-	deform.mc_pWorldMatrix = &m_worldMatrix;
+	deform.mc_pWorldMatrix = &TransformComponent().GetWorldMatrix();
 	std::for_each(m_LODControllerVector.begin(), m_LODControllerVector.end(), deform);
 }
 
@@ -726,14 +698,14 @@ void CGraphicThingInstance::DeformNoSkin()
 
 #ifdef ENABLE_OBJ_SCALLING
 		if (m_modelThingSetVector.size() == 1)
-			pkLOD->DeformNoSkin(&m_TransformMatrix);
+			pkLOD->DeformNoSkin(&TransformComponent().GetTransformMatrix());
 #ifdef ENABLE_SASH_SYSTEM
 		else if (iMod == 5) /* CRaceData::PART_ACCE  */
-			pkLOD->DeformNoSkin(&m_TransformMatrix);
+			pkLOD->DeformNoSkin(&TransformComponent().GetTransformMatrix());
 #endif
 		else
 #endif
-			pkLOD->DeformNoSkin(&m_worldMatrix);
+			pkLOD->DeformNoSkin(&TransformComponent().GetWorldMatrix());
 	}
 }
 
@@ -748,14 +720,14 @@ void CGraphicThingInstance::OnDeform()
 
 #ifdef ENABLE_OBJ_SCALLING
 		if (m_modelThingSetVector.size() == 1)
-			pkLOD->Deform(&m_TransformMatrix);
+			pkLOD->Deform(&TransformComponent().GetTransformMatrix());
 #ifdef ENABLE_SASH_SYSTEM
 		else if (iMod == 5) /* CRaceData::PART_ACCE  */
-			pkLOD->Deform(&m_TransformMatrix);
+			pkLOD->Deform(&TransformComponent().GetTransformMatrix());
 #endif
 		else
 #endif
-			pkLOD->Deform(&m_worldMatrix);
+			pkLOD->Deform(&TransformComponent().GetWorldMatrix());
 	}
 }
 
@@ -780,7 +752,7 @@ void CGraphicThingInstance::UpdateLODLevel()
 
 	const XMFLOAT3& c_rv3TargetPosition = pcurCamera->GetTarget();
 	const XMFLOAT3& c_rv3CameraPosition = pcurCamera->GetEye();
-	const XMFLOAT3& c_v3Position = GetPosition();
+	const XMFLOAT3& c_v3Position = TransformComponent().GetPosition();
 
 	// NOTE : 중심으로부터의 거리 계산에 z값 차이는 사용하지 않는다. - [levites]
 	CGrannyLODController::FUpdateLODLevel update;

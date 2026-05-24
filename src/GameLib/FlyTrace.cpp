@@ -136,7 +136,7 @@ void CFlyTrace::Render()
 
 	_mgr->GetCbMgr()->SetAlphaTestEnable(true);
 	_mgr->GetCbMgr()->SetAlphaRef(0x00000000);
-	_mgr->GetCbMgr()->SetLightingEnable(false);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(FALSE);
 
 	XMFLOAT4X4 matWorld;
 	XMStoreFloat4x4(&matWorld, XMMatrixIdentity());

@@ -100,9 +100,9 @@ void CSpeedTreeForestDirectX::Render(const RenderContext& ctx, unsigned long ulR
 		UpdateCompundMatrix(ctx.Frame.Eye, ctx.Frame.View, ctx.Frame.Projection);
 
 #ifdef WRAPPER_USE_DYNAMIC_LIGHTING
-	cb->SetLightingEnable(true);
+	cb->SetEntityLightingEnable(TRUE);
 #else
-	cb->SetLightingEnable(false);
+	cb->SetEntityLightingEnable(FALSE);
 #endif
 
 	UINT uiCount = 0;
@@ -145,7 +145,7 @@ void CSpeedTreeForestDirectX::Render(const RenderContext& ctx, unsigned long ulR
 
 			for (auto& inst : ppInstances)
 			{
-				if (inst && inst->isShow())
+				if (inst && inst->RenderComponent().IsVisible())
 					inst->RenderBranches();
 			}
 		}
@@ -166,7 +166,7 @@ void CSpeedTreeForestDirectX::Render(const RenderContext& ctx, unsigned long ulR
 
 			for (auto& inst : ppInstances)
 			{
-				if (inst && inst->isShow())
+				if (inst && inst->RenderComponent().IsVisible())
 					inst->RenderFronds();
 			}
 		}
@@ -192,7 +192,7 @@ void CSpeedTreeForestDirectX::Render(const RenderContext& ctx, unsigned long ulR
 
 			for (auto& inst : ppInstances)
 			{
-				if (inst && inst->isShow())
+				if (inst && inst->RenderComponent().IsVisible())
 					inst->RenderLeaves();
 			}
 
@@ -203,7 +203,7 @@ void CSpeedTreeForestDirectX::Render(const RenderContext& ctx, unsigned long ulR
 			cb->SetAlphaRef(oldAlphaRef);
 	}
 
-	cb->SetLightingEnable(false);
+	cb->SetEntityLightingEnable(FALSE);
 
 	if (ulRenderBitVector & Forest_RenderBillboards)
 	{
@@ -217,7 +217,7 @@ void CSpeedTreeForestDirectX::Render(const RenderContext& ctx, unsigned long ulR
 
 			for (auto& inst : ppInstances)
 			{
-				if (inst && inst->isShow())
+				if (inst && inst->RenderComponent().IsVisible())
 					inst->RenderBillboards();
 			}
 		}

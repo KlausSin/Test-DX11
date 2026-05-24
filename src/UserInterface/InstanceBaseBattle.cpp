@@ -571,7 +571,7 @@ BOOL CInstanceBase::CheckAdvancing()
 
 	// 맵속성 체크
 	CPythonBackground& rkBG=CPythonBackground::Instance();
-	const XMFLOAT3& pos = m_GraphicThingInstance.GetPosition();
+	const XMFLOAT3& pos = m_GraphicThingInstance.TransformComponent().GetPosition();
 	const XMFLOAT3& dir = m_GraphicThingInstance.GetMovementVectorRef();
 
 	XMVECTOR vDir = XMLoadFloat3(&dir);

@@ -35,44 +35,43 @@
 
 #include "EterLib/D3DXMathCompat.h"
 #include "qMin32Lib/Core.h"
+#include <qMin32Lib/ConstantBufferManager.h>
 
 ///////////////////////////////////////////////////////////////////////  
 //	class CSpeedTreeMaterial declaration/definiton
 
 class CSpeedTreeMaterial
 {
-	public:
-		CSpeedTreeMaterial()
-		{
-			m_cMaterial.Ambient.x = m_cMaterial.Diffuse.x = m_cMaterial.Specular.x = m_cMaterial.Emissive.x = 1.0f;
-			m_cMaterial.Ambient.y = m_cMaterial.Diffuse.y = m_cMaterial.Specular.y = m_cMaterial.Emissive.y = 1.0f;
-			m_cMaterial.Ambient.z = m_cMaterial.Diffuse.z = m_cMaterial.Specular.z = m_cMaterial.Emissive.z = 1.0f;
-			m_cMaterial.Ambient.w = m_cMaterial.Diffuse.w = m_cMaterial.Specular.w = m_cMaterial.Emissive.w = 1.0f;
-			m_cMaterial.Power = 5.0f;
-		}
-		
-		void Set(const float * pMaterialArray)
-		{
-			memcpy(&m_cMaterial.Diffuse, pMaterialArray, 3 * sizeof(float));
-			m_cMaterial.Diffuse.w = 1.0f;
+public:
+	CSpeedTreeMaterial()
+	{
+		m_material.diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		m_material.ambient = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		m_material.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 5.0f);
+		m_material.emissive = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		m_material.params = XMFLOAT4(5.0f, 0.0f, 0.0f, 0.0f);
+	}
 
-			memcpy(&m_cMaterial.Ambient, pMaterialArray + 3, 3 * sizeof(float));
-			m_cMaterial.Ambient.w = 1.0f;
-			
-			memcpy(&m_cMaterial.Specular, pMaterialArray + 6, 3 * sizeof(float));
-			m_cMaterial.Specular.w = 1.0f;
-			
-			memcpy(&m_cMaterial.Emissive, pMaterialArray + 9, 3 * sizeof(float));
-			m_cMaterial.Emissive.w = 1.0f;
+	void Set(const float* pMaterialArray)
+	{
+		memcpy(&m_material.diffuse, pMaterialArray, 3 * sizeof(float));
+		m_material.diffuse.w = 1.0f;
 
-			m_cMaterial.Power = pMaterialArray[12];
-		}
-		
-		D3DMATERIAL11 * Get()
-		{
-			return &m_cMaterial;
-		}
-		
-	private:
-		D3DMATERIAL11 m_cMaterial;	// the material object
+		memcpy(&m_material.ambient, pMaterialArray + 3, 3 * sizeof(float));
+		m_material.ambient.w = 1.0f;
+
+		memcpy(&m_material.specular, pMaterialArray + 6, 3 * sizeof(float));
+		m_material.specular.w = pMaterialArray[12];
+
+		memcpy(&m_material.emissive, pMaterialArray + 9, 3 * sizeof(float));
+		m_material.emissive.w = 1.0f;
+
+		m_material.params.x = pMaterialArray[12];
+	}
+
+	const CBMaterialX& Get() const { return m_material; }
+	CBMaterialX& Get() { return m_material; }
+
+private:
+	CBMaterialX m_material;
 };

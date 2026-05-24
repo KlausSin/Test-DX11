@@ -141,7 +141,7 @@ bool CMapOutdoor::BeginRenderCharacterShadowToTexture()
 	STATEMANAGER.GetTransform().SetView(matLightView);
 	STATEMANAGER.GetTransform().SetProjection(matLightProj);
 
-	_mgr->GetCbMgr()->SetLightingEnable(false);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(FALSE);
 	_mgr->GetCbMgr()->SetTextureFactor(0xFF808080);
 	_mgr->GetCbMgr()->SetUseTexture0(false);
 	_mgr->GetCbMgr()->SetUseTexture1(false);
@@ -182,7 +182,7 @@ void CMapOutdoor::EndRenderCharacterShadowToTexture()
 
 	STATEMANAGER.GetTransform().Restore();
 
-	_mgr->GetCbMgr()->SetLightingEnable(true);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(TRUE);
 	_mgr->GetCbMgr()->SetUseTexture0(true);
 	_mgr->GetCbMgr()->SetUseTexture1(false);
 	_mgr->GetCbMgr()->SetAlphaTestEnable(true);

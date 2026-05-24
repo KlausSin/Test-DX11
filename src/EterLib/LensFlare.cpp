@@ -202,7 +202,7 @@ void CLensFlare::DrawBeforeFlare()
 	STATEMANAGER.GetTransform().SetView(ms_matIdentity);
 	STATEMANAGER.GetTransform().SetWorld(matWorld);
 
-	_mgr->GetCbMgr()->SetLightingEnable(false);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(FALSE);
 	_mgr->GetCbMgr()->SetAlphaTestEnable(false);
 
 	STATEMANAGER.GetDepthStencil().SetDepthEnable(false);
@@ -302,7 +302,7 @@ void CLensFlare::DrawFlare()
 		STATEMANAGER.GetRaster().Push();
 		STATEMANAGER.GetBlend().Push();
 
-		_mgr->GetCbMgr()->SetLightingEnable(false);
+		_mgr->GetCbMgr()->SetEntityLightingEnable(FALSE);
 		_mgr->GetCbMgr()->SetAlphaTestEnable(false);
 
 		STATEMANAGER.GetDepthStencil().SetDepthEnable(false);

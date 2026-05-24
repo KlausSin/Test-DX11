@@ -30,7 +30,7 @@ void CActorInstance::UpdateAttribute()
 	const CStaticCollisionDataVector & c_rkVec_ColliData = m_pAttributeInstance->GetObjectPointer()->GetCollisionDataVector();
 	UpdateCollisionData(&c_rkVec_ColliData);
 
-	m_pAttributeInstance->RefreshObject(GetTransform());
+	m_pAttributeInstance->RefreshObject(TransformComponent().GetTransformMatrix());
 	UpdateHeightInstance(m_pAttributeInstance);
 
 	//BOOL isHeightData = m_pAttributeInstance->IsEmpty();

@@ -12,7 +12,7 @@ enum
 
 void CActorInstance::UpdateJoltCharacterCollision()
 {
-	const XMFLOAT3& p = GetPosition();
+	const XMFLOAT3& p = TransformComponent().GetPosition();
 
 	constexpr float characterRadius = 10.0f;
 	constexpr float characterHalfHeight = 80.0f;
@@ -121,8 +121,6 @@ void CActorInstance::OnUpdate()
 
 	if (IsPC())
 		UpdateJoltCharacterCollision();
-	else
-		m_JoltCharacterCollision.Destroy();
 }
 
 
@@ -511,40 +509,40 @@ void CActorInstance::TransformProcess()
 
 	__InitializeMovement();
 
-	SetPosition(m_x, m_y, m_z);
+	TransformComponent().SetPosition(m_x, m_y, m_z);
 }
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Process
 
-void CActorInstance::OnUpdateCollisionData(const CStaticCollisionDataVector * pscdVector)
+void CActorInstance::OnUpdateCollisionData(const CStaticCollisionDataVector* pscdVector)
 {
 	assert(pscdVector);
-	CStaticCollisionDataVector::const_iterator it;
-	for(it = pscdVector->begin();it!=pscdVector->end();++it)
-	{
-		const CStaticCollisionData & c_rColliData = *it;
-		const XMFLOAT4X4 & c_rMatrix = GetTransform();
-		AddCollision(&c_rColliData, &c_rMatrix);
-	}
+
+	const auto& mat = TransformComponent().GetTransformMatrix();
+
+	for (const auto& data : *pscdVector)
+		CollisionComponent().Add(&data, &mat);
 }
 
 void CActorInstance::OnUpdateHeighInstance(CAttributeInstance * pAttributeInstance)
 {
 	assert(pAttributeInstance);
-	SetHeightInstance(pAttributeInstance);
+	AttributeComponent().SetHeightInstance(pAttributeInstance);
 }
 
-bool CActorInstance::OnGetObjectHeight(float fX, float fY, float * pfHeight)
+bool CActorInstance::OnGetObjectHeight(float fX, float fY, float* pfHeight)
 {
-	if (!m_pHeightAttributeInstance)
+	CAttributeInstance* attr = AttributeComponent().GetHeightInstance();
+
+	if (!attr)
 		return false;
 
 	if (TYPE_BUILDING != GetType())
 		return false;
 
-	return m_pHeightAttributeInstance->GetHeight(fX, fY, pfHeight) == 1 ? true : false;
+	return attr->GetHeight(fX, fY, pfHeight) == 1;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -747,7 +745,7 @@ void CActorInstance::__AdjustCollisionMovement(const CGraphicObjectInstance* c_p
 		{
 			CDynamicSphereInstance& c_rMainSphere = c_rMainSphereVector[i];
 
-			XMFLOAT3 v3Delta = c_pGraphicObjectInstance->GetCollisionMovementAdjust(c_rMainSphere);
+			XMFLOAT3 v3Delta = c_pGraphicObjectInstance->CollisionComponent().GetCollisionMovementAdjust(c_rMainSphere);
 
 			XMStoreFloat3(&m_v3Movement, XMLoadFloat3(&m_v3Movement) + XMLoadFloat3(&v3Delta));
 			XMStoreFloat3(&c_rMainSphere.v3Position, XMLoadFloat3(&c_rMainSphere.v3Position) + XMLoadFloat3(&v3Delta));

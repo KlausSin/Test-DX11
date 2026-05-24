@@ -4,7 +4,6 @@
 #include "D3D11DepthStencilStateCache.h"
 #include "D3D11BlendStateCache.h"
 #include "D3D11TransformStateCache.h"
-#include "D3D11LightingStateCache.h"
 
 class CD3D11StateCacheSet
 {
@@ -24,7 +23,6 @@ public:
 		DepthStencil.Destroy();
 		Blend.Destroy();
 		Transform.ClearStack();
-		Light.ClearStack();
 	}
 
 	void ResetDefault()
@@ -34,7 +32,6 @@ public:
 		DepthStencil.ResetDefault();
 		Blend.ResetDefault();
 		Transform.ResetDefault();
-		Light.ResetDefault();
 	}
 
 	void ForceDirty()
@@ -44,7 +41,6 @@ public:
 		DepthStencil.ForceDirty();
 		Blend.ForceDirty();
 		Transform.ForceDirty();
-		Light.ForceDirty();
 	}
 
 	void Push()
@@ -54,7 +50,6 @@ public:
 		DepthStencil.Push();
 		Blend.Push();
 		Transform.Push();
-		Light.Push();
 	}
 
 	bool Restore()
@@ -65,7 +60,6 @@ public:
 		ok = DepthStencil.Restore() && ok;
 		ok = Blend.Restore() && ok;
 		ok = Transform.Restore() && ok;
-		ok = Light.Restore() && ok;
 		return ok;
 	}
 
@@ -76,7 +70,6 @@ public:
 		DepthStencil.ClearStack();
 		Blend.ClearStack();
 		Transform.ClearStack();
-		Light.ClearStack();
 	}
 
 	void Apply()
@@ -100,5 +93,4 @@ public:
 	CD3D11DepthStencilStateCache DepthStencil;
 	CD3D11BlendStateCache Blend;
 	CD3D11TransformStateCache Transform;
-	CD3D11LightingStateCache Light;
 };

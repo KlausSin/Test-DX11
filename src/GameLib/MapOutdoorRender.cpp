@@ -161,9 +161,9 @@ void CMapOutdoor::__RenderTerrain_AppendPatch(const XMFLOAT3& c_rv3Center, float
 	m_PatchVector.push_back(std::make_pair(fDistance, lPatchNum));
 }
 
-void CMapOutdoor::ApplyLight(DWORD dwVersion, const D3DLIGHT11& c_rkLight)
+void CMapOutdoor::ApplyLight(DWORD dwVersion, const CLightComponent& c_rkLight)
 {
-	STATEMANAGER.GetLight().SetLight(0, c_rkLight);
+	_mgr->GetCbMgr()->SetEntityLight(0, c_rkLight);
 }
 
 // 2004. 2. 17. myevan. 모든 부분을 보이게 초기화 한다
@@ -230,7 +230,7 @@ void CMapOutdoor::RenderBeforeLensFlare()
 		return;
 	}
 	
-	m_LensFlare.Compute(mc_pEnvironmentData->DirLights[ENV_DIRLIGHT_BACKGROUND].Direction);
+	m_LensFlare.Compute(mc_pEnvironmentData->DirLights[ENV_DIRLIGHT_BACKGROUND].GetDirection());
 }
 
 void CMapOutdoor::RenderAfterLensFlare()
@@ -350,8 +350,8 @@ struct FAreaRenderShadow
 
 		pInstance->RenderShadow(ctx);
 
-		if (!pInstance->IsObjectHeight())
-			pInstance->Hide();
+		if (!pInstance->AttributeComponent().HasHeightInstance())
+			pInstance->RenderComponent().Hide();
 	}
 };
 
@@ -359,7 +359,7 @@ struct FPCBlockerHide
 {
 	void operator () (CGraphicObjectInstance * pInstance)
 	{
-		pInstance->Hide();
+		pInstance->RenderComponent().Hide();
 	}
 };
 
@@ -372,7 +372,7 @@ struct FRenderPCBlocker
 		if (!pInstance)
 			return;
 
-		pInstance->Show();
+		pInstance->RenderComponent().Show();
 
 		CGraphicThingInstance* pThingInstance = dynamic_cast<CGraphicThingInstance*>(pInstance);
 		if (pThingInstance && pThingInstance->HaveBlendThing())
@@ -405,8 +405,8 @@ struct CMapOutdoor_LessThingInstancePtrRenderOrder
 	{
 		CCamera* pCurrentCamera = CCameraManager::Instance().GetCurrentCamera();
 		const XMFLOAT3& cam = pCurrentCamera->GetEye();
-		const XMFLOAT3& l = pkLeft->GetPosition();
-		const XMFLOAT3& r = pkRight->GetPosition();
+		const XMFLOAT3& l = pkLeft->TransformComponent().GetPosition();
+		const XMFLOAT3& r = pkRight->TransformComponent().GetPosition();
 
 		XMVECTOR vCam = XMLoadFloat3(&cam);
 		XMVECTOR vL = XMLoadFloat3(&l);
@@ -503,7 +503,10 @@ void CMapOutdoor::RenderArea(const RenderContext& ctx, bool bRenderAmbience)
 	STATEMANAGER.GetDepthStencil().Restore();
 
 	if (m_bDrawShadow && m_bDrawChrShadow)
-		std::for_each(m_ShadowReceiverVector.begin(), m_ShadowReceiverVector.end(), std::mem_fn(&CGraphicObjectInstance::Show));
+	{
+		for (CGraphicObjectInstance* obj : m_ShadowReceiverVector)
+			obj->RenderComponent().Show();
+	}
 }
 
 void CMapOutdoor::RenderBlendArea(const RenderContext& ctx)

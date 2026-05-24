@@ -481,7 +481,7 @@ void CSkyBox::Render(const RenderContext& ctx)
 	state.DepthStencil.SetDepthWriteEnable(FALSE);
 	state.Blend.SetBlendEnable(FALSE);
 
-	_mgr->GetCbMgr()->SetLightingEnable(FALSE);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(FALSE);
 	_mgr->GetCbMgr()->SetFogEnable(FALSE);
 
 	STATEMANAGER.SetTexture(1, NULL);
@@ -540,7 +540,7 @@ void CSkyBox::RenderCloud(const RenderContext& ctx)
 	state.Blend.SetSrcBlend(D3D11_BLEND_ONE);
 	state.Blend.SetDestBlend(D3D11_BLEND_INV_SRC_COLOR);
 
-	_mgr->GetCbMgr()->SetLightingEnable(FALSE);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(FALSE);
 	_mgr->GetCbMgr()->SetFogEnable(FALSE);
 
 	XMFLOAT4X4 matProjCloud;

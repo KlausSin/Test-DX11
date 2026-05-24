@@ -259,7 +259,7 @@ void CEffectInstance::Clear()
 
 void CEffectInstance::__Initialize()
 {
-	ReleaseAlwaysHidden();
+	RenderComponent().SetAlwaysHidden(false);
 	
 	m_isAlive = FALSE;
 	m_dwFrame = 0;

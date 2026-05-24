@@ -71,22 +71,7 @@ VS_OUTPUT main(VS_INPUT input)
     output.shadowUV = shadowCoord.xy;
 
     float3 worldNormal = normalize(mul(localNormal, (float3x3) frame.matWorld));
-
-    if (lightingEnable != 0)
-    {
-        float3 L = normalize(-lightDir.xyz);
-        float NdotL = max(dot(worldNormal, L), 0.0f);
-
-        float3 ambient = max(matAmbient.rgb * lightAmbient.rgb, float3(0.25f, 0.25f, 0.25f));
-        float3 diffuse = matDiffuse.rgb * lightDiffuse.rgb * NdotL;
-
-        output.color.rgb = saturate(ambient + diffuse + matEmissive.rgb);
-        output.color.a = 1.0f;
-    }
-    else
-    {
-        output.color = float4(1, 1, 1, 1);
-    }
+    output.color = float4(ApplyEntityLights(worldPos.xyz, worldNormal), material.diffuse.a);
 
 #if defined(MESH_SPECULAR)
     float3 viewNormal = normalize(mul(worldNormal, (float3x3)frame.matView));

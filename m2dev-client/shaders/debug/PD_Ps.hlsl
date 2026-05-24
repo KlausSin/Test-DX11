@@ -15,8 +15,8 @@ struct PS_INPUT
 float4 main(PS_INPUT input) : SV_Target
 {
     float4 result;
-    result.rgb = txWater.Sample(sampler0, input.tex).rgb; // SELECTARG1 = TEXTURE
-    result.a   = input.color.a;                           // SELECTARG1 = DIFFUSE alpha
+    result.rgb = txWater.Sample(sampler0, input.tex).rgb;
+    result.a = input.color.a;
 
     if (fogEnable && fogEnd > fogStart)
     {

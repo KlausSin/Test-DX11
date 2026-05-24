@@ -1956,7 +1956,7 @@ void CInstanceBase::Render(const RenderContext& ctx)
 
 			STATEMANAGER.GetDepthStencil().SetDepthEnable(false);
 			_mgr->GetCbMgr()->SetFogEnable(false);
-			_mgr->GetCbMgr()->SetLightingEnable(false);
+			_mgr->GetCbMgr()->SetEntityLightingEnable(FALSE);
 
 			TPixelPosition px;
 			m_GraphicThingInstance.GetPixelPosition(&px);
@@ -1970,7 +1970,7 @@ void CInstanceBase::Render(const RenderContext& ctx)
 			STATEMANAGER.GetStateCache().Restore();
 
 			_mgr->GetCbMgr()->SetFogEnable(ctx.Frame.FogEnable);
-			_mgr->GetCbMgr()->SetLightingEnable(true);
+			_mgr->GetCbMgr()->SetEntityLightingEnable(FALSE);
 		}
 	}
 }
@@ -2451,7 +2451,7 @@ DWORD CInstanceBase::GetVirtualNumber()
 // 2004.07.17.levites.isShow를 ViewFrustumCheck로 변경
 bool CInstanceBase::__IsInViewFrustum()
 {
-	return m_GraphicThingInstance.isShow();
+	return m_GraphicThingInstance.RenderComponent().IsVisible();
 }
 
 bool CInstanceBase::__CanRender()

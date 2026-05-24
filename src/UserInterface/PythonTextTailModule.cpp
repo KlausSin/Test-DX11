@@ -56,7 +56,7 @@ PyObject * textTailGetPosition(PyObject * poSelf, PyObject * poArgs)
 		CInstanceBase* pkInstMain=rkChrMgr.GetMainInstancePtr();
 		if (pkInstMain)
 		{
-			const XMFLOAT3 & c_rv3Position = pkInstMain->GetGraphicThingInstanceRef().GetPosition();
+			const XMFLOAT3 & c_rv3Position = pkInstMain->GetGraphicThingInstanceRef().TransformComponent().GetPosition();
 			CPythonGraphic::Instance().ProjectPosition(c_rv3Position.x, c_rv3Position.y, c_rv3Position.z, &x, &y);	
 		}
 	}	

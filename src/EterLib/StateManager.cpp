@@ -152,29 +152,19 @@ void CStateManager::SetDefaultState()
 	GetStateCache().Transform.SetView(matIdentity);
 	GetStateCache().Transform.SetProjection(matIdentity);
 
-	D3DMATERIAL11 DefaultMat;
-	ZeroMemory(&DefaultMat, sizeof(D3DMATERIAL11));
-
-	DefaultMat.Diffuse.x = 1.0f;
-	DefaultMat.Diffuse.y = 1.0f;
-	DefaultMat.Diffuse.z = 1.0f;
-	DefaultMat.Diffuse.w = 1.0f;
-
-	DefaultMat.Ambient.x = 1.0f;
-	DefaultMat.Ambient.y = 1.0f;
-	DefaultMat.Ambient.z = 1.0f;
-	DefaultMat.Ambient.w = 1.0f;
-
-	STATEMANAGER.GetLight().SetMaterial(DefaultMat);
+	cb->ClearEntityLights();
+	cb->SetEntityGlobalAmbient(0x00000000);
+	cb->SetEntityLightingEnable(FALSE);
+	cb->FlushEntityLighting();
 
 	cb->SetAlphaRef(1);
 	cb->SetFogStart(0.0f);
 	cb->SetFogEnd(0.0f);
-	cb->SetAmbient(0x00000000);
+
 	cb->SetFogEnable(false);
 	cb->SetFogColor(0xFF000000);
 	cb->SetAlphaTestEnable(false);
-	cb->SetLightingEnable(false);
+
 
 	state.Raster.SetScissorEnable(false);
 	state.Raster.SetFillMode(D3D11_FILL_SOLID);
@@ -248,11 +238,6 @@ CD3D11BlendStateCache& CStateManager::GetBlend()
 CD3D11TransformStateCache& CStateManager::GetTransform()
 {
 	return GetStateCache().Transform;
-}
-
-CD3D11LightingStateCache& CStateManager::GetLight()
-{
-	return GetStateCache().Light;
 }
 
 // Textures (D3D11 SRV)

@@ -225,10 +225,9 @@ void CMapManager::BeginEnvironment()
 
 	CMapOutdoor& rkMap = GetMapOutdoorRef();
 
-	_mgr->GetCbMgr()->SetLightingEnable(true);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(TRUE);
 	_mgr->GetCbMgr()->SetFogEnable(mc_pcurEnvironmentData->bFogEnable);
-
-	STATEMANAGER.GetLight().SetMaterial(mc_pcurEnvironmentData->Material);
+	_mgr->GetCbMgr()->SetMaterial(mc_pcurEnvironmentData->Material);
 
 	if (mc_pcurEnvironmentData->bDirLightsEnable[ENV_DIRLIGHT_BACKGROUND])
 		rkMap.ApplyLight((DWORD)mc_pcurEnvironmentData, mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_BACKGROUND]);

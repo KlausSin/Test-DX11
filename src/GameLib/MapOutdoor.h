@@ -15,6 +15,7 @@
 #include "AreaLoaderThread.h"
 
 #include "MonsterAreaInfo.h"
+#include <qMin32Lib/entity/LightComponent.h>
 
 
 #define LOAD_SIZE_WIDTH				1
@@ -99,7 +100,7 @@ class CMapOutdoor : public CMapBase
 
 		bool			LoadSetting(const char * c_szFileName);
 
-		void			ApplyLight(DWORD dwVersion, const D3DLIGHT11& c_rkLight);
+		void			ApplyLight(DWORD dwVersion, const CLightComponent& c_rkLight);
 		void			SetEnvironmentScreenFilter();
 		void			SetEnvironmentSkyBox();
 		void			SetEnvironmentLensFlare();

@@ -74,9 +74,9 @@ struct CameraCollisionChecker
 	}
 	void operator () (CGraphicObjectInstance* pOpponent)
 	{
-		if (pOpponent->CollisionDynamicSphere(*m_pdsi))
+		if (pOpponent->CollisionComponent().CollisionDynamicSphere(*m_pdsi))
  		{
-			m_pkVct_v3Position->push_back(pOpponent->GetPosition());
+			m_pkVct_v3Position->push_back(pOpponent->TransformComponent().GetPosition());
 			m_isBlocked = true;
  		}
 	}

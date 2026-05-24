@@ -51,7 +51,7 @@ void CArea::__UpdateAniThingList()
 		while (i!=m_ThingCloneInstaceVector.end())
 		{
 			pkThingInst=*i++;
-			if (pkThingInst->isShow())
+			if (pkThingInst->RenderComponent().IsVisible())
 			{
 				pkThingInst->UpdateLODLevel();
 			}
@@ -181,7 +181,7 @@ void CArea::CollectRenderingObject(std::vector<CGraphicThingInstance*>& rkVct_pk
 	for (i=m_ThingCloneInstaceVector.begin(); i!=m_ThingCloneInstaceVector.end(); ++i)
 	{
 		CGraphicThingInstance* pkThingInst=*i;
-		if (pkThingInst->isShow())
+		if (pkThingInst->RenderComponent().IsVisible())
 		{
 			if (!pkThingInst->HaveBlendThing())
 				rkVct_pkOpaqueThingInst.push_back(*i);	
@@ -195,7 +195,7 @@ void CArea::CollectBlendRenderingObject(std::vector<CGraphicThingInstance*>& rkV
 	for (i=m_ThingCloneInstaceVector.begin(); i!=m_ThingCloneInstaceVector.end(); ++i)
 	{
 		CGraphicThingInstance* pkThingInst=*i;
-		if (pkThingInst->isShow())
+		if (pkThingInst->RenderComponent().IsVisible())
 		{
 			if (pkThingInst->HaveBlendThing())
 				rkVct_pkBlendThingInst.push_back(*i);	
@@ -266,7 +266,7 @@ void CArea::RenderCollision()
 	STATEMANAGER.GetBlend().SetBlendEnable(false);
 	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
 
-	_mgr->GetCbMgr()->SetLightingEnable(false);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(FALSE);
 	_mgr->GetCbMgr()->SetTextureFactor(0xff000000);
 
 	for (i = 0; i < GetObjectInstanceCount(); i++)
@@ -275,35 +275,32 @@ void CArea::RenderCollision()
 
 		if (GetObjectInstancePointer(i, &po))
 		{
-			if (po->pTree && po->pTree->isShow())
+			if (po->pTree && po->pTree->RenderComponent().IsVisible())
 			{
-				DWORD j;
-
-				for (j = 0; j < po->pTree->GetCollisionInstanceCount(); j++)
-					po->pTree->GetCollisionInstanceData(j)->Render();
+				for (DWORD j = 0; j < po->pTree->CollisionComponent().GetCount(); ++j)
+					if (auto* instance = po->pTree->CollisionComponent().GetData(j))
+						instance->Render();
 			}
 
-			if (po->pThingInstance && po->pThingInstance->isShow())
+			if (po->pThingInstance && po->pThingInstance->RenderComponent().IsVisible())
 			{
-				DWORD j;
-
-				for (j = 0; j < po->pThingInstance->GetCollisionInstanceCount(); j++)
-					po->pThingInstance->GetCollisionInstanceData(j)->Render();
+				for (DWORD j = 0; j < po->pThingInstance->CollisionComponent().GetCount(); ++j)
+					if (auto* instance = po->pThingInstance->CollisionComponent().GetData(j))
+						instance->Render();
 			}
 
-			if (po->pDungeonBlock && po->pDungeonBlock->isShow())
+			if (po->pDungeonBlock && po->pDungeonBlock->RenderComponent().IsVisible())
 			{
-				DWORD j;
-
-				for (j = 0; j < po->pDungeonBlock->GetCollisionInstanceCount(); j++)
-					po->pDungeonBlock->GetCollisionInstanceData(j)->Render();
+				for (DWORD j = 0; j < po->pDungeonBlock->CollisionComponent().GetCount(); ++j)
+					if (auto* instance = po->pDungeonBlock->CollisionComponent().GetData(j))
+						instance->Render();
 			}
 		}
 	}
 
 	STATEMANAGER.GetStateCache().Restore();
 
-	_mgr->GetCbMgr()->SetLightingEnable(true);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(TRUE);
 }
 
 void CArea::RenderAmbience()
@@ -357,7 +354,7 @@ void CArea::Refresh()
 		{
 			pObjectInstance->pThingInstance->Update();
 			pObjectInstance->pThingInstance->Transform();
-			pObjectInstance->pThingInstance->Show();
+			pObjectInstance->pThingInstance->RenderComponent().Show();
 			pObjectInstance->pThingInstance->DeformAll();
 			m_ThingCloneInstaceVector.push_back(pObjectInstance->pThingInstance);
 
@@ -378,7 +375,7 @@ void CArea::Refresh()
 			if (pObjectInstance->pAttributeInstance)
 			{
 				pObjectInstance->pThingInstance->UpdateCollisionData(&pObjectInstance->pAttributeInstance->GetObjectPointer()->GetCollisionDataVector());
-  				pObjectInstance->pAttributeInstance->RefreshObject(pObjectInstance->pThingInstance->GetTransform());
+  				pObjectInstance->pAttributeInstance->RefreshObject(pObjectInstance->pThingInstance->TransformComponent().GetTransformMatrix());
 				pObjectInstance->pThingInstance->UpdateHeightInstance(pObjectInstance->pAttributeInstance);
 			}
 		}
@@ -399,7 +396,7 @@ void CArea::Refresh()
 			if (pObjectInstance->pAttributeInstance)
 			{
 				pObjectInstance->pDungeonBlock->UpdateCollisionData(&pObjectInstance->pAttributeInstance->GetObjectPointer()->GetCollisionDataVector());
-  				pObjectInstance->pAttributeInstance->RefreshObject(pObjectInstance->pDungeonBlock->GetTransform());
+  				pObjectInstance->pAttributeInstance->RefreshObject(pObjectInstance->pDungeonBlock->TransformComponent().GetTransformMatrix());
 				pObjectInstance->pDungeonBlock->UpdateHeightInstance(pObjectInstance->pAttributeInstance);
 			}
 		}
@@ -566,7 +563,7 @@ void CArea::__SetObjectInstance_SetBuilding(TObjectInstance * pObjectInstance, c
 	pObjectInstance->pThingInstance->RegisterModelThing(0, pThing);
 	for (int j = 0; j < PORTAL_ID_MAX_NUM; ++j)
 		if (0 != c_pData->abyPortalID[j])
-			pObjectInstance->pThingInstance->SetPortal(j, c_pData->abyPortalID[j]);
+			pObjectInstance->pThingInstance->AttributeComponent().SetPortalID(j, c_pData->abyPortalID[j]);
 
 	{
 		std::string stSrcModelFileName=Data.strFileName;
@@ -596,12 +593,8 @@ void CArea::__SetObjectInstance_SetBuilding(TObjectInstance * pObjectInstance, c
 		pObjectInstance->pThingInstance->RegisterMotionThing(0, pThing);
 	}
 
-	pObjectInstance->pThingInstance->SetPosition(c_pData->Position.x, c_pData->Position.y, c_pData->Position.z + c_pData->m_fHeightBias);
-	pObjectInstance->pThingInstance->SetRotation(
-		c_pData->m_fYaw,
-		c_pData->m_fPitch,
-		c_pData->m_fRoll
-	);
+	pObjectInstance->pThingInstance->TransformComponent().SetPosition(c_pData->Position.x, c_pData->Position.y, c_pData->Position.z + c_pData->m_fHeightBias);
+	pObjectInstance->pThingInstance->TransformComponent().SetRotation(c_pData->m_fYaw, c_pData->m_fPitch, c_pData->m_fRoll);
 	pObjectInstance->isShadowFlag = Data.isShadowFlag;
 	pObjectInstance->pThingInstance->RegisterBoundingSphere();
 	__LoadAttribute(pObjectInstance, Data.strAttributeDataFileName.c_str());
@@ -646,18 +639,14 @@ void CArea::__SetObjectInstance_SetDungeonBlock(TObjectInstance * pObjectInstanc
 	pObjectInstance->dwType = prt::PROPERTY_TYPE_DUNGEON_BLOCK;
 	pObjectInstance->pDungeonBlock = ms_DungeonBlockInstancePool.Alloc();
 	pObjectInstance->pDungeonBlock->Load(Data.strFileName.c_str());
-	pObjectInstance->pDungeonBlock->SetPosition(c_pData->Position.x, c_pData->Position.y, c_pData->Position.z + c_pData->m_fHeightBias);
-	pObjectInstance->pDungeonBlock->SetRotation(
-		c_pData->m_fYaw,
-		c_pData->m_fPitch,
-		c_pData->m_fRoll
-	);
+	pObjectInstance->pDungeonBlock->TransformComponent().SetPosition(c_pData->Position.x, c_pData->Position.y, c_pData->Position.z + c_pData->m_fHeightBias);
+	pObjectInstance->pDungeonBlock->TransformComponent().SetRotation(c_pData->m_fYaw, c_pData->m_fPitch, c_pData->m_fRoll);
 	pObjectInstance->pDungeonBlock->Update();
 	pObjectInstance->pDungeonBlock->BuildBoundingSphere();
 	pObjectInstance->pDungeonBlock->RegisterBoundingSphere();
 	for (int j = 0; j < PORTAL_ID_MAX_NUM; ++j)
 		if (0 != c_pData->abyPortalID[j])
-			pObjectInstance->pDungeonBlock->SetPortal(j, c_pData->abyPortalID[j]);
+			pObjectInstance->pDungeonBlock->AttributeComponent().SetPortalID(j, c_pData->abyPortalID[j]);
 	__LoadAttribute(pObjectInstance, Data.strAttributeDataFileName.c_str());
 }
 
@@ -699,9 +688,9 @@ void CArea::__LoadAttribute(TObjectInstance * pObjectInstance, const char * c_sz
 				XMStoreFloat4(
 					&collision.quatRotation,
 					XMQuaternionRotationRollPitchYaw(
-						object->GetPitch(),
-						object->GetYaw(),
-						object->GetRoll()
+						object->TransformComponent().GetPitch(),
+						object->TransformComponent().GetYaw(),
+						object->TransformComponent().GetRoll()
 					)
 				);
 

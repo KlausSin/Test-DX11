@@ -33,72 +33,69 @@ void CActorInstance::SetMaterialAlpha(DWORD dwAlpha)
 
 void CActorInstance::OnRender(const RenderContext& ctx)
 {
-	// Early out if race data is not loaded yet (async loading)
 	if (!m_pkCurRaceData)
 		return;
 
-	D3DMATERIAL11 kMtrl = STATEMANAGER.GetLight().GetMaterial();
-
-	kMtrl.Diffuse = XMFLOAT4(
+	_mgr->GetCbMgr()->SetMaterialDiffuse(XMFLOAT4(
 		((m_dwMtrlColor >> 16) & 0xFF) / 255.0f,
 		((m_dwMtrlColor >> 8) & 0xFF) / 255.0f,
 		((m_dwMtrlColor >> 0) & 0xFF) / 255.0f,
 		((m_dwMtrlColor >> 24) & 0xFF) / 255.0f
-	);
+	));
 
-	STATEMANAGER.GetLight().SetMaterial(kMtrl);
-
-	// 현재는 이렇게.. 최종적인 형태는 Diffuse와 Blend의 분리로..
-	// 아니면 이런 형태로 가되 Texture & State Sorting 지원으로.. - [levites]
 	STATEMANAGER.GetRaster().Push();
 	STATEMANAGER.GetRaster().SetCullMode(D3D11_CULL_NONE);
-	
-	switch(m_iRenderMode)
+
+	switch (m_iRenderMode)
 	{
-		case RENDER_MODE_NORMAL:
+	case RENDER_MODE_NORMAL:
+		BeginDiffuseRender();
+		RenderWithOneTexture(ctx);
+		EndDiffuseRender();
+
+		BeginOpacityRender();
+		BlendRenderWithOneTexture(ctx);
+		EndOpacityRender();
+		break;
+
+	case RENDER_MODE_BLEND:
+		if (m_fAlphaValue == 1.0f)
+		{
 			BeginDiffuseRender();
-				RenderWithOneTexture(ctx);
+			RenderWithOneTexture(ctx);
 			EndDiffuseRender();
+
 			BeginOpacityRender();
-				BlendRenderWithOneTexture(ctx);
+			BlendRenderWithOneTexture(ctx);
 			EndOpacityRender();
-			break;
-		case RENDER_MODE_BLEND:
-			if (m_fAlphaValue == 1.0f)
-			{
-				BeginDiffuseRender();
-					RenderWithOneTexture(ctx);
-				EndDiffuseRender();
-				BeginOpacityRender();
-					BlendRenderWithOneTexture(ctx);
-				EndOpacityRender();
-			}
-			else if (m_fAlphaValue > 0.0f)
-			{
-				BeginBlendRender();
-					RenderWithOneTexture(ctx);
-					BlendRenderWithOneTexture(ctx);
-				EndBlendRender();
-			}
-			break;
-		case RENDER_MODE_ADD:
-			BeginAddRender();
-				RenderWithOneTexture(ctx);
-				BlendRenderWithOneTexture(ctx);
-			EndAddRender();
-			break;
-		case RENDER_MODE_MODULATE:
-			BeginModulateRender();
-				RenderWithOneTexture(ctx);
-				BlendRenderWithOneTexture(ctx);
-			EndModulateRender();
-			break;
+		}
+		else if (m_fAlphaValue > 0.0f)
+		{
+			BeginBlendRender();
+			RenderWithOneTexture(ctx);
+			BlendRenderWithOneTexture(ctx);
+			EndBlendRender();
+		}
+		break;
+
+	case RENDER_MODE_ADD:
+		BeginAddRender();
+		RenderWithOneTexture(ctx);
+		BlendRenderWithOneTexture(ctx);
+		EndAddRender();
+		break;
+
+	case RENDER_MODE_MODULATE:
+		BeginModulateRender();
+		RenderWithOneTexture(ctx);
+		BlendRenderWithOneTexture(ctx);
+		EndModulateRender();
+		break;
 	}
 
 	STATEMANAGER.GetRaster().Restore();
 
-	kMtrl.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	STATEMANAGER.GetLight().SetMaterial(kMtrl);
+	_mgr->GetCbMgr()->SetMaterialDiffuse(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 
 	if (ms_isDirLine)
 	{
@@ -121,9 +118,8 @@ void CActorInstance::OnRender(const RenderContext& ctx)
 		static CScreen s_kScreen;
 
 		STATEMANAGER.GetStateCache().Push();
-
 		STATEMANAGER.GetDepthStencil().SetDepthEnable(false);
-		_mgr->GetCbMgr()->SetLightingEnable(false);
+		_mgr->GetCbMgr()->SetEntityLightingEnable(FALSE);
 
 		s_kScreen.SetDiffuseColor(1.0f, 1.0f, 0.0f);
 		s_kScreen.RenderLine3d(kD3DVt3Cur.x, kD3DVt3Cur.y, kD3DVt3Cur.z, kD3DVt3AdvDir.x, kD3DVt3AdvDir.y, kD3DVt3AdvDir.z);
@@ -131,6 +127,7 @@ void CActorInstance::OnRender(const RenderContext& ctx)
 		s_kScreen.SetDiffuseColor(0.0f, 1.0f, 1.0f);
 		s_kScreen.RenderLine3d(kD3DVt3Cur.x, kD3DVt3Cur.y, kD3DVt3Cur.z, kD3DVt3LookDir.x, kD3DVt3LookDir.y, kD3DVt3LookDir.z);
 
+		_mgr->GetCbMgr()->SetEntityLightingEnable(TRUE);
 		STATEMANAGER.GetStateCache().Restore();
 	}
 }
@@ -254,10 +251,10 @@ void CActorInstance::RenderCollisionData()
 
 	if (m_pAttributeInstance)
 	{
-		for (DWORD col = 0; col < GetCollisionInstanceCount(); ++col)
+		for (DWORD i = 0; i < CollisionComponent().GetCount(); ++i)
 		{
-			CBaseCollisionInstance* pInstance = GetCollisionInstanceData(col);
-			pInstance->Render();
+			if (auto* instance = CollisionComponent().GetData(i))
+				instance->Render();
 		}
 	}
 
@@ -268,7 +265,7 @@ void CActorInstance::RenderCollisionData()
 
 	TCollisionPointInstanceList::iterator itor;
 
-	s_Screen.SetDiffuseColor(1.0f, isShow() ? 1.0f : 0.0f, 0.0f);
+	s_Screen.SetDiffuseColor(1.0f, RenderComponent().IsVisible() ? 1.0f : 0.0f, 0.0f);
 
 	XMFLOAT3 center;
 	float r;

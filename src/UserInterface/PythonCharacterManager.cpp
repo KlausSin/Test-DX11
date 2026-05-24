@@ -511,7 +511,7 @@ void CPythonCharacterManager::Render(const RenderContext& ctx)
 	CInstanceBase * pkPickedInst = OLD_GetPickedInstancePtr();
 	if (pkPickedInst)
 	{
-		const XMFLOAT3 & c_rv3Position = pkPickedInst->GetGraphicThingInstanceRef().GetPosition();
+		const XMFLOAT3 & c_rv3Position = pkPickedInst->GetGraphicThingInstanceRef().TransformComponent().GetPosition();
 		CPythonGraphic::Instance().ProjectPosition(c_rv3Position.x, c_rv3Position.y, c_rv3Position.z, &m_v2PickedInstProjPos.x, &m_v2PickedInstProjPos.y);
 	}
 }

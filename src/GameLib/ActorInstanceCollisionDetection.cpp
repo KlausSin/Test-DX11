@@ -63,11 +63,11 @@ void CActorInstance::UpdatePointInstance(TCollisionPointInstance* pPointInstance
 		matBone._42 = pmatBone->_42;
 		matBone._43 = pmatBone->_43;
 
-		XMStoreFloat4x4(&matBone, XMLoadFloat4x4(&matBone) * XMLoadFloat4x4(&m_worldMatrix));
+		XMStoreFloat4x4(&matBone, XMLoadFloat4x4(&matBone) * XMLoadFloat4x4(&TransformComponent().GetWorldMatrix()));
 	}
 	else
 	{
-		matBone = m_worldMatrix;
+		matBone = TransformComponent().GetWorldMatrix();
 	}
 
 	CSphereCollisionInstanceVector::const_iterator sit = pPointInstance->c_pCollisionData->SphereDataVector.begin();
@@ -129,11 +129,11 @@ void CActorInstance::UpdateAdvancingPointInstance()
 				continue;
 
 			matCenter = *(XMFLOAT4X4*)pModelInstance->GetBoneMatrixPointer(rInstance.dwBoneIndex);
-			XMStoreFloat4x4(&matCenter, XMLoadFloat4x4(&matCenter) * XMLoadFloat4x4(&m_worldMatrix));
+			XMStoreFloat4x4(&matCenter, XMLoadFloat4x4(&matCenter) * XMLoadFloat4x4(&TransformComponent().GetWorldMatrix()));
 		}
 		else
 		{
-			matCenter = m_worldMatrix;
+			matCenter = TransformComponent().GetWorldMatrix();
 		}
 
 		const NRaceData::TCollisionData* c_pCollisionData = rInstance.c_pCollisionData;
@@ -381,7 +381,7 @@ BOOL CActorInstance::__NormalAttackProcess(CActorInstance & rVictim)
 				v3Dst.x = v3Src.x * c - v3Src.y * s;
 				v3Dst.y = v3Src.x * s + v3Src.y * c;
 
-				XMStoreFloat3(&v3Dst, XMLoadFloat3(&v3Dst) + XMLoadFloat3(&GetPosition()));
+				XMStoreFloat3(&v3Dst, XMLoadFloat3(&v3Dst) + XMLoadFloat3(&TransformComponent().GetPosition()));
 			}
 
 			{
@@ -391,7 +391,7 @@ BOOL CActorInstance::__NormalAttackProcess(CActorInstance & rVictim)
 				v3Dst.x = v3Src.x * c - v3Src.y * s;
 				v3Dst.y = v3Src.x * s + v3Src.y * c;
 
-				XMStoreFloat3(&v3Dst, XMLoadFloat3(&v3Dst) + XMLoadFloat3(&GetPosition()));
+				XMStoreFloat3(&v3Dst, XMLoadFloat3(&v3Dst) + XMLoadFloat3(&TransformComponent().GetPosition()));
 			}
 
 			
@@ -444,13 +444,13 @@ BOOL CActorInstance::__NormalAttackProcess(CActorInstance & rVictim)
 						}
 
 						XMFLOAT3 v3HitPosition;
-						XMStoreFloat3(&v3HitPosition, (XMLoadFloat3(&GetPosition()) + XMLoadFloat3(&rVictim.GetPosition())) * 0.5f);
+						XMStoreFloat3(&v3HitPosition, (XMLoadFloat3(&TransformComponent().GetPosition()) + XMLoadFloat3(&rVictim.TransformComponent().GetPosition())) * 0.5f);
 
 						extern bool IS_HUGE_RACE(unsigned int vnum);
 
 						if (IS_HUGE_RACE(rVictim.GetRace()))
 						{
-							XMStoreFloat3(&v3HitPosition, (XMLoadFloat3(&GetPosition()) + XMLoadFloat3(&sub.v3Position)) * 0.5f);
+							XMStoreFloat3(&v3HitPosition, (XMLoadFloat3(&TransformComponent().GetPosition()) + XMLoadFloat3(&sub.v3Position)) * 0.5f);
 						}
 						
 						__ProcessDataAttackSuccess(*pad, rVictim, v3HitPosition, m_kCurMotNode.uSkill);
@@ -698,16 +698,11 @@ BOOL CActorInstance::__TestObjectCollision(const CGraphicObjectInstance * c_pObj
 		{
 			const CDynamicSphereInstance & c_rMainSphere = c_rMainSphereVector[i];
 
-			if (c_pObjectInstance->MovementCollisionDynamicSphere(c_rMainSphere))
+			if (c_pObjectInstance->CollisionComponent().MovementCollisionDynamicSphere(c_rMainSphere))
 			{
-				//const D3DXVECTOR3 & c_rv3Position = c_pObjectInstance->GetPosition();
-				//if (GetVector3Distance(c_rMainSphere.v3Position, c_rv3Position) <
-				//	GetVector3Distance(c_rMainSphere.v3LastPosition, c_rv3Position))
 				{
 					return TRUE;
 				}
-
-				//return FALSE;
 			}
 		}
 	}

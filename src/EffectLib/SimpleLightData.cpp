@@ -117,20 +117,20 @@ float CLightData::GetDuration()
 {
 	return m_fDuration;
 }
-void CLightData::InitializeLight(D3DLIGHT11& light)
+void CLightData::InitializeLight(CLightComponent& light)
 {
-	light.Type = D3DLIGHT_POINT11;
-	
-	light.Ambient = m_cAmbient;
-	light.Diffuse = m_cDiffuse;
-	light.Attenuation0 = m_fAttenuation0;
-	light.Attenuation1 = m_fAttenuation1;
-	light.Attenuation2 = m_fAttenuation2;
+	light.SetType(LIGHT_TYPE_POINT);
+	light.SetAmbient(m_cAmbient);
+	light.SetDiffuse(m_cDiffuse);
+	light.SetAttenuation(m_fAttenuation0, m_fAttenuation1, m_fAttenuation2);
 
+	XMFLOAT3 pos;
+	float range;
 
-	XMFLOAT3 position;
-	GetPosition( 0.0f, position);
-	light.Position = position;
-	
-	GetRange(0.0f, light.Range);
+	GetPosition(0.0f, pos);
+	GetRange(0.0f, range);
+
+	light.SetPosition(pos);
+	light.SetRange(range);
+	light.SetEnable(true);
 }

@@ -105,7 +105,7 @@ void CInstanceBase::ProcessDamage()
 
 	CEffectManager& mgr = CEffectManager::Instance();
 
-	XMFLOAT3 pos = m_GraphicThingInstance.GetPosition();
+	XMFLOAT3 pos = m_GraphicThingInstance.TransformComponent().GetPosition();
 	pos.z += (float)m_GraphicThingInstance.GetHeight();
 
 	XMFLOAT3 rot = XMFLOAT3(0.0f, 0.0f, cameraAngle);
@@ -210,7 +210,7 @@ void CInstanceBase::SkillUp()
 
 void CInstanceBase::CreateSpecialEffect(DWORD iEffectIndex)
 {
-	const XMFLOAT4X4 & c_rmatGlobal = m_GraphicThingInstance.GetTransform();
+	const XMFLOAT4X4 & c_rmatGlobal = m_GraphicThingInstance.TransformComponent().GetTransformMatrix();
 
 	DWORD dwEffectIndex = CEffectManager::Instance().GetEmptyIndex();
 	DWORD dwEffectCRC = ms_adwCRCAffectEffect[iEffectIndex];
@@ -976,7 +976,7 @@ void CInstanceBase::SetEmoticon(UINT eEmoticon)
 	}
 	if (IsPossibleEmoticon())
 	{
-		XMVECTOR pos = XMLoadFloat3(&m_GraphicThingInstance.GetPosition());
+		XMVECTOR pos = XMLoadFloat3(&m_GraphicThingInstance.TransformComponent().GetPosition());
 		float height = (float)m_GraphicThingInstance.GetHeight();
 
 		pos = XMVectorSetZ(pos, XMVectorGetZ(pos) + height);

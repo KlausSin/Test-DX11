@@ -323,7 +323,7 @@ PyObject * playerShowPlayer(PyObject* poSelf, PyObject* poArgs)
 {
 	CInstanceBase * pMainInstance = CPythonPlayer::Instance().NEW_GetMainActorPtr();
 	if (pMainInstance)
-		pMainInstance->GetGraphicThingInstanceRef().Show();
+		pMainInstance->GetGraphicThingInstanceRef().RenderComponent().Show();
 	return Py_BuildNone();
 }
 
@@ -331,7 +331,7 @@ PyObject * playerHidePlayer(PyObject* poSelf, PyObject* poArgs)
 {
 	CInstanceBase * pMainInstance = CPythonPlayer::Instance().NEW_GetMainActorPtr();
 	if (pMainInstance)
-		pMainInstance->GetGraphicThingInstanceRef().Hide();
+		pMainInstance->GetGraphicThingInstanceRef().RenderComponent().Hide();
 	return Py_BuildNone();
 }
 

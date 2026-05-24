@@ -601,7 +601,7 @@ void CActorInstance::__ProcessDataAttackSuccess(const NRaceData::TAttackData & c
 		__PushCircle(rVictim);
 
 		// VICTIM_COLLISION_TEST
-		const XMFLOAT3& kVictimPos = rVictim.GetPosition();
+		const XMFLOAT3& kVictimPos = rVictim.TransformComponent().GetPosition();
 		rVictim.m_PhysicsObject.IncreaseExternalForce(kVictimPos, c_rAttackData.fExternalForce); //*nForceRatio/100.0f);
 		// VICTIM_COLLISION_TEST_END
 	}
@@ -635,7 +635,7 @@ void CActorInstance::__ProcessDataAttackSuccess(const NRaceData::TAttackData & c
 		vec3Effect = c_rv3Position;
 	}
 	
-	const XMFLOAT3& v3Pos = GetPosition();
+	const XMFLOAT3& v3Pos = TransformComponent().GetPosition();
 
 	float fHeight = XMConvertToDegrees(atan2f(-vec3Effect.x + v3Pos.x, +vec3Effect.y - v3Pos.y));
 
@@ -763,9 +763,9 @@ void CActorInstance::ShakeProcess()
 			}
 		}
 
-		m_worldMatrix._41	+= v3Pos.x;
-		m_worldMatrix._42	+= v3Pos.y;
-		m_worldMatrix._43	+= v3Pos.z;
+		TransformComponent().GetWorldMatrix()._41	+= v3Pos.x;
+		TransformComponent().GetWorldMatrix()._42	+= v3Pos.y;
+		TransformComponent().GetWorldMatrix()._43	+= v3Pos.z;
 	}
 }
 
@@ -930,7 +930,7 @@ void CActorInstance::__PushCircle(CActorInstance& rVictim)
 	XMFLOAT3 v3SrcPos(c_rkPPosAtk.x, -c_rkPPosAtk.y, c_rkPPosAtk.z);
 
 	const XMFLOAT3& c_rv3SrcPos = v3SrcPos;
-	const XMFLOAT3& c_rv3DstPos = rVictim.GetPosition();
+	const XMFLOAT3& c_rv3DstPos = rVictim.TransformComponent().GetPosition();
 
 	XMFLOAT3 v3Direction;
 	v3Direction.x = c_rv3DstPos.x - c_rv3SrcPos.x;

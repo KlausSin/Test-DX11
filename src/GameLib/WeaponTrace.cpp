@@ -297,7 +297,7 @@ void CWeaponTrace::Render()
 	STATEMANAGER.GetDepthStencil().SetDepthFunc(D3D11_COMPARISON_LESS_EQUAL);
 	STATEMANAGER.GetDepthStencil().SetDepthWriteEnable(false);
 
-	_mgr->GetCbMgr()->SetLightingEnable(false);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(FALSE);
 
 	STATEMANAGER.SetTexture(0, NULL);
 	STATEMANAGER.SetTexture(1, NULL);
@@ -312,7 +312,7 @@ void CWeaponTrace::Render()
 
 	STATEMANAGER.GetStateCache().Restore();
 
-	_mgr->GetCbMgr()->SetLightingEnable(true);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(TRUE);
 }
 
 void CWeaponTrace::UseAlpha()

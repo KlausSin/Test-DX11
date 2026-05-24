@@ -9,7 +9,7 @@ void CActorInstance::__Push(int x, int y)
 	if (IsResistFallen())
 		return;
 
-	const XMFLOAT3& c_rv3Src = GetPosition();
+	const XMFLOAT3& c_rv3Src = TransformComponent().GetPosition();
 	const XMFLOAT3 c_v3Dst((float)x, (float)-y, c_rv3Src.z);
 
 	XMFLOAT3 c_v3Delta;

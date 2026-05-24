@@ -29,7 +29,7 @@ enum ViewState
 class Frustum 
 {
 	public:
-		void BuildViewFrustum(XMFLOAT4X4 & mat);
+		void BuildViewFrustum(const XMFLOAT4X4 & mat);
 		void BuildViewFrustum2(XMFLOAT4X4& mat, float fNear, float fFar, float fFov, float fAspect, const XMFLOAT3 & vCamera, const XMFLOAT3 & vLook);
 		ViewState ViewVolumeTest(const Vector3d &c_v3Center,const float c_fRadius) const;
 

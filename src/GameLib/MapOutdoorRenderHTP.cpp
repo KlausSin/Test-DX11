@@ -48,7 +48,7 @@ void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch(const RenderConte
 	cb->SetAlphaTestEnable(true);
 	cb->SetAlphaRef(0x00000000);
 	cb->SetTextureFactor(ctx.Frame.FogColor);
-	cb->SetLightingEnable(false);
+	cb->SetEntityLightingEnable(FALSE);
 
 	state.Sampler.SetAddressUV(0, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP);
 	state.Sampler.SetAddressUV(1, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
@@ -116,7 +116,7 @@ void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch(const RenderConte
 	STATEMANAGER.SetTexture(2, NULL);
 	STATEMANAGER.SetTexture(3, NULL);
 
-	cb->SetLightingEnable(true);
+	cb->SetEntityLightingEnable(TRUE);
 	std::sort(m_RenderedTextureNumVector.begin(), m_RenderedTextureNumVector.end());
 
 	state.Restore();

@@ -53,7 +53,7 @@ struct FGetPickingPoint
 		{
 			CGraphicThingInstance* pThing = (CGraphicThingInstance*)pInstance;
 
-			if (!pThing->IsObjectHeight())
+			if (!pThing->AttributeComponent().HasHeightInstance())
 				return;
 
 			float fX, fY, fZ;
@@ -243,11 +243,9 @@ void CMapOutdoor::OnBeginEnvironment()
 
 	CSpeedTreeForestDirectX& rkForest = CSpeedTreeForestDirectX::Instance();
 
-	const D3DLIGHT11& c_rkLight = mc_pEnvironmentData->DirLights[ENV_DIRLIGHT_CHARACTER];
-	rkForest.SetLight(
-		(const float*)&c_rkLight.Direction,
-		(const float*)&c_rkLight.Ambient,
-		(const float*)&c_rkLight.Diffuse);
+	const CLightComponent& light = mc_pEnvironmentData->DirLights[ENV_DIRLIGHT_CHARACTER];
+
+	rkForest.SetLight((const float*)&light.GetDirection(), (const float*)&light.GetAmbient(), (const float*)&light.GetDiffuse());
 
 	rkForest.SetWindStrength(mc_pEnvironmentData->fWindStrength);
 }

@@ -3,7 +3,7 @@
 
 #include "SimpleLightInstance.h"
 
-CDynamicPool<CLightInstance> CLightInstance::ms_kPool;	
+CDynamicPool<CLightInstance> CLightInstance::ms_kPool;
 
 void CLightInstance::DestroySystem()
 {
@@ -21,7 +21,7 @@ void CLightInstance::Delete(CLightInstance* pkData)
 	ms_kPool.Free(pkData);
 }
 
-void CLightInstance::OnSetDataPointer(CEffectElementBase * pElement)
+void CLightInstance::OnSetDataPointer(CEffectElementBase* pElement)
 {
 	Destroy();
 
@@ -29,7 +29,7 @@ void CLightInstance::OnSetDataPointer(CEffectElementBase * pElement)
 
 	m_iLoopCount = m_pData->GetLoopCount();
 
-	D3DLIGHT11 Light;
+	CLightComponent Light;
 	m_pData->InitializeLight(Light);
 	CLightManager::Instance().RegisterLight(LIGHT_TYPE_DYNAMIC, &m_LightID, Light);
 }
@@ -44,9 +44,9 @@ bool CLightInstance::OnUpdate(float fElapsedTime)
 
 	if (m_fLocalTime >= m_pData->GetDuration())
 	{
-		if (m_pData->isLoop() && --m_iLoopCount!=0)
+		if (m_pData->isLoop() && --m_iLoopCount != 0)
 		{
-			if (m_iLoopCount<0)
+			if (m_iLoopCount < 0)
 				m_iLoopCount = 0;
 			m_fLocalTime -= m_pData->GetDuration();
 		}
@@ -66,7 +66,7 @@ bool CLightInstance::OnUpdate(float fElapsedTime)
 		*/
 	}
 
-	CLight * pLight = CLightManager::Instance().GetLight(m_LightID);
+	CLight* pLight = CLightManager::Instance().GetLight(m_LightID);
 
 	if (pLight)
 	{
@@ -76,7 +76,7 @@ bool CLightInstance::OnUpdate(float fElapsedTime)
 		float fRange;
 		m_pData->GetRange(m_fLocalTime, fRange);
 		pLight->SetRange(fRange);
-		
+
 		XMFLOAT3 pos;
 
 		m_pData->GetPosition(m_fLocalTime, pos);

@@ -68,7 +68,7 @@ void CDungeonBlock::Update()
 
 	FUpdate Update;
 	Update.fElapsedTime = 0.0f;
-	Update.pmatWorld = &m_worldMatrix;
+	Update.pmatWorld = &TransformComponent().GetWorldMatrix();
 	for_each(m_ModelInstanceContainer.begin(), m_ModelInstanceContainer.end(), Update);
 }
 
@@ -126,32 +126,32 @@ bool CDungeonBlock::GetBoundingSphere(XMFLOAT3& v3Center, float& fRadius)
 	v3Center = m_v3Center;
 	fRadius = m_fRadius;
 
-	XMStoreFloat3(&v3Center, XMVector3TransformCoord(XMLoadFloat3(&v3Center), XMLoadFloat4x4(&GetTransform())));
+	XMStoreFloat3(&v3Center, XMVector3TransformCoord(XMLoadFloat3(&v3Center), XMLoadFloat4x4(&TransformComponent().GetTransformMatrix())));
 
 	return true;
 }
 
-void CDungeonBlock::OnUpdateCollisionData(const CStaticCollisionDataVector * pscdVector)
+void CDungeonBlock::OnUpdateCollisionData(const CStaticCollisionDataVector* pscdVector)
 {
 	assert(pscdVector);
-	CStaticCollisionDataVector::const_iterator it;
-	for(it = pscdVector->begin();it!=pscdVector->end();++it)
-	{
-		AddCollision(&(*it),&GetTransform());
-	}
+
+	const auto& mat = TransformComponent().GetTransformMatrix();
+
+	for (const auto& data : *pscdVector)
+		CollisionComponent().Add(&data, &mat);
 }
 
 void CDungeonBlock::OnUpdateHeighInstance(CAttributeInstance * pAttributeInstance)
 {
 	assert(pAttributeInstance);
-	SetHeightInstance(pAttributeInstance);	
+	AttributeComponent().SetHeightInstance(pAttributeInstance);
 }
 
-bool CDungeonBlock::OnGetObjectHeight(float fX, float fY, float * pfHeight)
+bool CDungeonBlock::OnGetObjectHeight(float fX, float fY, float* pfHeight)
 {
-	if (m_pHeightAttributeInstance && m_pHeightAttributeInstance->GetHeight(fX, fY, pfHeight))
-		return true;
-	return false;
+	CAttributeInstance* attr = AttributeComponent().GetHeightInstance();
+
+	return attr && attr->GetHeight(fX, fY, pfHeight);
 }
 
 void CDungeonBlock::BuildBoundingSphere()
@@ -173,7 +173,7 @@ bool CDungeonBlock::Intersect(float * pfu, float * pfv, float * pft)
 	for (; itor != m_ModelInstanceContainer.end(); ++itor)
 	{
 		CDungeonModelInstance * pInstance = *itor;
-		if (pInstance->Intersect(&CGraphicObjectInstance::GetTransform(), pfu, pfv, pft))
+		if (pInstance->Intersect(&TransformComponent().GetTransformMatrix(), pfu, pfv, pft))
 			return true;
 	}
 

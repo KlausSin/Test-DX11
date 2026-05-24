@@ -12,7 +12,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "qMin32Lib/AsyncFileSystem.h"
+#include "qMin32Lib/assets/AsyncFileSystem.h"
 #include "EterBase/Singleton.h"
 class CTextureCache;
 

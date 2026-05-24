@@ -271,9 +271,9 @@ BOOL CPythonBackground::GetLightDirection(XMFLOAT3 & rv3LightDirection)
 	if (!mc_pcurEnvironmentData)
 		return FALSE;
 
-	rv3LightDirection.x = mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_BACKGROUND].Direction.x;
-	rv3LightDirection.y = mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_BACKGROUND].Direction.y;
-	rv3LightDirection.z = mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_BACKGROUND].Direction.z;
+	rv3LightDirection.x = mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_BACKGROUND].GetDirection().x;
+	rv3LightDirection.y = mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_BACKGROUND].GetDirection().y;
+	rv3LightDirection.z = mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_BACKGROUND].GetDirection().z;
 	return TRUE;
 }
 
@@ -315,7 +315,7 @@ struct FGetPortalID
 	{
 		for (int i = 0; i < PORTAL_ID_MAX_NUM; ++i)
 		{
-			int iID = pObject->GetPortal(i);
+			int iID = pObject->AttributeComponent().GetPortalID(i);
 			if (0 == iID)
 				break;
 
@@ -678,7 +678,7 @@ void CPythonBackground::SetCharacterDirLight()
 	if (!mc_pcurEnvironmentData)
 		return;
 
-	STATEMANAGER.GetLight().SetLight(0, mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_CHARACTER]);
+	_mgr->GetCbMgr()->SetEntityLight(0, mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_CHARACTER]);
 }
 
 void CPythonBackground::SetBackgroundDirLight()
@@ -688,7 +688,7 @@ void CPythonBackground::SetBackgroundDirLight()
 	if (!mc_pcurEnvironmentData)
 		return;
 
-	STATEMANAGER.GetLight().SetLight(0, mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_BACKGROUND]);
+	_mgr->GetCbMgr()->SetEntityLight(0, mc_pcurEnvironmentData->DirLights[ENV_DIRLIGHT_BACKGROUND]);
 }
 
 void CPythonBackground::GlobalPositionToLocalPosition(int32_t& rGlobalX, int32_t& rGlobalY)

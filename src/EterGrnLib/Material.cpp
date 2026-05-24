@@ -360,8 +360,6 @@ void CGrannyMaterial::__ApplySpecularRenderState()
     STATEMANAGER.SetTexture(0, GetSRV(0));
     STATEMANAGER.SetTexture(1, pkTexture ? pkTexture->GetSRV() : nullptr);
 
-    _mgr->GetCbMgr()->SetSpecularPower(GetSpecularPower(), g_fSpecularColor);
-
     uint32_t flags = MESH_SPECULAR;
 
     if (m_state.isSkinned)

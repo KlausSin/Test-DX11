@@ -17,17 +17,10 @@ struct VS_OUTPUT
     float viewDepth : TEXCOORD4;
 };
 
-float4 BuildTerrainLight(float3 normal)
+float4 BuildTerrainLight(float3 worldPos, float3 normal)
 {
-    if (lightingEnable == 0)
-        return float4(1.0f, 1.0f, 1.0f, 1.0f);
-
     float3 worldNormal = normalize(mul(normal, (float3x3)frame.matWorld));
-    float ndotl = saturate(dot(worldNormal, normalize(-lightDir.xyz)));
-    float3 ambient = matAmbient.rgb * lightAmbient.rgb;
-    float3 diffuse = matDiffuse.rgb * lightDiffuse.rgb * ndotl;
-    float3 emissive = matEmissive.rgb;
-    return float4(saturate(ambient + diffuse + emissive), matDiffuse.a);
+    return float4(ApplyEntityLights(worldPos, worldNormal), material.diffuse.a);
 }
 
 VS_OUTPUT main(VS_INPUT input)
@@ -39,7 +32,7 @@ VS_OUTPUT main(VS_INPUT input)
 
     output.pos = mul(viewPos, frame.matProj);
     output.viewDepth = abs(viewPos.z);
-    output.color = BuildTerrainLight(input.normal);
+    output.color = BuildTerrainLight(worldPos.xyz, input.normal);
 
     float4 texSource = float4(viewPos.xyz, 1.0f);
     output.tex0 = mul(texSource, texTransform.tex0).xy;

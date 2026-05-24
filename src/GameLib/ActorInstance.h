@@ -14,7 +14,7 @@
 #include "../UserInterface/Locale_inc.h"
 #include "SpeedTreeLib/SpeedTreeForest.h"
 //#include "EterGrnLib/ThingInstance.h"
-#include "qMin32Lib/CollisionObject.h"
+#include "qMin32Lib/jolt/CollisionObject.h"
 
 class CItemData;
 class CWeaponTrace;

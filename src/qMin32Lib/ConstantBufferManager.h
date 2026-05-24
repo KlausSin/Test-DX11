@@ -1,6 +1,39 @@
 #pragma once
 #include "Core.h"
 #include "EterLib/D3DXMathCompat.h"
+#include "entity/LightComponent.h"
+
+#ifndef MAX_ENTITY_LIGHTS
+#define MAX_ENTITY_LIGHTS 32
+#endif
+
+struct CBEntityLight
+{
+	XMFLOAT4 position;
+	XMFLOAT4 direction;
+	XMFLOAT4 diffuse;
+	XMFLOAT4 ambient;
+	XMFLOAT4 attenuation;
+	XMFLOAT4 spot;
+	XMINT4 params;
+};
+
+struct CBMaterialX
+{
+	XMFLOAT4 diffuse;
+	XMFLOAT4 ambient;
+	XMFLOAT4 emissive;
+	XMFLOAT4 specular;
+	XMFLOAT4 params;
+};
+
+struct CBEntityLighting
+{
+	CBEntityLight lights[MAX_ENTITY_LIGHTS];
+	CBMaterialX material;
+	XMFLOAT4 globalAmbient;
+	XMINT4 settings;
+};
 
 struct CBPerFrame
 {
@@ -32,29 +65,6 @@ struct CBMaterial
 	int useTexture1;
 	int alphaTestEnable;
 	int alphaRef;
-};
-
-// b2: Lighting emulation
-struct CBLighting
-{
-	float lightPosition[4];
-	float lightDir[4];
-	float lightDiffuse[4];
-	float lightAmbient[4];
-
-	float matDiffuse[4];
-	float matAmbient[4];
-	float matEmissive[4];
-
-	float lightAttenuation[4];
-	float lightSpot[4];
-
-	int lightingEnable;
-	int pad0;
-	int pad1;
-	int pad2;
-	float specularColor[4];
-	float pad[12];
 };
 
 // b4: Fog
@@ -103,6 +113,17 @@ struct SGrannyBonePalette
 	DirectX::XMFLOAT4X4 Bone[GRANNY_DX11_MAX_BONES];
 };
 
+struct TerrainLayerCB
+{
+	XMFLOAT4 brush;
+	XMFLOAT4 flags;
+	XMFLOAT4 eye;
+	XMFLOAT4 layerTiling[8];
+	XMFLOAT4 layerStrength[8];
+	XMFLOAT4 layerEnabled[8];
+};
+
+
 class CBManager
 {
 public:
@@ -116,18 +137,11 @@ public:
 	// Texture coordinate transform → constant buffer b3
 	void SetTexTransform(DWORD dwStage, const XMFLOAT4X4& mat);
 
-	// Lighting → constant buffer b2
-	void SetLightingEnable(BOOL bEnable);
-	void SetLight(DWORD index, const D3DLIGHT11* pLight);
-	void SetMaterial(const D3DMATERIAL11* pMaterial);
-	void SetAmbient(DWORD dwColor);
-	void FlushLighting();
-
 	DWORD GetAlphaRef() const { return DWORD(m_cbMaterial.alphaRef); }
 	bool GetUseTexture0() const { return m_cbMaterial.useTexture0 != 0; }
 	bool GetAlphaTestEnable() const { return m_cbMaterial.alphaTestEnable != 0; }
 	bool GetFogEnable() const { return m_cbFog.fogEnable != 0; }
-	bool GetLightingEnable() const { return m_cbLighting.lightingEnable != 0; }
+
 	// Fog → constant buffer b4
 	void SetFogEnable(BOOL bEnable);
 	void SetFogColor(DWORD dwColor);
@@ -156,16 +170,16 @@ public:
 
 	//bone mesh
 	bool UploadBonePalette(const DirectX::XMFLOAT4X4* bones, unsigned int count);
-	void SetSpecularPower(float power, const XMFLOAT4& color);
 
 	void FlushAllState();
 	void SetAllBuffers();
-
+	void SetTerrain(const TerrainLayerCB& terrain );
+	void					FlushTerrain();
 
 private:
 	CBufferPtr				m_pCBMatrix;
 	CBufferPtr				m_pCBMaterial;
-	CBufferPtr				m_pCBLighting;
+
 	CBufferPtr				m_pCBFog;
 	CBufferPtr				m_pCBScreenSize;
 	CBufferPtr				m_pCBBonePalette;
@@ -173,18 +187,44 @@ private:
 
 	CBMatrix				m_cbMatrix = {};
 	CBMaterial				m_cbMaterial = {};
-	CBLighting				m_cbLighting = {};
+
 	CBFog					m_cbFog = {};
 	CBScreenSize			m_cbScreenSize = {};
 	CBSpeedTree				m_cbSpeedTree = {};
 
+	CBufferPtr				m_pCBTerrain;
+	TerrainLayerCB			m_cbTerrain = {};
+	bool					m_bTerrainDirty = true;
+
+
 	bool					m_bMatrixDirty = true;
 	bool					m_bMaterialDirty = true;
-	bool					m_bLightingDirty = true;
 	bool					m_bFogDirty = true;
 	bool					m_bSpeedTreeDirty = true;
 
 	DxManager* m_manager;
 
 	friend class CD3D11Renderer;
+
+public:
+	void SetEntityLightingEnable(BOOL bEnable);
+	void ClearEntityLights();
+	void SetEntityGlobalAmbient(DWORD color);
+	void SetEntityLight(uint32_t index, const CLightComponent& light);
+	void FlushEntityLighting();
+
+	void SetMaterialDiffuse(const XMFLOAT4& color);
+	void SetMaterialAmbient(const XMFLOAT4& color);
+	void SetMaterialEmissive(const XMFLOAT4& color);
+	void SetMaterialSpecular(const XMFLOAT4& color);
+	void SetMaterial(const CBMaterialX& material);
+	CLightComponent& CreateEntityLight();
+	CLightComponent* GetEntityLight(uint32_t index);
+	void UploadEntityLights();
+
+private:
+	CBufferPtr m_pCBEntityLighting;
+	CBEntityLighting m_cbEntityLighting = {};
+	bool m_bEntityLightingDirty = true;
+	std::vector<std::unique_ptr<CLightComponent>> m_entityLights;
 };

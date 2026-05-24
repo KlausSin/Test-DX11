@@ -178,7 +178,7 @@ struct FGetShadowReceiverFromCollisionData
 
 		if (TREE_OBJECT == pInstance->GetType() || ACTOR_OBJECT == pInstance->GetType() || EFFECT_OBJECT == pInstance->GetType())
 			return;
-		if (pInstance->CollisionDynamicSphere(*m_pdsi))
+		if (pInstance->CollisionComponent().CollisionDynamicSphere(*m_pdsi))
 		{
 			m_pkVct_pkShadowReceiver->push_back(pInstance);
 			m_bCollide = true;
@@ -196,8 +196,8 @@ struct FPCBlockerDistanceSort
 
 	bool operator () (CGraphicObjectInstance* plhs, CGraphicObjectInstance* prhs) const
 	{
-		const XMFLOAT3& lhsPos = plhs->GetPosition();
-		const XMFLOAT3& rhsPos = prhs->GetPosition();
+		const XMFLOAT3& lhsPos = plhs->TransformComponent().GetPosition();
+		const XMFLOAT3& rhsPos = prhs->TransformComponent().GetPosition();
 
 		XMVECTOR lhs = XMLoadFloat3(&lhsPos) - XMLoadFloat3(&m_v3Eye);
 		XMVECTOR rhs = XMLoadFloat3(&rhsPos) - XMLoadFloat3(&m_v3Eye);
@@ -575,7 +575,7 @@ struct PCBlocker_SInstanceList
 		for (i=m_pkDSIVector->Begin(); i!=m_pkDSIVector->End(); ++i)
 		{
 			CDynamicSphereInstance& rkDSI = *i;
-			if (pInstance->CollisionDynamicSphere(rkDSI) )
+			if (pInstance->CollisionComponent().CollisionDynamicSphere(rkDSI) )
 			{
 				if (TREE_OBJECT == pInstance->GetType())
 				{

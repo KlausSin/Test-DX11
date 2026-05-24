@@ -53,7 +53,7 @@ ViewState Frustum::ViewVolumeTest(const Vector3d& c, float r) const
 	return VS_INSIDE;
 }
 
-void Frustum::BuildViewFrustum(XMFLOAT4X4& mat)
+void Frustum::BuildViewFrustum(const XMFLOAT4X4& mat)
 {
     m_bUsingSphere = false;
 

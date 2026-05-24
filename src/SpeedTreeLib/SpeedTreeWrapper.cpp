@@ -95,7 +95,7 @@ void CSpeedTreeWrapper::OnRenderPCBlocker(const RenderContext& ctx)
 
 	state.Push();
 
-	cb->SetLightingEnable(false);
+	cb->SetEntityLightingEnable(FALSE);
 	state.Blend.SetBlendEnable(true);
 	cb->SetAlphaTestEnable(true);
 	state.DepthStencil.SetDepthFunc(D3D11_COMPARISON_LESS_EQUAL);
@@ -176,7 +176,7 @@ void CSpeedTreeWrapper::OnRenderPCBlocker(const RenderContext& ctx)
 
 	EndLeafForTreeType();
 
-	cb->SetLightingEnable(false);
+	cb->SetEntityLightingEnable(FALSE);
 	RenderBillboards();
 
 	state.Restore();
@@ -197,7 +197,7 @@ void CSpeedTreeWrapper::OnRender(const RenderContext& ctx)
 
 	state.Sampler.SetAddressUV(1, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP);
 
-	cb->SetLightingEnable(false);
+	cb->SetEntityLightingEnable(FALSE);
 	cb->SetAlphaTestEnable(true);
 	state.DepthStencil.SetDepthFunc(D3D11_COMPARISON_LESS_EQUAL);
 	state.Raster.SetCullMode(D3D11_CULL_NONE);
@@ -226,7 +226,7 @@ void CSpeedTreeWrapper::OnRender(const RenderContext& ctx)
 	RenderLeaves();
 	EndLeafForTreeType();
 
-	cb->SetLightingEnable(false);
+	cb->SetEntityLightingEnable(FALSE);
 	RenderBillboards();
 
 	state.Restore();
@@ -1298,7 +1298,7 @@ void CSpeedTreeWrapper::SetPosition(float x, float y, float z)
 	m_afPos[1] = y;
 	m_afPos[2] = z;
 	m_pSpeedTree->SetTreePosition(x, y, z);
-	CGraphicObjectInstance::SetPosition(x, y, z);
+	TransformComponent().SetPosition(x, y, z);
 }
 
 bool CSpeedTreeWrapper::GetBoundingSphere(XMFLOAT3& v3Center, float& fRadius)
@@ -1327,49 +1327,15 @@ bool CSpeedTreeWrapper::GetBoundingSphere(XMFLOAT3& v3Center, float& fRadius)
 
 void CSpeedTreeWrapper::CalculateBBox()
 {
-	float fx = m_afBoundingBox[3] - m_afBoundingBox[0];
-	float fy = m_afBoundingBox[4] - m_afBoundingBox[1];
-	float fz = m_afBoundingBox[5] - m_afBoundingBox[2];
+	const float fx = m_afBoundingBox[3] - m_afBoundingBox[0];
+	const float fy = m_afBoundingBox[4] - m_afBoundingBox[1];
+	const float fz = m_afBoundingBox[5] - m_afBoundingBox[2];
 
-	m_v3BBoxMin = XMFLOAT3(-fx * 0.5f, -fy * 0.5f, 0.0f);
-	m_v3BBoxMax = XMFLOAT3(fx * 0.5f, fy * 0.5f, fz);
+	const XMFLOAT3 bboxMin(-fx * 0.5f, -fy * 0.5f, 0.0f);
+	const XMFLOAT3 bboxMax(fx * 0.5f, fy * 0.5f, fz);
 
-	m_v4TBBox[0] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMin.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[1] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMax.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[2] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMin.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[3] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMax.y, m_v3BBoxMin.z, 1.0f);
-	m_v4TBBox[4] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMin.y, m_v3BBoxMax.z, 1.0f);
-	m_v4TBBox[5] = XMFLOAT4(m_v3BBoxMin.x, m_v3BBoxMax.y, m_v3BBoxMax.z, 1.0f);
-	m_v4TBBox[6] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMin.y, m_v3BBoxMax.z, 1.0f);
-	m_v4TBBox[7] = XMFLOAT4(m_v3BBoxMax.x, m_v3BBoxMax.y, m_v3BBoxMax.z, 1.0f);
-
-	XMMATRIX m = XMLoadFloat4x4(&GetTransform());
-
-	for (int i = 0; i < 8; ++i)
-	{
-		XMVECTOR v = XMLoadFloat4(&m_v4TBBox[i]);
-		v = XMVector4Transform(v, m);
-		XMStoreFloat4(&m_v4TBBox[i], v);
-
-		if (i == 0)
-		{
-			m_v3TBBoxMin = m_v3TBBoxMax = XMFLOAT3(
-				m_v4TBBox[i].x,
-				m_v4TBBox[i].y,
-				m_v4TBBox[i].z
-			);
-		}
-		else
-		{
-			if (m_v4TBBox[i].x < m_v3TBBoxMin.x) m_v3TBBoxMin.x = m_v4TBBox[i].x;
-			if (m_v4TBBox[i].y < m_v3TBBoxMin.y) m_v3TBBoxMin.y = m_v4TBBox[i].y;
-			if (m_v4TBBox[i].z < m_v3TBBoxMin.z) m_v3TBBoxMin.z = m_v4TBBox[i].z;
-
-			if (m_v4TBBox[i].x > m_v3TBBoxMax.x) m_v3TBBoxMax.x = m_v4TBBox[i].x;
-			if (m_v4TBBox[i].y > m_v3TBBoxMax.y) m_v3TBBoxMax.y = m_v4TBBox[i].y;
-			if (m_v4TBBox[i].z > m_v3TBBoxMax.z) m_v3TBBoxMax.z = m_v4TBBox[i].z;
-		}
-	}
+	BoundsComponent().SetBBox(bboxMin, bboxMax);
+	BoundsComponent().CalculateTransformed(TransformComponent().GetTransformMatrix());
 }
 
 // collision detection routines
@@ -1404,33 +1370,35 @@ void CSpeedTreeWrapper::OnUpdateCollisionData(const CStaticCollisionDataVector*)
 
 	for (UINT i = 0; i < GetCollisionObjectCount(); ++i)
 	{
-		CSpeedTreeRT::ECollisionObjectType ObjectType;
-		CStaticCollisionData CollisionData{};
-		GetCollisionObject(i, ObjectType, (float*)&CollisionData.v3Position, CollisionData.fDimensions);
+		CSpeedTreeRT::ECollisionObjectType type;
+		CStaticCollisionData data{};
 
-		switch (ObjectType)
+		GetCollisionObject(i, type, (float*)&data.v3Position, data.fDimensions);
+
+		switch (type)
 		{
 		case CSpeedTreeRT::CO_BOX:
-			CollisionData.dwType = COLLISION_TYPE_BOX;
-			CollisionData.fDimensions[0] *= 0.55f;
-			CollisionData.fDimensions[1] *= 0.55f;
-			CollisionData.fDimensions[2] *= 0.85f;
+			data.dwType = COLLISION_TYPE_BOX;
+			data.fDimensions[0] *= 0.55f;
+			data.fDimensions[1] *= 0.55f;
+			data.fDimensions[2] *= 0.85f;
 			break;
 
 		case CSpeedTreeRT::CO_SPHERE:
-			CollisionData.dwType = COLLISION_TYPE_SPHERE;
-			CollisionData.fDimensions[0] *= 0.55f;
+			data.dwType = COLLISION_TYPE_SPHERE;
+			data.fDimensions[0] *= 0.55f;
 			break;
 
 		case CSpeedTreeRT::CO_CAPSULE:
-			CollisionData.dwType = COLLISION_TYPE_CYLINDER;
-			CollisionData.fDimensions[0] *= 0.45f;
-			CollisionData.fDimensions[1] *= 0.85f;
+			data.dwType = COLLISION_TYPE_CYLINDER;
+			data.fDimensions[0] *= 0.45f;
+			data.fDimensions[1] *= 0.85f;
 			break;
 
 		default:
 			continue;
 		}
-		AddCollision(&CollisionData, &mat);
+
+		CollisionComponent().Add(&data, &mat);
 	}
 }

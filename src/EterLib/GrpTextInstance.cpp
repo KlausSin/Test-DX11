@@ -619,7 +619,7 @@ void CGraphicTextInstance::Render(RECT * pClipRect)
 	STATEMANAGER.GetBlend().SetDestBlend(D3D11_BLEND_INV_SRC_ALPHA);
 
 	_mgr->GetCbMgr()->SetFogEnable(false);
-	_mgr->GetCbMgr()->SetLightingEnable(false);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(FALSE);
 
 	_mgr->SetShader(VF_PDT, BLEND_MODULATE);
 
@@ -1087,7 +1087,7 @@ void CGraphicTextInstance::Render(RECT * pClipRect)
 	STATEMANAGER.GetStateCache().Restore();
 
 	_mgr->GetCbMgr()->SetFogEnable(false);
-	_mgr->GetCbMgr()->SetLightingEnable(false);
+	_mgr->GetCbMgr()->SetEntityLightingEnable(FALSE);
 
 	if (m_hyperlinkVector.size() != 0)
 	{

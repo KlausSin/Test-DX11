@@ -12,6 +12,27 @@
 #include "JoltPhysicsLayers.h"
 #include "JoltConversion.h"
 #include "JoltShapeCache.h"
+#include "CPhysicsManager.h"
+
+namespace
+{
+    JPH::PhysicsSystem* GetValidPhysicsSystem()
+    {
+        if (!CPhysicsManager::Instance().IsInitialized())
+            return nullptr;
+
+        return CPhysicsManager::Instance().GetWorld().GetSystem();
+    }
+
+    JPH::BodyInterface* GetValidBodyInterface()
+    {
+        JPH::PhysicsSystem* system = GetValidPhysicsSystem();
+        if (!system)
+            return nullptr;
+
+        return &system->GetBodyInterface();
+    }
+}
 
 JoltPhysicsComponent::~JoltPhysicsComponent()
 {
@@ -45,6 +66,10 @@ bool JoltPhysicsComponent::CreateShape(JoltPhysicsWorld& world, const Transform&
     if (!world.IsInitialized() || !shape)
         return false;
 
+    JPH::PhysicsSystem* system = world.GetSystem();
+    if (!system)
+        return false;
+
     JPH::EMotionType motionType = JPH::EMotionType::Static;
     JPH::ObjectLayer objectLayer = JoltObjectLayers::NON_MOVING;
 
@@ -58,7 +83,7 @@ bool JoltPhysicsComponent::CreateShape(JoltPhysicsWorld& world, const Transform&
     bodySettings.mOverrideMassProperties = type == JoltBodyType::Dynamic ? JPH::EOverrideMassProperties::CalculateInertia : JPH::EOverrideMassProperties::MassAndInertiaProvided;
     bodySettings.mMassPropertiesOverride.mMass = mass > 0.0f ? mass : 1.0f;
 
-    JPH::BodyInterface& bodyInterface = world.GetBodyInterface();
+    JPH::BodyInterface& bodyInterface = system->GetBodyInterface();
     JPH::Body* body = bodyInterface.CreateBody(bodySettings);
     if (!body)
         return false;
@@ -89,135 +114,175 @@ void JoltPhysicsComponent::Destroy()
         return;
     }
 
-    if (!m_world)
-    {
-        m_valid = false;
-        return;
-    }
-
-    if (reinterpret_cast<uintptr_t>(m_world) == UINTPTR_MAX)
-    {
-        m_valid = false;
-        m_world = nullptr;
-        return;
-    }
-
-    if (!m_world->IsInitialized())
-    {
-        m_valid = false;
-        m_world = nullptr;
-        return;
-    }
-
-    JPH::BodyInterface& bodyInterface = m_world->GetBodyInterface();
-
-    if (bodyInterface.IsAdded(m_bodyID))
-        bodyInterface.RemoveBody(m_bodyID);
-
-    bodyInterface.DestroyBody(m_bodyID);
+    JPH::BodyID bodyID = m_bodyID;
 
     m_valid = false;
     m_world = nullptr;
+    m_bodyID = {};
+    m_type = JoltBodyType::Static;
+
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (!bodyInterface)
+        return;
+
+    if (bodyInterface->IsAdded(bodyID))
+        bodyInterface->RemoveBody(bodyID);
+
+    bodyInterface->DestroyBody(bodyID);
 }
 
 void JoltPhysicsComponent::SyncFromPhysics(Transform& transform) const
 {
-    if (!m_valid || !m_world)
+    if (!m_valid)
         return;
 
-    const JPH::BodyInterface& bodyInterface = m_world->GetSystem()->GetBodyInterface();
-    transform.position = JoltConvert::FromRVec3(bodyInterface.GetCenterOfMassPosition(m_bodyID));
-    transform.rotation = JoltConvert::FromQuat(bodyInterface.GetRotation(m_bodyID));
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (!bodyInterface)
+        return;
+
+    transform.position = JoltConvert::FromRVec3(bodyInterface->GetCenterOfMassPosition(m_bodyID));
+    transform.rotation = JoltConvert::FromQuat(bodyInterface->GetRotation(m_bodyID));
 }
 
 void JoltPhysicsComponent::SyncToPhysics(const Transform& transform)
 {
-    if (!m_valid || !m_world)
+    if (!m_valid)
         return;
 
-    JPH::BodyInterface& bodyInterface = m_world->GetBodyInterface();
-    bodyInterface.SetPositionAndRotation(m_bodyID, JoltConvert::ToRVec3(transform.position), JoltConvert::ToQuat(transform.rotation), JPH::EActivation::Activate);
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (!bodyInterface)
+        return;
+
+    bodyInterface->SetPositionAndRotation(m_bodyID, JoltConvert::ToRVec3(transform.position), JoltConvert::ToQuat(transform.rotation), JPH::EActivation::Activate);
 }
 
 void JoltPhysicsComponent::SetPosition(const float3pos& position)
 {
-    if (m_valid && m_world)
-        m_world->GetBodyInterface().SetPosition(m_bodyID, JoltConvert::ToRVec3(position), JPH::EActivation::Activate);
+    if (!m_valid)
+        return;
+
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (bodyInterface)
+        bodyInterface->SetPosition(m_bodyID, JoltConvert::ToRVec3(position), JPH::EActivation::Activate);
 }
 
 void JoltPhysicsComponent::SetRotation(const quatrot& rotation)
 {
-    if (m_valid && m_world)
-        m_world->GetBodyInterface().SetRotation(m_bodyID, JoltConvert::ToQuat(rotation), JPH::EActivation::Activate);
+    if (!m_valid)
+        return;
+
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (bodyInterface)
+        bodyInterface->SetRotation(m_bodyID, JoltConvert::ToQuat(rotation), JPH::EActivation::Activate);
 }
 
 void JoltPhysicsComponent::SetLinearVelocity(const float3pos& velocity)
 {
-    if (m_valid && m_world && m_type != JoltBodyType::Static)
-        m_world->GetBodyInterface().SetLinearVelocity(m_bodyID, JoltConvert::ToVec3(velocity));
+    if (!m_valid || m_type == JoltBodyType::Static)
+        return;
+
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (bodyInterface)
+        bodyInterface->SetLinearVelocity(m_bodyID, JoltConvert::ToVec3(velocity));
 }
 
 void JoltPhysicsComponent::SetAngularVelocity(const float3pos& velocity)
 {
-    if (m_valid && m_world && m_type != JoltBodyType::Static)
-        m_world->GetBodyInterface().SetAngularVelocity(m_bodyID, JoltConvert::ToVec3(velocity));
+    if (!m_valid || m_type == JoltBodyType::Static)
+        return;
+
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (bodyInterface)
+        bodyInterface->SetAngularVelocity(m_bodyID, JoltConvert::ToVec3(velocity));
 }
 
 float3pos JoltPhysicsComponent::GetLinearVelocity() const
 {
-    if (!m_valid || !m_world || m_type == JoltBodyType::Static)
+    if (!m_valid || m_type == JoltBodyType::Static)
         return { 0.0f, 0.0f, 0.0f };
 
-    return JoltConvert::FromVec3(m_world->GetSystem()->GetBodyInterface().GetLinearVelocity(m_bodyID));
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (!bodyInterface)
+        return { 0.0f, 0.0f, 0.0f };
+
+    return JoltConvert::FromVec3(bodyInterface->GetLinearVelocity(m_bodyID));
 }
 
 void JoltPhysicsComponent::AddForce(const float3pos& force)
 {
-    if (m_valid && m_world && m_type == JoltBodyType::Dynamic)
-        m_world->GetBodyInterface().AddForce(m_bodyID, JoltConvert::ToVec3(force));
+    if (!m_valid || m_type != JoltBodyType::Dynamic)
+        return;
+
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (bodyInterface)
+        bodyInterface->AddForce(m_bodyID, JoltConvert::ToVec3(force));
 }
 
 void JoltPhysicsComponent::AddImpulse(const float3pos& impulse)
 {
-    if (m_valid && m_world && m_type == JoltBodyType::Dynamic)
-        m_world->GetBodyInterface().AddImpulse(m_bodyID, JoltConvert::ToVec3(impulse));
+    if (!m_valid || m_type != JoltBodyType::Dynamic)
+        return;
+
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (bodyInterface)
+        bodyInterface->AddImpulse(m_bodyID, JoltConvert::ToVec3(impulse));
 }
 
 void JoltPhysicsComponent::AddTorque(const float3pos& torque)
 {
-    if (m_valid && m_world && m_type == JoltBodyType::Dynamic)
-        m_world->GetBodyInterface().AddTorque(m_bodyID, JoltConvert::ToVec3(torque));
+    if (!m_valid || m_type != JoltBodyType::Dynamic)
+        return;
+
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (bodyInterface)
+        bodyInterface->AddTorque(m_bodyID, JoltConvert::ToVec3(torque));
 }
 
 void JoltPhysicsComponent::SetGravityEnabled(bool enabled)
 {
-    if (m_valid && m_world && m_type != JoltBodyType::Static)
-        m_world->GetBodyInterface().SetGravityFactor(m_bodyID, enabled ? 1.0f : 0.0f);
+    if (!m_valid || m_type == JoltBodyType::Static)
+        return;
+
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (bodyInterface)
+        bodyInterface->SetGravityFactor(m_bodyID, enabled ? 1.0f : 0.0f);
 }
 
 void JoltPhysicsComponent::SetActive(bool active)
 {
-    if (!m_valid || !m_world)
+    if (!m_valid)
+        return;
+
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (!bodyInterface)
         return;
 
     if (active)
-        m_world->GetBodyInterface().ActivateBody(m_bodyID);
+        bodyInterface->ActivateBody(m_bodyID);
     else
-        m_world->GetBodyInterface().DeactivateBody(m_bodyID);
+        bodyInterface->DeactivateBody(m_bodyID);
 }
 
 void JoltPhysicsComponent::SetUserData(void* userData)
 {
-    if (m_valid && m_world)
-        m_world->GetBodyInterface().SetUserData(m_bodyID, reinterpret_cast<JPH::uint64>(userData));
+    if (!m_valid)
+        return;
+
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (bodyInterface)
+        bodyInterface->SetUserData(m_bodyID, reinterpret_cast<JPH::uint64>(userData));
 }
 
 void* JoltPhysicsComponent::GetUserData() const
 {
-    if (!m_valid || !m_world)
+    if (!m_valid)
         return nullptr;
 
-    return reinterpret_cast<void*>(m_world->GetSystem()->GetBodyInterface().GetUserData(m_bodyID));
+    JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
+    if (!bodyInterface)
+        return nullptr;
+
+    return reinterpret_cast<void*>(bodyInterface->GetUserData(m_bodyID));
 }
 
 bool JoltPhysicsComponent::IsValid() const { return m_valid; }

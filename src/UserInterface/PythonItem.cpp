@@ -42,7 +42,7 @@ bool CPythonItem::TGroundItemInstance::Update()
 
 	if (dwEndTime < CTimer::Instance().GetCurrentMillisecond())
 	{
-		ThingInstance.SetRotationQuaternion(qEnd);
+		ThingInstance.TransformComponent().SetRotationQuaternion(qEnd);
 
 		XMVECTOR center = XMLoadFloat3(&v3Center);
 		XMVECTOR endPos = XMLoadFloat3(&v3EndPosition);
@@ -57,7 +57,7 @@ bool CPythonItem::TGroundItemInstance::Update()
 		XMFLOAT3 out;
 		XMStoreFloat3(&out, qAdjust);
 
-		ThingInstance.SetPosition(
+		ThingInstance.TransformComponent().SetPosition(
 			v3EndPosition.x + out.x,
 			v3EndPosition.y + out.y,
 			v3EndPosition.z + out.z
@@ -98,7 +98,7 @@ bool CPythonItem::TGroundItemInstance::Update()
 		XMFLOAT3 adj;
 		XMStoreFloat3(&adj, qAdjust);
 
-		ThingInstance.SetPosition(
+		ThingInstance.TransformComponent().SetPosition(
 			v3NewPosition.x + adj.x,
 			v3NewPosition.y + adj.y,
 			v3NewPosition.z + adj.z
@@ -345,11 +345,11 @@ void CPythonItem::CreateItem(DWORD dwVirtualID, DWORD dwVirtualNumber, float x, 
 	if (bDrop)
 	{
 		pGroundItemInstance->v3EndPosition = XMFLOAT3(x, -y, z);
-		pGroundItemInstance->ThingInstance.SetPosition(0, 0, 0);
+		pGroundItemInstance->ThingInstance.TransformComponent().SetPosition(0, 0, 0);
 	}
 	else
 	{
-		pGroundItemInstance->ThingInstance.SetPosition(x, -y, z);
+		pGroundItemInstance->ThingInstance.TransformComponent().SetPosition(x, -y, z);
 	}
 
 	pGroundItemInstance->ThingInstance.Update();
@@ -485,7 +485,7 @@ void CPythonItem::CreateItem(DWORD dwVirtualID, DWORD dwVirtualNumber, float x, 
 		adjust = XMVector3TransformCoord(adjust, mat);
 	}
 
-	pGroundItemInstance->ThingInstance.Show();
+	pGroundItemInstance->ThingInstance.RenderComponent().Show();
 
 	m_GroundItemInstanceMap.insert({ dwVirtualID, pGroundItemInstance });
 
@@ -680,7 +680,7 @@ BOOL CPythonItem::GetGroundItemPosition(DWORD dwVirtualID, TPixelPosition * pPos
 
 	TGroundItemInstance * pInstance = itor->second;
 
-	const XMFLOAT3& rkD3DVct3=pInstance->ThingInstance.GetPosition();
+	const XMFLOAT3& rkD3DVct3=pInstance->ThingInstance.TransformComponent().GetPosition();
 
 	pPosition->x=+rkD3DVct3.x;
 	pPosition->y=-rkD3DVct3.y;

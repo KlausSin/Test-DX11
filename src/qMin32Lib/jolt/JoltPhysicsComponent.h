@@ -46,7 +46,7 @@ private:
 
 private:
     JoltPhysicsWorld* m_world = nullptr;
-    JPH::BodyID m_bodyID;
+    JPH::BodyID m_bodyID ={};
     bool m_valid = false;
     JoltBodyType m_type = JoltBodyType::Static;
 };

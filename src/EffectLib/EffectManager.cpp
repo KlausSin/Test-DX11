@@ -322,7 +322,7 @@ void CEffectManager::SetEffectInstancePosition(const XMFLOAT3 & c_rv3Position)
 		return;
 	}
 
-	m_pSelectedEffectInstance->SetPosition(c_rv3Position);
+	m_pSelectedEffectInstance->TransformComponent().SetPosition(c_rv3Position);
 }
 
 void CEffectManager::SetEffectInstanceRotation(const XMFLOAT3 & c_rv3Rotation)
@@ -333,7 +333,7 @@ void CEffectManager::SetEffectInstanceRotation(const XMFLOAT3 & c_rv3Rotation)
 		return;
 	}
 
-	m_pSelectedEffectInstance->SetRotation(c_rv3Rotation.x,c_rv3Rotation.y,c_rv3Rotation.z);
+	m_pSelectedEffectInstance->TransformComponent().SetRotation(c_rv3Rotation.x,c_rv3Rotation.y,c_rv3Rotation.z);
 }
 
 void CEffectManager::SetEffectInstanceGlobalMatrix(const XMFLOAT4X4 & c_rmatGlobal)
@@ -349,7 +349,7 @@ void CEffectManager::ShowEffect()
 	if (!m_pSelectedEffectInstance)
 		return;
 
-	m_pSelectedEffectInstance->Show();
+	m_pSelectedEffectInstance->RenderComponent().Show();
 }
 
 void CEffectManager::HideEffect()
@@ -357,7 +357,7 @@ void CEffectManager::HideEffect()
 	if (!m_pSelectedEffectInstance)
 		return;
 
-	m_pSelectedEffectInstance->Hide();
+	m_pSelectedEffectInstance->RenderComponent().Hide();
 }
 
 void CEffectManager::ApplyAlwaysHidden()
@@ -365,7 +365,7 @@ void CEffectManager::ApplyAlwaysHidden()
 	if (!m_pSelectedEffectInstance)
 		return;
 
-	m_pSelectedEffectInstance->ApplyAlwaysHidden();
+	m_pSelectedEffectInstance->RenderComponent().SetAlwaysHidden(true);
 }
 
 void CEffectManager::ReleaseAlwaysHidden()
@@ -373,7 +373,7 @@ void CEffectManager::ReleaseAlwaysHidden()
 	if (!m_pSelectedEffectInstance)
 		return;
 
-	m_pSelectedEffectInstance->ReleaseAlwaysHidden();
+	m_pSelectedEffectInstance->RenderComponent().SetAlwaysHidden(false);
 }
 
 bool CEffectManager::GetEffectData(DWORD dwID, CEffectData ** ppEffect)

@@ -5,29 +5,28 @@
 
 void Environment_Init(SEnvironmentData& envData)
 {
-	for (int i = 0; i < ENV_DIRLIGHT_NUM; ++i)
-	{
-		envData.bDirLightsEnable[i] = false;
-		envData.DirLights[i].Type = D3DLIGHT_DIRECTIONAL11;
-		envData.DirLights[i].Direction = XMFLOAT3(0.5f, 0.5f, -0.5f);
-		envData.DirLights[i].Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		envData.DirLights[i].Specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		envData.DirLights[i].Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		envData.DirLights[i].Ambient = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-		envData.DirLights[i].Range = 0.0f; // Used by Point Light & Spot Light
-		envData.DirLights[i].Falloff = 1.0f; // Used by Spot Light
-		envData.DirLights[i].Theta = 0.0f; // Used by Spot Light
-		envData.DirLights[i].Phi = 0.0f; // Used by Spot Light
-		envData.DirLights[i].Attenuation0 = 0.0f;
-		envData.DirLights[i].Attenuation1 = 1.0f;
-		envData.DirLights[i].Attenuation2 = 0.0f;
-	}
+    for (int i = 0; i < ENV_DIRLIGHT_NUM; ++i)
+    {
+        envData.bDirLightsEnable[i] = false;
 
-	envData.Material.Diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
-	envData.Material.Ambient = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
-	envData.Material.Emissive = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
-	envData.Material.Specular = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-	envData.Material.Power = 0.0f;
+        envData.DirLights[i].SetType(LIGHT_TYPE_DIRECTIONAL);
+        envData.DirLights[i].SetDirection(XMFLOAT3(0.5f, 0.5f, -0.5f));
+        envData.DirLights[i].SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
+        envData.DirLights[i].SetSpecular(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+        envData.DirLights[i].SetDiffuse(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+        envData.DirLights[i].SetAmbient(XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f));
+        envData.DirLights[i].SetRange(0.0f);
+        envData.DirLights[i].SetFalloff(1.0f);
+        envData.DirLights[i].SetTheta(0.0f);
+        envData.DirLights[i].SetPhi(0.0f);
+        envData.DirLights[i].SetAttenuation(0.0f, 1.0f, 0.0f);
+    }
+
+    envData.Material.diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+    envData.Material.ambient = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+    envData.Material.emissive = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+    envData.Material.specular = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+    envData.Material.params = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	// MR-14: Fog update by Alaric
 	envData.bFogEnable = TRUE;
@@ -88,22 +87,32 @@ bool Environment_Load(SEnvironmentData& envData, const char* envFileName)
 
         if (json.SetChildNode("background"))
         {
-            envData.DirLights[ENV_DIRLIGHT_BACKGROUND].Direction = v3Dir;
+            envData.DirLights[ENV_DIRLIGHT_BACKGROUND].SetDirection(v3Dir);
 
             json.GetTokenBoolean("enable", &envData.bDirLightsEnable[ENV_DIRLIGHT_BACKGROUND]);
-            json.GetTokenColor("diffuse", &envData.DirLights[ENV_DIRLIGHT_BACKGROUND].Diffuse);
-            json.GetTokenColor("ambient", &envData.DirLights[ENV_DIRLIGHT_BACKGROUND].Ambient);
+            XMFLOAT4 color;
+
+            if (json.GetTokenColor("diffuse", &color))
+                envData.DirLights[ENV_DIRLIGHT_BACKGROUND].SetDiffuse(color);
+
+            if (json.GetTokenColor("ambient", &color))
+                envData.DirLights[ENV_DIRLIGHT_BACKGROUND].SetAmbient(color);
 
             json.SetParentNode();
         }
 
         if (json.SetChildNode("character"))
         {
-            envData.DirLights[ENV_DIRLIGHT_CHARACTER].Direction = v3Dir;
+            envData.DirLights[ENV_DIRLIGHT_CHARACTER].SetDirection(v3Dir);
 
             json.GetTokenBoolean("enable", &envData.bDirLightsEnable[ENV_DIRLIGHT_CHARACTER]);
-            json.GetTokenColor("diffuse", &envData.DirLights[ENV_DIRLIGHT_CHARACTER].Diffuse);
-            json.GetTokenColor("ambient", &envData.DirLights[ENV_DIRLIGHT_CHARACTER].Ambient);
+            XMFLOAT4 color;
+
+            if (json.GetTokenColor("diffuse", &color))
+                envData.DirLights[ENV_DIRLIGHT_CHARACTER].SetDiffuse(color);
+
+            if (json.GetTokenColor("ambient", &color))
+                envData.DirLights[ENV_DIRLIGHT_CHARACTER].SetAmbient(color);
 
             json.SetParentNode();
         }
@@ -113,9 +122,9 @@ bool Environment_Load(SEnvironmentData& envData, const char* envFileName)
 
     if (json.SetChildNode("material"))
     {
-        json.GetTokenColor("diffuse", &envData.Material.Diffuse);
-        json.GetTokenColor("ambient", &envData.Material.Ambient);
-        json.GetTokenColor("emissive", &envData.Material.Emissive);
+        json.GetTokenColor("diffuse", &envData.Material.diffuse);
+        json.GetTokenColor("ambient", &envData.Material.ambient);
+        json.GetTokenColor("emissive", &envData.Material.emissive);
 
         json.SetParentNode();
     }

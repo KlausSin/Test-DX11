@@ -25,7 +25,7 @@ class CMapBase : public CScreen
 		virtual float	GetHeight(float fx, float fy) = 0;
 		virtual void	OnBeginEnvironment() = 0; // 렌더링 할 때 불려지며 여기서 Environment에 관련 있는 것들을 셋팅 한다.
 
-		virtual void 	ApplyLight(DWORD dwVersion, const D3DLIGHT11& c_rkLight) = 0;
+		virtual void	ApplyLight(DWORD dwVersion, const CLightComponent& c_rkLight) = 0;
 
 	protected:
 		virtual void	OnRender() = 0;

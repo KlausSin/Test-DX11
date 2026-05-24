@@ -111,7 +111,7 @@ PyObject * grpSetThingPosition(PyObject * poSelf, PyObject * poArgs)
 	if (!PyTuple_GetFloat(poArgs, 3, &z))
 		return Py_BuildException();
 	
-	pThingInstance->SetPosition(x, y, z);
+	pThingInstance->TransformComponent().SetPosition(x, y, z);
 	return Py_BuildNone();
 }
 
@@ -125,7 +125,7 @@ PyObject * grpSetThingRotation(PyObject * poSelf, PyObject * poArgs)
 	if (!PyTuple_GetFloat(poArgs, 1, &fDegree))
 		return Py_BuildException();
 
-	pThingInstance->SetRotation(fDegree);
+	pThingInstance->TransformComponent().SetRotation(fDegree);
 	return Py_BuildNone();
 }
 
@@ -145,7 +145,7 @@ PyObject * grpSetThingScale(PyObject * poSelf, PyObject * poArgs)
 	if (!PyTuple_GetFloat(poArgs, 3, &z))
 		return Py_BuildException();
 	
-	pThingInstance->SetScale(x, y, z);
+	pThingInstance->TransformComponent().SetScale(x, y, z);
 	return Py_BuildNone();
 }
 

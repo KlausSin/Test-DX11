@@ -611,63 +611,65 @@ void CActorInstance::AddMovement(float fx, float fy, float fz)
 
 const float gc_fActorSlideMoveSpeed = 5.0f;
 
-void CActorInstance::AdjustDynamicCollisionMovement(const CActorInstance * c_pActorInstance)
+void CActorInstance::AdjustDynamicCollisionMovement(const CActorInstance* c_pActorInstance)
 {
+	if (!c_pActorInstance)
+		return;
+
 	if (m_pkHorse)
 	{
 		m_pkHorse->AdjustDynamicCollisionMovement(c_pActorInstance);
 		return;
 	}
 
-	// NOTE : 기존의 Sphere Overlap됬을경우 처리가 비비기를 하면은 Penetration될 위험이 많아서 ( 실제로도 나왔고 --)
-	// Sphere간 Collision이 생겼을 경우 이전위치로 RollBack하는 방식으로 바꿨다.
-	// 단 BGObject에 대해서만.
-
-	if (isAttacking() )
+	if (isAttacking())
 		return;
-	
+
 	UINT uActorType = c_pActorInstance->GetActorType();
-	if( (uActorType == TYPE_BUILDING) || (uActorType == TYPE_OBJECT) || (uActorType == TYPE_DOOR) || (uActorType == TYPE_STONE))
+	if (uActorType == TYPE_BUILDING || uActorType == TYPE_OBJECT || uActorType == TYPE_DOOR || uActorType == TYPE_STONE)
 	{
 		BlockMovement();
-
-		//Movement초기화
-	/*	m_v3Movement = D3DXVECTOR3(0.f,0.f,0.f);
-
-		TCollisionPointInstanceListIterator itMain = m_BodyPointInstanceList.begin();
-		for (; itMain != m_BodyPointInstanceList.end(); ++itMain)
-		{
-			CDynamicSphereInstanceVector & c_rMainSphereVector = (*itMain).SphereInstanceVector;
-			for (DWORD i = 0; i < c_rMainSphereVector.size(); ++i)
-			{
-				CDynamicSphereInstance & c_rMainSphere = c_rMainSphereVector[i];
-				c_rMainSphere.v3Position =c_rMainSphere.v3LastPosition;
-			}
-		}*/
+		return;
 	}
-	else
+
+	float move_length = XMVectorGetX(XMVector3Length(XMLoadFloat3(&m_v3Movement)));
+
+	if (move_length > gc_fActorSlideMoveSpeed)
+		XMStoreFloat3(&m_v3Movement, XMLoadFloat3(&m_v3Movement) * (gc_fActorSlideMoveSpeed / move_length));
+
+	for (TCollisionPointInstanceListIterator itMain = m_BodyPointInstanceList.begin(); itMain != m_BodyPointInstanceList.end(); ++itMain)
 	{
-		float move_length = XMVectorGetX(XMVector3Length(XMLoadFloat3(&m_v3Movement)));
+		CDynamicSphereInstanceVector& c_rMainSphereVector = itMain->SphereInstanceVector;
 
-		if (move_length > gc_fActorSlideMoveSpeed)
-			XMStoreFloat3(&m_v3Movement, XMLoadFloat3(&m_v3Movement) * (gc_fActorSlideMoveSpeed / move_length));
-
-		TCollisionPointInstanceListIterator itMain = m_BodyPointInstanceList.begin();
-		for (; itMain != m_BodyPointInstanceList.end(); ++itMain)
+		for (DWORD i = 0; i < c_rMainSphereVector.size(); ++i)
 		{
-			CDynamicSphereInstanceVector& c_rMainSphereVector = (*itMain).SphereInstanceVector;
-			for (DWORD i = 0; i < c_rMainSphereVector.size(); ++i)
+			CDynamicSphereInstance& c_rMainSphere = c_rMainSphereVector[i];
+
+			for (TCollisionPointInstanceList::const_iterator itOpp = c_pActorInstance->m_BodyPointInstanceList.begin(); itOpp != c_pActorInstance->m_BodyPointInstanceList.end(); ++itOpp)
 			{
-				CDynamicSphereInstance& c_rMainSphere = c_rMainSphereVector[i];
+				const CDynamicSphereInstanceVector& c_rOppSphereVector = itOpp->SphereInstanceVector;
 
-				TCollisionPointInstanceList::const_iterator itOpp = c_pActorInstance->m_BodyPointInstanceList.begin();
-				for (; itOpp != c_pActorInstance->m_BodyPointInstanceList.end(); ++itOpp)
+				for (DWORD j = 0; j < c_rOppSphereVector.size(); ++j)
 				{
-					CSphereCollisionInstance s;
-					s.GetAttribute().fRadius = itOpp->SphereInstanceVector[0].fRadius;
-					s.GetAttribute().v3Position = itOpp->SphereInstanceVector[0].v3Position;
+					const CDynamicSphereInstance& c_rOppSphere = c_rOppSphereVector[j];
 
-					XMFLOAT3 v3Delta = s.GetCollisionMovementAdjust(c_rMainSphere);
+					XMFLOAT3 v3Diff;
+					XMStoreFloat3(&v3Diff, XMLoadFloat3(&c_rMainSphere.v3Position) - XMLoadFloat3(&c_rOppSphere.v3Position));
+
+					const float fDistSq = v3Diff.x * v3Diff.x + v3Diff.y * v3Diff.y + v3Diff.z * v3Diff.z;
+					const float fRadiusSum = c_rMainSphere.fRadius + c_rOppSphere.fRadius;
+
+					XMFLOAT3 v3Delta(0.0f, 0.0f, 0.0f);
+
+					if (fDistSq > 0.0001f && fDistSq < fRadiusSum * fRadiusSum)
+					{
+						const float fDist = sqrtf(fDistSq);
+						const float fPush = fRadiusSum - fDist;
+
+						v3Delta.x = v3Diff.x / fDist * fPush;
+						v3Delta.y = v3Diff.y / fDist * fPush;
+						v3Delta.z = v3Diff.z / fDist * fPush;
+					}
 
 					XMStoreFloat3(&m_v3Movement, XMLoadFloat3(&m_v3Movement) + XMLoadFloat3(&v3Delta));
 					XMStoreFloat3(&c_rMainSphere.v3Position, XMLoadFloat3(&c_rMainSphere.v3Position) + XMLoadFloat3(&v3Delta));

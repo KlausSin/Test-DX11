@@ -1070,6 +1070,7 @@ void CPythonApplication::Clear()
 
 void CPythonApplication::Destroy()
 {
+
 	// SphereMap
 	CGrannyMaterial::DestroySphereMap();
 
@@ -1094,6 +1095,7 @@ void CPythonApplication::Destroy()
 	m_kItemMgr.Destroy();
 
 	m_pyBackground.Destroy();
+	DestroyCollisionInstanceSystem();
 
 	m_kEftMgr.Destroy();
 	m_LightManager.Destroy();
@@ -1116,7 +1118,6 @@ void CPythonApplication::Destroy()
 	m_pyRes.Destroy();
 
 	m_kGuildMarkDownloader.Disconnect();
-	DestroyCollisionInstanceSystem();
 
 	CGrannyModelInstance::DestroySystem();
 	CGraphicImageInstance::DestroySystem();

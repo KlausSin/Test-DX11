@@ -19,7 +19,7 @@ const JoltPhysicsConfig& JoltCollisionStreamer::GetConfig() const
     return m_config;
 }
 
-void JoltCollisionStreamer::Register(CBaseCollisionInstance* instance)
+void JoltCollisionStreamer::Register(const CCollisionInstancePtr& instance)
 {
     if (!instance)
         return;
@@ -32,15 +32,22 @@ void JoltCollisionStreamer::Unregister(CBaseCollisionInstance* instance)
     if (!instance)
         return;
 
-    m_instances.erase(std::remove(m_instances.begin(), m_instances.end(), instance), m_instances.end());
+    m_instances.erase(std::remove_if(m_instances.begin(), m_instances.end(),
+        [instance](const CCollisionInstancePtr& p) { return p.get() == instance; }), m_instances.end());
+
+    m_createQueue.erase(std::remove_if(m_createQueue.begin(), m_createQueue.end(),
+        [instance](const CCollisionInstancePtr& p) { return p.get() == instance; }), m_createQueue.end());
+
+    m_destroyQueue.erase(std::remove_if(m_destroyQueue.begin(), m_destroyQueue.end(),
+        [instance](const CCollisionInstancePtr& p) { return p.get() == instance; }), m_destroyQueue.end());
+
     m_createSet.erase(instance);
     m_destroySet.erase(instance);
-    instance->ReleaseJoltBody();
 }
 
 void JoltCollisionStreamer::Clear()
 {
-    for (CBaseCollisionInstance* instance : m_instances)
+    for (const auto& instance : m_instances)
     {
         if (instance)
             instance->ReleaseJoltBody();
@@ -71,21 +78,21 @@ float JoltCollisionStreamer::DistanceSq2D(const float3pos& a, const float3pos& b
     return dx * dx + dy * dy;
 }
 
-void JoltCollisionStreamer::QueueCreate(CBaseCollisionInstance* instance)
+void JoltCollisionStreamer::QueueCreate(const CCollisionInstancePtr& instance)
 {
     if (!instance || instance->HasJoltBody())
         return;
 
-    if (m_createSet.insert(instance).second)
+    if (m_createSet.insert(instance.get()).second)
         m_createQueue.push_back(instance);
 }
 
-void JoltCollisionStreamer::QueueDestroy(CBaseCollisionInstance* instance)
+void JoltCollisionStreamer::QueueDestroy(const CCollisionInstancePtr& instance)
 {
     if (!instance || !instance->HasJoltBody())
         return;
 
-    if (m_destroySet.insert(instance).second)
+    if (m_destroySet.insert(instance.get()).second)
         m_destroyQueue.push_back(instance);
 }
 
@@ -110,12 +117,13 @@ void JoltCollisionStreamer::Update(float)
     const float createDistanceSq = m_config.streamCreateDistance * m_config.streamCreateDistance;
     const float destroyDistanceSq = m_config.streamDestroyDistance * m_config.streamDestroyDistance;
 
-    for (CBaseCollisionInstance* instance : m_instances)
+    for (const auto& instance : m_instances)
     {
         if (!instance)
             continue;
 
         const float d2 = DistanceSq2D(instance->GetJoltWorldCenter(), m_center);
+
         if (d2 <= createDistanceSq)
             QueueCreate(instance);
         else if (d2 >= destroyDistanceSq)
@@ -133,12 +141,14 @@ void JoltCollisionStreamer::ProcessQueues()
     uint32_t destroys = 0;
     while (!m_destroyQueue.empty() && destroys < m_config.maxBodyDestroysPerFrame)
     {
-        CBaseCollisionInstance* instance = m_destroyQueue.front();
+        CCollisionInstancePtr instance = m_destroyQueue.front();
         m_destroyQueue.pop_front();
-        m_destroySet.erase(instance);
 
         if (instance)
+        {
+            m_destroySet.erase(instance.get());
             instance->ReleaseJoltBody();
+        }
 
         ++destroys;
     }
@@ -146,12 +156,16 @@ void JoltCollisionStreamer::ProcessQueues()
     uint32_t creates = 0;
     while (!m_createQueue.empty() && creates < m_config.maxBodyCreatesPerFrame)
     {
-        CBaseCollisionInstance* instance = m_createQueue.front();
+        CCollisionInstancePtr instance = m_createQueue.front();
         m_createQueue.pop_front();
-        m_createSet.erase(instance);
 
-        if (instance && !instance->HasJoltBody())
-            instance->EnsureJoltBody(false);
+        if (instance)
+        {
+            m_createSet.erase(instance.get());
+
+            if (!instance->HasJoltBody())
+                instance->EnsureJoltBody(false);
+        }
 
         ++creates;
     }

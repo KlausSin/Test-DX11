@@ -55,17 +55,18 @@ CBaseCollisionInstance::~CBaseCollisionInstance()
 
 void CBaseCollisionInstance::Destroy()
 {
-    JoltCollisionStreamer::Instance().Unregister(this);
+    JoltCollisionStreamer::Instance().Unregister(this); 
     ReleaseJoltBody();
+
     OnDestroy();
-    delete this;
 }
 
 void CBaseCollisionInstance::ReleaseJoltBody() const
 {
-    if (m_joltCreated || m_body.IsValid())
-        m_body.Destroy();
+    if (!m_joltCreated && !m_body.IsValid())
+        return;
 
+    m_body.Destroy();
     m_joltCreated = false;
 }
 
@@ -249,19 +250,19 @@ bool CCylinderCollisionInstance::CreateJoltBodyInternal()
     );
 }
 
-CBaseCollisionInstance* CBaseCollisionInstance::BuildCollisionInstance(const CStaticCollisionData* c_pCollisionData, const XMFLOAT4X4* pMat)
+CCollisionInstancePtr  CBaseCollisionInstance::BuildCollisionInstance(const CStaticCollisionData* c_pCollisionData, const XMFLOAT4X4* pMat)
 {
     if (!c_pCollisionData || !pMat)
         return nullptr;
 
     const XMMATRIX matWorld = XMLoadFloat4x4(pMat);
-    CBaseCollisionInstance* base = nullptr;
+    CCollisionInstancePtr  base = nullptr;
 
     switch (c_pCollisionData->dwType)
     {
         case COLLISION_TYPE_PLANE:
         {
-            CPlaneCollisionInstance* instance = new CPlaneCollisionInstance();
+            auto instance = std::make_shared<CPlaneCollisionInstance>();
             TPlaneData& data = instance->GetAttribute();
             const float halfWidth = c_pCollisionData->fDimensions[0] * 0.5f;
             const float halfLength = c_pCollisionData->fDimensions[1] * 0.5f;
@@ -295,8 +296,7 @@ CBaseCollisionInstance* CBaseCollisionInstance::BuildCollisionInstance(const CSt
 
         case COLLISION_TYPE_BOX:
         {
-            COBBCollisionInstance* instance = new COBBCollisionInstance();
-
+            auto instance = std::make_shared<COBBCollisionInstance>();
             XMFLOAT3 center = TransformPoint(c_pCollisionData->v3Position, pMat);
 
             XMFLOAT3 half(
@@ -326,7 +326,7 @@ CBaseCollisionInstance* CBaseCollisionInstance::BuildCollisionInstance(const CSt
         }
         case COLLISION_TYPE_AABB:
         {
-            CAABBCollisionInstance* instance = new CAABBCollisionInstance();
+            auto instance = std::make_shared<CAABBCollisionInstance>();
             XMFLOAT3 center = TransformPoint(c_pCollisionData->v3Position, pMat);
             XMFLOAT3 half(c_pCollisionData->fDimensions[0], c_pCollisionData->fDimensions[1], c_pCollisionData->fDimensions[2]);
             TAABBData& data = instance->GetAttribute();
@@ -339,7 +339,8 @@ CBaseCollisionInstance* CBaseCollisionInstance::BuildCollisionInstance(const CSt
 
         case COLLISION_TYPE_OBB:
         {
-            COBBCollisionInstance* instance = new COBBCollisionInstance();
+            auto instance = std::make_shared<COBBCollisionInstance>();
+
             XMFLOAT3 center = TransformPoint(c_pCollisionData->v3Position, pMat);
             XMFLOAT3 half(c_pCollisionData->fDimensions[0], c_pCollisionData->fDimensions[1], c_pCollisionData->fDimensions[2]);
             TOBBData& data = instance->GetAttribute();
@@ -353,7 +354,7 @@ CBaseCollisionInstance* CBaseCollisionInstance::BuildCollisionInstance(const CSt
 
         case COLLISION_TYPE_SPHERE:
         {
-            CSphereCollisionInstance* instance = new CSphereCollisionInstance();
+            auto instance = std::make_shared<CSphereCollisionInstance>();
             TSphereData& data = instance->GetAttribute();
             data.v3Position = TransformPoint(c_pCollisionData->v3Position, pMat);
             data.fRadius = c_pCollisionData->fDimensions[0];
@@ -364,7 +365,7 @@ CBaseCollisionInstance* CBaseCollisionInstance::BuildCollisionInstance(const CSt
 
         case COLLISION_TYPE_CYLINDER:
         {
-            CCylinderCollisionInstance* instance = new CCylinderCollisionInstance();
+            auto instance = std::make_shared<CCylinderCollisionInstance>();
             TCylinderData& data = instance->GetAttribute();
             data.v3Position = TransformPoint(c_pCollisionData->v3Position, pMat);
             data.fRadius = c_pCollisionData->fDimensions[0];

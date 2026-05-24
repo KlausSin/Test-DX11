@@ -22,7 +22,7 @@ void CCollisionComponent::OnDestroyInternal()
 
 void CCollisionComponent::Clear()
 {
-	for (auto* instance : m_instances)
+	for (const auto& instance : m_instances)
 	{
 		if (instance)
 			instance->Destroy();
@@ -33,7 +33,7 @@ void CCollisionComponent::Clear()
 
 void CCollisionComponent::Add(const CStaticCollisionData* data, const XMFLOAT4X4* matrix)
 {
-	CBaseCollisionInstance* instance = CBaseCollisionInstance::BuildCollisionInstance(data, matrix);
+	auto instance = CBaseCollisionInstance::BuildCollisionInstance(data, matrix);
 	if (!instance)
 	{
 		TraceError("AddCollision failed type=%u", data ? data->dwType : 999);
@@ -45,7 +45,7 @@ void CCollisionComponent::Add(const CStaticCollisionData* data, const XMFLOAT4X4
 
 bool CCollisionComponent::CollisionDynamicSphere(const CDynamicSphereInstance& sphere) const
 {
-	for (auto* instance : m_instances)
+	for (auto instance : m_instances)
 	{
 		if (instance && instance->CollisionDynamicSphere(sphere))
 			return true;
@@ -56,7 +56,7 @@ bool CCollisionComponent::CollisionDynamicSphere(const CDynamicSphereInstance& s
 
 bool CCollisionComponent::MovementCollisionDynamicSphere(const CDynamicSphereInstance& sphere) const
 {
-	for (auto* instance : m_instances)
+	for (auto instance : m_instances)
 	{
 		if (instance && instance->MovementCollisionDynamicSphere(sphere))
 			return true;
@@ -67,7 +67,7 @@ bool CCollisionComponent::MovementCollisionDynamicSphere(const CDynamicSphereIns
 
 XMFLOAT3 CCollisionComponent::GetCollisionMovementAdjust(const CDynamicSphereInstance& sphere) const
 {
-	for (auto* instance : m_instances)
+	for (auto instance : m_instances)
 	{
 		if (instance && instance->MovementCollisionDynamicSphere(sphere))
 			return instance->GetCollisionMovementAdjust(sphere);
@@ -86,7 +86,7 @@ CBaseCollisionInstance* CCollisionComponent::GetData(DWORD index)
 	if (index >= m_instances.size())
 		return nullptr;
 
-	return m_instances[index];
+	return m_instances[index].get();
 }
 
 const CBaseCollisionInstance* CCollisionComponent::GetData(DWORD index) const
@@ -94,7 +94,7 @@ const CBaseCollisionInstance* CCollisionComponent::GetData(DWORD index) const
 	if (index >= m_instances.size())
 		return nullptr;
 
-	return m_instances[index];
+	return m_instances[index].get();
 }
 
 CCollisionInstanceVector& CCollisionComponent::GetInstances()

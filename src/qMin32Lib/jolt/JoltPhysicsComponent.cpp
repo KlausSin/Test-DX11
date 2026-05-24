@@ -118,16 +118,18 @@ void JoltPhysicsComponent::Destroy()
 
     m_valid = false;
     m_world = nullptr;
-    m_bodyID = {};
+    m_bodyID = JPH::BodyID();
     m_type = JoltBodyType::Static;
 
     JPH::BodyInterface* bodyInterface = GetValidBodyInterface();
-    if (!bodyInterface)
+    if (!bodyInterface || bodyID.IsInvalid())
         return;
 
-    if (bodyInterface->IsAdded(bodyID))
-        bodyInterface->RemoveBody(bodyID);
+    if (!bodyInterface->IsAdded(bodyID))
+        return;
 
+    bodyInterface->SetUserData(bodyID, 0);
+    bodyInterface->RemoveBody(bodyID);
     bodyInterface->DestroyBody(bodyID);
 }
 

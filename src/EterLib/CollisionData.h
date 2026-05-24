@@ -5,6 +5,8 @@
 #include "qMin32Lib/jolt/PhysicsObjectComponent.h"
 #include <d3d11.h>
 #include <DirectXMath.h>
+#include <memory>
+
 using namespace DirectX;
 
 struct SSphereData { XMFLOAT3 v3Position; float fRadius; };
@@ -27,6 +29,11 @@ typedef SOBBData TOBBData;
 
 struct SCylinderData { XMFLOAT3 v3Position; float fRadius; float fHeight; };
 typedef SCylinderData TCylinderData;
+
+class CBaseCollisionInstance;
+
+using CCollisionInstancePtr = std::shared_ptr<CBaseCollisionInstance>;
+using CCollisionInstanceVector = std::vector<CCollisionInstancePtr>;
 
 enum ECollisionType
 {
@@ -77,7 +84,7 @@ public:
     const float3pos& GetJoltWorldCenter() const;
     float GetJoltRadius() const;
 
-    static CBaseCollisionInstance* BuildCollisionInstance(const CStaticCollisionData* c_pCollisionData, const XMFLOAT4X4* pMat);
+    static CCollisionInstancePtr  BuildCollisionInstance(const CStaticCollisionData* c_pCollisionData, const XMFLOAT4X4* pMat);
 
     void SetDebugInfo(DWORD type, const char* name);
     DWORD GetDebugType() const;
@@ -101,6 +108,7 @@ protected:
 
     DWORD m_debugType = 0;
     char m_debugName[32] = {};
+    bool m_beingDestroyed = false;
 };
 
 class CSphereCollisionInstance : public CBaseCollisionInstance
@@ -155,4 +163,3 @@ protected:
 
 typedef std::vector<CSphereCollisionInstance> CSphereCollisionInstanceVector;
 typedef std::vector<CDynamicSphereInstance> CDynamicSphereInstanceVector;
-typedef std::vector<CBaseCollisionInstance*> CCollisionInstanceVector;
